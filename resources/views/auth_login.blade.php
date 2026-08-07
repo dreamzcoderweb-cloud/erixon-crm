@@ -8,7 +8,7 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
 
-    <title>{{ $generalSetting->company_name ?? '---' }} - Login</title>
+    <title>{{ company_name() }} - Login</title>
 
     <meta name="description" content="" />
 
@@ -42,7 +42,7 @@
     <script src="{{ asset('assets/js/config.js') }}"></script>
 
     @php
-        $themeColor = $generalSetting->theme_color ?? '#00b2a9';
+        $themeColor = theme_color();
     @endphp
     <style>
         :root {
@@ -81,12 +81,12 @@
                         <!-- Logo -->
                         <div class="app-brand justify-content-center mb-4">
                             <a href="{{ url('/') }}" class="app-brand-link gap-2 align-items-center">
-                                @if(!empty($generalSetting->logo) && file_exists(public_path($generalSetting->logo)))
-                                    <img src="{{ asset($generalSetting->logo) }}" alt="logo" height="38" style="object-fit: contain;">
+                                @if(company_logo())
+                                    <img src="{{ company_logo() }}" alt="logo" height="38" style="object-fit: contain;">
                                 @else
                                     <i class="bx bx-dumbbell fs-2 text-primary"></i>
                                 @endif
-                                <span class="app-brand-text demo text-heading fw-bold ms-1">{{ $generalSetting->company_name ?? 'PowerGYM' }}</span>
+                                <span class="app-brand-text demo text-heading fw-bold ms-1">{{ company_name() }}</span>
                             </a>
                         </div>
                         <!-- /Logo -->

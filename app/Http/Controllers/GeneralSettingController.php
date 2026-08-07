@@ -42,6 +42,7 @@ class GeneralSettingController extends Controller
         }
 
         $setting->save();
+        GeneralSetting::clearCache();
 
         session()->flash('success', 'General settings saved successfully.');
         return redirect()->back();

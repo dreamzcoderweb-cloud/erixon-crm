@@ -73,7 +73,7 @@
     </script>
 
     @php
-        $themeColor = $generalSetting->theme_color ?? '#00b2a9';
+        $themeColor = theme_color();
     @endphp
     <style>
         /* Global Dynamic Theme Color Styles */

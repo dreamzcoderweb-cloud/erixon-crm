@@ -1,10 +1,10 @@
 @extends('layouts.master')
 
-@section('title', 'Referral Settings - Gym Settings')
+@section('title', 'Referral Settings - Settings')
 
 @section('content')
 <div class="container-xxl flex-grow-1 container-p-y">
-   
+
 
     @if (session('success'))
         <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">

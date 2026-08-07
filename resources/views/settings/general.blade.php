@@ -1,6 +1,6 @@
 @extends('layouts.master')
 
-@section('title', 'General Settings - Gym Settings')
+@section('title', 'General Settings - Settings')
 
 @section('content')
 <div class="container-xxl flex-grow-1 container-p-y">
@@ -47,12 +47,12 @@
 
     <!-- General Settings Form Card -->
     <div class="card mb-4">
-        {{-- <h5 class="card-header border-bottom">Gym Settings</h5> --}}
+        {{-- <h5 class="card-header border-bottom"> Settings</h5> --}}
         <div class="card-body pt-4">
             <form action="{{ route('admin.settings.general.update') }}" method="POST" enctype="multipart/form-data">
                 @csrf
 
-                <!-- Gym Logo Preview & Info -->
+                <!--  Logo Preview & Info -->
                 <div class="d-flex align-items-start align-items-sm-center gap-4 mb-4">
                     <div class="position-relative">
                         @if(!empty($setting->logo) && file_exists(public_path($setting->logo)))
@@ -73,7 +73,7 @@
                     <!-- Company Name -->
                     <div class="col-md-12 mb-3">
                         <label for="company_name" class="form-label fw-semibold">Company Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control @error('company_name') is-invalid @enderror" id="company_name" name="company_name" value="{{ old('company_name', $setting->company_name) }}" placeholder="e.g. PowerGYM" required />
+                        <input type="text" class="form-control @error('company_name') is-invalid @enderror" id="company_name" name="company_name" value="{{ old('company_name', $setting->company_name) }}" placeholder="e.g." required />
                         @error('company_name')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror

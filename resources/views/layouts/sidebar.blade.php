@@ -1,12 +1,12 @@
 <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
     <div class="app-brand demo">
         <a href="{{ route('admin.dashboard') }}" class="app-brand-link">
-            @if(!empty($generalSetting->logo) && file_exists(public_path($generalSetting->logo)))
-                <img src="{{ asset($generalSetting->logo) }}" alt="logo" height="32" style="object-fit: contain;">
+            @if(company_logo())
+                <img src="{{ company_logo() }}" alt="logo" height="32" style="object-fit: contain;">
             @else
                 <i class="bx bx-dumbbell fs-3 me-1"></i>
             @endif
-            <span class="app-brand-text demo menu-text fw-bold ms-2">{{ $generalSetting->company_name ?? 'PowerGYM' }}</span>
+            <span class="app-brand-text demo menu-text fw-bold ms-2">{{ company_name() }}</span>
         </a>
 
         <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto d-block d-xl-none">

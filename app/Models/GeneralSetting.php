@@ -17,17 +17,46 @@ class GeneralSetting extends Model
     ];
 
     /**
+     * Cache static settings instance in memory per-request
+     */
+    protected static $cachedSettings = null;
+
+    /**
      * Get single setting record or create default instance
      */
     public static function getSettings()
     {
-        return self::firstOrCreate(
-            ['id' => 1],
-            [
-                'company_name' => 'PowerGYM',
-                'whatsapp_no' => '8610747034',
+        if (static::$cachedSettings !== null) {
+            return static::$cachedSettings;
+        }
+
+        try {
+            $setting = static::first();
+            if (!$setting) {
+                $setting = static::create([
+                    'company_name' => 'Erixon CRM',
+                    'logo' => null,
+                    'whatsapp_no' => null,
+                    'theme_color' => '#00b2a9',
+                ]);
+            }
+            static::$cachedSettings = $setting;
+            return $setting;
+        } catch (\Throwable $e) {
+            return new static([
+                'company_name' => 'Erixon CRM',
+                'logo' => null,
+                'whatsapp_no' => null,
                 'theme_color' => '#00b2a9',
-            ]
-        );
+            ]);
+        }
+    }
+
+    /**
+     * Clear cached setting instance
+     */
+    public static function clearCache()
+    {
+        static::$cachedSettings = null;
     }
 }

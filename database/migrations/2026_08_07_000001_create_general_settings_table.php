@@ -14,22 +14,14 @@ return new class extends Migration
     {
         Schema::create('general_settings', function (Blueprint $table) {
             $table->id();
-            $table->string('company_name')->default('PowerGYM');
+            $table->string('company_name');
             $table->string('logo')->nullable();
             $table->string('whatsapp_no')->nullable();
             $table->string('theme_color')->default('#00b2a9');
             $table->timestamps();
         });
 
-        // Insert initial default settings record
-        DB::table('general_settings')->insert([
-            'company_name' => 'PowerGYM',
-            'logo' => null,
-            'whatsapp_no' => '8610747034',
-            'theme_color' => '#00b2a9',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+
     }
 
     /**
