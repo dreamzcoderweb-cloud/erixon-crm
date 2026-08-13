@@ -231,7 +231,6 @@
     <script src="{{ asset('assets/vendor/js/menu.js') }}"></script>
 
     <!-- Custom JS -->
-    <script src="{{ asset('assets/js/custom-js/banner.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/customer.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/lead_source.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/lead_stage.js') }}"></script>
@@ -239,6 +238,8 @@
     <script src="{{ asset('assets/js/custom-js/lost_reason.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/followup.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/lead.js') }}"></script>
+    <script src="{{ asset('assets/js/custom-js/role.js') }}"></script>
+    <script src="{{ asset('assets/js/custom-js/staff.js') }}"></script>
 
     <!-- Vendors JS -->
     <script src="{{ asset('assets/vendor/libs/apex-charts/apexcharts.js') }}"></script>

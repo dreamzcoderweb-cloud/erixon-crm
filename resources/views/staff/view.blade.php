@@ -11,16 +11,16 @@
         @endif
 
         <div class="card">
-            <div class="d-flex justify-content-between align-items-center p-3">
-                <h5 class="card-header mb-0">Staff</h5>
+            <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+                <h5 class="card-header p-0 m-0"><i class="bx bx-user-check me-2"></i>Staff</h5>
                 <div class="ms-auto">
                     <button class="btn btn-primary" onclick="location.href='{{ url('admin/add_staff') }}'">
-                        + Add Staff
+                        <i class="bx bx-plus me-1"></i> Add Staff
                     </button>
                 </div>
             </div>
             <div class="table-responsive text-nowrap p-3">
-                <table id="banners-table" class="table">
+                <table id="staff-table" class="table table-hover align-middle w-100">
                     <thead class="table-light">
                         <tr>
                             <th>Name</th>
