@@ -6,11 +6,16 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\LeadSourceController;
+use App\Http\Controllers\LeadStageController;
+use App\Http\Controllers\LeadRequirementController;
+use App\Http\Controllers\LostReasonController;
+use App\Http\Controllers\FollowupController;
+use App\Http\Controllers\LeadController;
 use App\Http\Controllers\GeneralSettingController;
 use App\Http\Controllers\ReferralSettingController;
 
 use Illuminate\Support\Facades\Route;
-
 use Illuminate\Support\Facades\Auth;
 
 // Root admin route redirect
@@ -32,10 +37,12 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
     Route::get('profile', [ProfileController::class, 'show'])
         ->middleware('permission:profile.view')
         ->name('profile.show');
+    Route::post('profile/update', [ProfileController::class, 'updateProfile'])
+        ->middleware('permission:profile.view')
+        ->name('profile.update');
     Route::post('profile/password', [ProfileController::class, 'updatePassword'])
         ->middleware('permission:profile.password')
         ->name('profile.password');
-
 
     // Role routes
     Route::get('roles_with_filter', [RoleController::class, 'index'])
@@ -53,10 +60,124 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
     Route::match(['get', 'post'], 'edit_staff/{id}', [StaffController::class, 'update'])->middleware('permission:staff.edit');
     Route::post('delete_staff/{id}', [StaffController::class, 'delete'])->middleware('permission:staff.delete');
 
-    //Customer routes
+    // Customer routes
     Route::get('customers', [CustomerController::class, 'index'])
         ->middleware('permission:customers.view')
         ->name('customers.index');
+    Route::get('customers/data', [CustomerController::class, 'listData'])
+        ->middleware('permission:customers.view');
+    Route::post('customers/store', [CustomerController::class, 'store'])
+        ->middleware('permission:customers.create');
+    Route::get('customers/edit/{id}', [CustomerController::class, 'edit'])
+        ->middleware('permission:customers.edit');
+    Route::post('customers/update/{id}', [CustomerController::class, 'update'])
+        ->middleware('permission:customers.edit');
+    Route::delete('customers/delete/{id}', [CustomerController::class, 'destroy'])
+        ->middleware('permission:customers.delete');
+    Route::post('customers/change-status/{id}', [CustomerController::class, 'changeStatus'])
+        ->middleware('permission:customers.edit');
+
+    // Lead Sources routes
+    Route::get('lead-sources', [LeadSourceController::class, 'index'])
+        ->middleware('permission:lead-sources.view')
+        ->name('lead-sources.index');
+    Route::get('lead-sources/data', [LeadSourceController::class, 'listData'])
+        ->middleware('permission:lead-sources.view');
+    Route::post('lead-sources/store', [LeadSourceController::class, 'store'])
+        ->middleware('permission:lead-sources.create');
+    Route::get('lead-sources/edit/{id}', [LeadSourceController::class, 'edit'])
+        ->middleware('permission:lead-sources.edit');
+    Route::post('lead-sources/update/{id}', [LeadSourceController::class, 'update'])
+        ->middleware('permission:lead-sources.edit');
+    Route::delete('lead-sources/delete/{id}', [LeadSourceController::class, 'destroy'])
+        ->middleware('permission:lead-sources.delete');
+    Route::post('lead-sources/change-status/{id}', [LeadSourceController::class, 'changeStatus'])
+        ->middleware('permission:lead-sources.edit');
+
+    // Lead Stages routes
+    Route::get('lead-stages', [LeadStageController::class, 'index'])
+        ->middleware('permission:lead-stages.view')
+        ->name('lead-stages.index');
+    Route::get('lead-stages/data', [LeadStageController::class, 'listData'])
+        ->middleware('permission:lead-stages.view');
+    Route::post('lead-stages/store', [LeadStageController::class, 'store'])
+        ->middleware('permission:lead-stages.create');
+    Route::get('lead-stages/edit/{id}', [LeadStageController::class, 'edit'])
+        ->middleware('permission:lead-stages.edit');
+    Route::post('lead-stages/update/{id}', [LeadStageController::class, 'update'])
+        ->middleware('permission:lead-stages.edit');
+    Route::delete('lead-stages/delete/{id}', [LeadStageController::class, 'destroy'])
+        ->middleware('permission:lead-stages.delete');
+    Route::post('lead-stages/change-status/{id}', [LeadStageController::class, 'changeStatus'])
+        ->middleware('permission:lead-stages.edit');
+
+    // Lead Requirements routes
+    Route::get('lead-requirements', [LeadRequirementController::class, 'index'])
+        ->middleware('permission:lead-requirements.view')
+        ->name('lead-requirements.index');
+    Route::get('lead-requirements/data', [LeadRequirementController::class, 'listData'])
+        ->middleware('permission:lead-requirements.view');
+    Route::post('lead-requirements/store', [LeadRequirementController::class, 'store'])
+        ->middleware('permission:lead-requirements.create');
+    Route::get('lead-requirements/edit/{id}', [LeadRequirementController::class, 'edit'])
+        ->middleware('permission:lead-requirements.edit');
+    Route::post('lead-requirements/update/{id}', [LeadRequirementController::class, 'update'])
+        ->middleware('permission:lead-requirements.edit');
+    Route::delete('lead-requirements/delete/{id}', [LeadRequirementController::class, 'destroy'])
+        ->middleware('permission:lead-requirements.delete');
+    Route::post('lead-requirements/change-status/{id}', [LeadRequirementController::class, 'changeStatus'])
+        ->middleware('permission:lead-requirements.edit');
+
+    // Lost Reasons routes
+    Route::get('lost-reasons', [LostReasonController::class, 'index'])
+        ->middleware('permission:lost-reasons.view')
+        ->name('lost-reasons.index');
+    Route::get('lost-reasons/data', [LostReasonController::class, 'listData'])
+        ->middleware('permission:lost-reasons.view');
+    Route::post('lost-reasons/store', [LostReasonController::class, 'store'])
+        ->middleware('permission:lost-reasons.create');
+    Route::get('lost-reasons/edit/{id}', [LostReasonController::class, 'edit'])
+        ->middleware('permission:lost-reasons.edit');
+    Route::post('lost-reasons/update/{id}', [LostReasonController::class, 'update'])
+        ->middleware('permission:lost-reasons.edit');
+    Route::delete('lost-reasons/delete/{id}', [LostReasonController::class, 'destroy'])
+        ->middleware('permission:lost-reasons.delete');
+    Route::post('lost-reasons/change-status/{id}', [LostReasonController::class, 'changeStatus'])
+        ->middleware('permission:lost-reasons.edit');
+
+    // Followups routes
+    Route::get('followups', [FollowupController::class, 'index'])
+        ->middleware('permission:followups.view')
+        ->name('followups.index');
+    Route::get('followups/data', [FollowupController::class, 'listData'])
+        ->middleware('permission:followups.view');
+    Route::post('followups/store', [FollowupController::class, 'store'])
+        ->middleware('permission:followups.create');
+    Route::get('followups/edit/{id}', [FollowupController::class, 'edit'])
+        ->middleware('permission:followups.edit');
+    Route::post('followups/update/{id}', [FollowupController::class, 'update'])
+        ->middleware('permission:followups.edit');
+    Route::delete('followups/delete/{id}', [FollowupController::class, 'destroy'])
+        ->middleware('permission:followups.delete');
+    Route::post('followups/change-status/{id}', [FollowupController::class, 'changeStatus'])
+        ->middleware('permission:followups.edit');
+
+    // Leads routes
+    Route::get('leads', [LeadController::class, 'index'])
+        ->middleware('permission:leads.view')
+        ->name('leads.index');
+    Route::get('leads/data', [LeadController::class, 'listData'])
+        ->middleware('permission:leads.view');
+    Route::post('leads/store', [LeadController::class, 'store'])
+        ->middleware('permission:leads.create');
+    Route::get('leads/edit/{id}', [LeadController::class, 'edit'])
+        ->middleware('permission:leads.edit');
+    Route::post('leads/update/{id}', [LeadController::class, 'update'])
+        ->middleware('permission:leads.edit');
+    Route::delete('leads/delete/{id}', [LeadController::class, 'destroy'])
+        ->middleware('permission:leads.delete');
+    Route::post('leads/change-status/{id}', [LeadController::class, 'changeStatus'])
+        ->middleware('permission:leads.edit');
 
     // Settings routes
     Route::get('settings/general', [GeneralSettingController::class, 'index'])
@@ -72,5 +193,4 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
     Route::post('settings/referral', [ReferralSettingController::class, 'update'])
         ->middleware('permission:referral-settings.edit')
         ->name('settings.referral.update');
-
 });

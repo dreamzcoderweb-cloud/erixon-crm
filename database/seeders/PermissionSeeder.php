@@ -29,6 +29,39 @@ class PermissionSeeder extends Seeder
             'staff.edit',
             'staff.delete',
             'customers.view',
+            'customers.create',
+            'customers.edit',
+            'customers.delete',
+
+            'lead-sources.view',
+            'lead-sources.create',
+            'lead-sources.edit',
+            'lead-sources.delete',
+
+            'lead-stages.view',
+            'lead-stages.create',
+            'lead-stages.edit',
+            'lead-stages.delete',
+
+            'lead-requirements.view',
+            'lead-requirements.create',
+            'lead-requirements.edit',
+            'lead-requirements.delete',
+
+            'lost-reasons.view',
+            'lost-reasons.create',
+            'lost-reasons.edit',
+            'lost-reasons.delete',
+
+            'followups.view',
+            'followups.create',
+            'followups.edit',
+            'followups.delete',
+
+            'leads.view',
+            'leads.create',
+            'leads.edit',
+            'leads.delete',
 
             'general-settings.view',
             'general-settings.edit',

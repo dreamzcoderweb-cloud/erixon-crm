@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\File;
+use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
 {
@@ -13,6 +15,28 @@ class ProfileController extends Controller
         return view('profile', [
             'user' => Auth::user(),
         ]);
+    }
+
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'min:3', 'max:50'],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)->withoutTrashed()],
+            'profile_image' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
+        ]);
+
+        $user->name = $validated['name'];
+        $user->email = $validated['email'];
+
+        if ($request->hasFile('profile_image')) {
+            $user->profile_image = upload_file($request->file('profile_image'), 'profile', $user->profile_image, 'profile_' . $user->id);
+        }
+
+        $user->save();
+
+        return back()->with('success', 'Profile updated successfully.');
     }
 
     public function updatePassword(Request $request)

@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
 class Customer extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     protected $table = 'customers';
     protected $primaryKey = 'customer_id';
@@ -18,8 +19,19 @@ class Customer extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
+        'customer_type',
         'name',
+        'company_name',
         'mobile',
+        'email',
+        'alternate_mobile',
+        'address',
+        'city',
+        'state',
+        'country',
+        'pincode',
+        'created_by',
+        'status',
         'password',
         'reference_code',
     ];
@@ -32,11 +44,13 @@ class Customer extends Authenticatable
         'remember_token',
     ];
 
-    protected function casts(): array
+    public function creator()
     {
-        return [
-            // Keep explicit; we hash on write in controller.
-        ];
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function leads()
+    {
+        return $this->hasMany(Lead::class, 'customer_id', 'customer_id');
     }
 }
-

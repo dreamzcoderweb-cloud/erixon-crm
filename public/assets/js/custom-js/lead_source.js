@@ -5,9 +5,9 @@ $(document).ready(function () {
         }
     });
 
-    let customerTable = $('#customers-table').DataTable({
+    let sourceTable = $('#lead-sources-table').DataTable({
         ajax: {
-            url: APP_URL + '/admin/customers/data',
+            url: APP_URL + '/admin/lead-sources/data',
             dataSrc: 'data'
         },
         columns: [
@@ -18,41 +18,10 @@ $(document).ready(function () {
                 }
             },
             {
-                data: 'customer_type',
-                render: function (data, type) {
-                    if (type !== 'display') return (data || 'user').toUpperCase();
-                    let badgeClass = data === 'reseller' ? 'bg-label-info' : 'bg-label-primary';
-                    return `<span class="badge ${badgeClass} text-uppercase">${data || 'user'}</span>`;
-                }
-            },
-            {
                 data: 'name',
                 render: function (data, type) {
                     if (type !== 'display') return data || '';
                     return `<strong>${data}</strong>`;
-                }
-            },
-            {
-                data: 'company_name',
-                render: function (data, type) {
-                    if (type !== 'display') return data || 'N/A';
-                    return data ? data : '<span class="text-muted">N/A</span>';
-                }
-            },
-            { data: 'mobile' },
-            {
-                data: 'email',
-                render: function (data, type) {
-                    if (type !== 'display') return data || 'N/A';
-                    return data ? data : '<span class="text-muted">N/A</span>';
-                }
-            },
-            {
-                data: null,
-                render: function (data, type, row) {
-                    let location = [row.city, row.state].filter(Boolean).join(', ');
-                    if (type !== 'display') return location || 'N/A';
-                    return location ? location : '<span class="text-muted">N/A</span>';
                 }
             },
             {
@@ -66,7 +35,7 @@ $(document).ready(function () {
                         <div class="d-flex align-items-center gap-2">
                             ${statusLabel}
                             <div class="form-check form-switch mb-0">
-                                <input class="form-check-input btn-toggle-status" type="checkbox" data-id="${row.customer_id}" ${isChecked}>
+                                <input class="form-check-input btn-toggle-source-status" type="checkbox" data-id="${row.lead_sources_id}" ${isChecked}>
                             </div>
                         </div>
                     `;
@@ -77,10 +46,10 @@ $(document).ready(function () {
                 orderable: false,
                 render: function (data, type, row) {
                     return `
-                        <button class="btn btn-sm btn-outline-primary btn-edit-customer me-1" data-id="${row.customer_id}">
+                        <button class="btn btn-sm btn-outline-primary btn-edit-source me-1" data-id="${row.lead_sources_id}">
                             <i class="bx bx-edit-alt"></i>
                         </button>
-                        <button class="btn btn-sm btn-outline-danger btn-delete-customer" data-id="${row.customer_id}" data-name="${row.name}">
+                        <button class="btn btn-sm btn-outline-danger btn-delete-source" data-id="${row.lead_sources_id}" data-name="${row.name}">
                             <i class="bx bx-trash"></i>
                         </button>
                     `;
@@ -124,27 +93,24 @@ $(document).ready(function () {
 
     function clearValidationErrors(form) {
         form.find('.is-invalid').removeClass('is-invalid');
-        form.find('.invalid-feedback').text('').hide();
+        form.find('.invalid-feedback').text('').css('display', 'none');
     }
 
     function showValidationErrors(form, errors) {
         clearValidationErrors(form);
-
         $.each(errors, function (field, messages) {
-            const input = form.find(`[name="${field}"]`);
-
-            if (!input.length) {
-                return;
-            }
-
-            input.addClass('is-invalid');
-
-            const errorDiv = input
-                .siblings('.invalid-feedback')
-                .first();
-
-            if (errorDiv.length) {
-                errorDiv.text(messages[0]).show();
+            let input = form.find(`[name="${field}"]`);
+            if (input.length) {
+                input.addClass('is-invalid');
+                let errorDiv = input.siblings('.invalid-feedback');
+                if (!errorDiv.length) {
+                    errorDiv = input.parent().find('.invalid-feedback');
+                }
+                if (!errorDiv.length) {
+                    errorDiv = $('<div class="invalid-feedback"></div>');
+                    input.after(errorDiv);
+                }
+                errorDiv.text(messages[0]).css('display', 'block');
             }
         });
     }
@@ -157,11 +123,11 @@ $(document).ready(function () {
         }
     });
 
-    // Add Customer Form Submit
-    $('#addCustomerForm').on('submit', function (e) {
+    // Add Lead Source Form Submit
+    $('#addLeadSourceForm').on('submit', function (e) {
         e.preventDefault();
         let form = $(this);
-        let submitBtn = $('#addCustomerSubmitBtn');
+        let submitBtn = $('#addLeadSourceSubmitBtn');
         let spinner = submitBtn.find('.spinner-border');
 
         submitBtn.prop('disabled', true);
@@ -169,14 +135,14 @@ $(document).ready(function () {
         clearValidationErrors(form);
 
         $.ajax({
-            url: APP_URL + '/admin/customers/store',
+            url: APP_URL + '/admin/lead-sources/store',
             type: 'POST',
             data: form.serialize(),
             success: function (response) {
                 if (response.status) {
-                    $('#addCustomerModal').modal('hide');
+                    $('#addLeadSourceModal').modal('hide');
                     form[0].reset();
-                    customerTable.ajax.reload(null, false);
+                    sourceTable.ajax.reload(null, false);
                     showAlert('success', response.message);
                 }
             },
@@ -194,47 +160,37 @@ $(document).ready(function () {
         });
     });
 
-    // Open Edit Customer Modal
-    $(document).on('click', '.btn-edit-customer', function () {
+    // Open Edit Lead Source Modal
+    $(document).on('click', '.btn-edit-source', function () {
         let id = $(this).data('id');
-        let form = $('#editCustomerForm');
+        let form = $('#editLeadSourceForm');
         clearValidationErrors(form);
 
         $.ajax({
-            url: APP_URL + '/admin/customers/edit/' + id,
+            url: APP_URL + '/admin/lead-sources/edit/' + id,
             type: 'GET',
             success: function (response) {
                 if (response.status) {
-                    let customer = response.data;
-                    $('#edit_customer_id').val(customer.customer_id);
-                    $('#edit_customer_type').val(customer.customer_type);
-                    $('#edit_name').val(customer.name);
-                    $('#edit_company_name').val(customer.company_name);
-                    $('#edit_mobile').val(customer.mobile);
-                    $('#edit_email').val(customer.email);
-                    $('#edit_alternate_mobile').val(customer.alternate_mobile);
-                    $('#edit_address').val(customer.address);
-                    $('#edit_city').val(customer.city);
-                    $('#edit_state').val(customer.state);
-                    $('#edit_country').val(customer.country);
-                    $('#edit_pincode').val(customer.pincode);
-                    $('#edit_status').val(customer.status);
+                    let source = response.data;
+                    $('#edit_lead_sources_id').val(source.lead_sources_id);
+                    $('#edit_source_name').val(source.name);
+                    $('#edit_source_status').val(source.status);
 
-                    $('#editCustomerModal').modal('show');
+                    $('#editLeadSourceModal').modal('show');
                 }
             },
             error: function () {
-                showAlert('danger', 'Failed to fetch customer details.');
+                showAlert('danger', 'Failed to fetch lead source details.');
             }
         });
     });
 
-    // Update Customer Form Submit
-    $('#editCustomerForm').on('submit', function (e) {
+    // Update Lead Source Form Submit
+    $('#editLeadSourceForm').on('submit', function (e) {
         e.preventDefault();
         let form = $(this);
-        let id = $('#edit_customer_id').val();
-        let submitBtn = $('#editCustomerSubmitBtn');
+        let id = $('#edit_lead_sources_id').val();
+        let submitBtn = $('#editLeadSourceSubmitBtn');
         let spinner = submitBtn.find('.spinner-border');
 
         submitBtn.prop('disabled', true);
@@ -242,13 +198,13 @@ $(document).ready(function () {
         clearValidationErrors(form);
 
         $.ajax({
-            url: APP_URL + '/admin/customers/update/' + id,
+            url: APP_URL + '/admin/lead-sources/update/' + id,
             type: 'POST',
             data: form.serialize(),
             success: function (response) {
                 if (response.status) {
-                    $('#editCustomerModal').modal('hide');
-                    customerTable.ajax.reload(null, false);
+                    $('#editLeadSourceModal').modal('hide');
+                    sourceTable.ajax.reload(null, false);
                     showAlert('success', response.message);
                 }
             },
@@ -256,7 +212,7 @@ $(document).ready(function () {
                 if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
                     showValidationErrors(form, xhr.responseJSON.errors);
                 } else {
-                    showAlert('danger', 'An error occurred while updating customer.');
+                    showAlert('danger', 'An error occurred while updating lead source.');
                 }
             },
             complete: function () {
@@ -267,52 +223,52 @@ $(document).ready(function () {
     });
 
     // Open Delete Confirmation Modal
-    let deleteTargetId = null;
-    $(document).on('click', '.btn-delete-customer', function () {
-        deleteTargetId = $(this).data('id');
+    let deleteSourceId = null;
+    $(document).on('click', '.btn-delete-source', function () {
+        deleteSourceId = $(this).data('id');
         let name = $(this).data('name');
-        $('#delete_customer_name').text(name);
-        $('#deleteCustomerModal').modal('show');
+        $('#delete_source_name').text(name);
+        $('#deleteLeadSourceModal').modal('show');
     });
 
-    // Confirm Delete Customer
-    $('#confirmDeleteCustomerBtn').on('click', function () {
-        if (!deleteTargetId) return;
+    // Confirm Delete Lead Source
+    $('#confirmDeleteSourceBtn').on('click', function () {
+        if (!deleteSourceId) return;
 
         let btn = $(this);
         btn.prop('disabled', true);
 
         $.ajax({
-            url: APP_URL + '/admin/customers/delete/' + deleteTargetId,
+            url: APP_URL + '/admin/lead-sources/delete/' + deleteSourceId,
             type: 'DELETE',
             success: function (response) {
                 if (response.status) {
-                    $('#deleteCustomerModal').modal('hide');
-                    customerTable.ajax.reload(null, false);
+                    $('#deleteLeadSourceModal').modal('hide');
+                    sourceTable.ajax.reload(null, false);
                     showAlert('success', response.message);
                 }
             },
             error: function () {
-                showAlert('danger', 'Failed to delete customer.');
+                showAlert('danger', 'Failed to delete lead source.');
             },
             complete: function () {
                 btn.prop('disabled', false);
-                deleteTargetId = null;
+                deleteSourceId = null;
             }
         });
     });
 
     // Toggle Status
-    $(document).on('change', '.btn-toggle-status', function () {
+    $(document).on('change', '.btn-toggle-source-status', function () {
         let id = $(this).data('id');
         let checkbox = $(this);
 
         $.ajax({
-            url: APP_URL + '/admin/customers/change-status/' + id,
+            url: APP_URL + '/admin/lead-sources/change-status/' + id,
             type: 'POST',
             success: function (response) {
                 if (response.status) {
-                    customerTable.ajax.reload(null, false);
+                    sourceTable.ajax.reload(null, false);
                     showAlert('success', response.message);
                 }
             },

@@ -14,8 +14,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="{{ asset('assets/img/fav_icon.png') }}">
-
+    <link rel="icon" type="image/x-icon" href="{{ company_favicon() }}">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -36,18 +35,14 @@
     <link rel="stylesheet" href="{{ asset('assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css') }}" />
     <link rel="stylesheet" href="{{ asset('assets/vendor/libs/apex-charts/apex-charts.css') }}" />
 
-    <!-- Page CSS -->
-
     <!-- Helpers -->
     <script src="{{ asset('assets/vendor/js/helpers.js') }}"></script>
-    <!--! Template customizer & Theme config files MUST be included after core stylesheets and helpers.js in the <head> section -->
-    <!--? Config:  Mandatory theme config file contain global vars & default theme options, Set your preferred theme option in this file.  -->
     <script src="{{ asset('assets/js/config.js') }}"></script>
 
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"
         integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 
-    <!-- datatable css cdn -->
+    <!-- DataTables CSS & JS -->
     <script defer src="https://cdn.datatables.net/2.1.8/js/dataTables.js"></script>
     <script defer src="https://cdn.datatables.net/2.1.8/js/dataTables.bootstrap5.js"></script>
     <script defer src="https://cdn.datatables.net/buttons/3.2.0/js/dataTables.buttons.js"></script>
@@ -58,15 +53,8 @@
     <script defer src="https://cdn.datatables.net/buttons/3.2.0/js/buttons.html5.min.js"></script>
     <script defer src="https://cdn.datatables.net/buttons/3.2.0/js/buttons.print.min.js"></script>
     <script defer src="https://cdn.datatables.net/buttons/3.2.0/js/buttons.colVis.min.js"></script>
-    <!--datatable css cdn-->
     <link rel="stylesheet" href="https://cdn.datatables.net/2.1.8/css/dataTables.bootstrap5.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/buttons/3.2.0/css/buttons.bootstrap5.css">
-
-    <!-- ckeditor -->
-    <script src="//cdn.ckeditor.com/4.14.0/standard/ckeditor.js"></script>
-    <script>
-        $('.ckeditor').ckeditor();
-    </script>
 
     <script>
         var APP_URL = {!! json_encode(url('/')) !!}
@@ -161,6 +149,19 @@
             background-color: {{ $themeColor }} !important;
             border-color: {{ $themeColor }} !important;
         }
+
+        /* Form Validation Error Styling */
+        .invalid-feedback {
+            display: none;
+            width: 100%;
+            margin-top: 0.25rem;
+            font-size: 0.85em;
+            color: #ff3e1d;
+            font-weight: 500;
+        }
+        .is-invalid ~ .invalid-feedback {
+            display: block !important;
+        }
     </style>
 </head>
 
@@ -210,8 +211,8 @@
                 <div class="modal-body">
                     <p>Are you sure you want to delete ?</p>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary me-2" data-bs-dismiss="modal">
+                <div class="modal-footer gap-2">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
                         Close
                     </button>
                     <form id="deleteForm" method="POST" action="">
@@ -222,28 +223,22 @@
             </div>
         </div>
     </div>
-    <!-- Core JS -->
-    <!-- build:js assets/vendor/js/core.js -->
 
-    <script src="{{ asset('assets/vendor/libs/jquery/jquery.js') }}"></script>
+    <!-- Core JS -->
     <script src="{{ asset('assets/vendor/libs/popper/popper.js') }}"></script>
     <script src="{{ asset('assets/vendor/js/bootstrap.js') }}"></script>
     <script src="{{ asset('assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js') }}"></script>
     <script src="{{ asset('assets/vendor/js/menu.js') }}"></script>
 
-    <!-- custom JS -->
+    <!-- Custom JS -->
     <script src="{{ asset('assets/js/custom-js/banner.js') }}"></script>
-     <script src="{{ asset('assets/js/custom-js/customer.js') }}"></script>
-
-    <script src="{{ asset('assets/js/custom-js/gallery.js') }}"></script>
-    <script src="{{ asset('assets/js/custom-js/album.js') }}"></script>
-    <script src="{{ asset('assets/js/custom-js/testimonial.js') }}"></script>
-    <script src="{{ asset('assets/js/custom-js/service.js') }}"></script>
-    <script src="{{ asset('assets/js/custom-js/blog.js') }}"></script>
-    <script src="{{ asset('assets/js/custom-js/contact_enquiries.js') }}"></script>
-    <script src="{{ asset('assets/js/custom-js/newsletter_subscription.js') }}"></script>
-
-    <!-- endbuild -->
+    <script src="{{ asset('assets/js/custom-js/customer.js') }}"></script>
+    <script src="{{ asset('assets/js/custom-js/lead_source.js') }}"></script>
+    <script src="{{ asset('assets/js/custom-js/lead_stage.js') }}"></script>
+    <script src="{{ asset('assets/js/custom-js/lead_requirement.js') }}"></script>
+    <script src="{{ asset('assets/js/custom-js/lost_reason.js') }}"></script>
+    <script src="{{ asset('assets/js/custom-js/followup.js') }}"></script>
+    <script src="{{ asset('assets/js/custom-js/lead.js') }}"></script>
 
     <!-- Vendors JS -->
     <script src="{{ asset('assets/vendor/libs/apex-charts/apexcharts.js') }}"></script>
@@ -254,7 +249,6 @@
     <!-- Page JS -->
     <script src="{{ asset('assets/js/dashboards-analytics.js') }}"></script>
 
-    <!-- Place this tag before closing body tag for github widget button. -->
     <script async defer src="https://buttons.github.io/buttons.js"></script>
 </body>
 

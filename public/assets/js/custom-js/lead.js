@@ -5,9 +5,9 @@ $(document).ready(function () {
         }
     });
 
-    let customerTable = $('#customers-table').DataTable({
+    let leadTable = $('#leads-table').DataTable({
         ajax: {
-            url: APP_URL + '/admin/customers/data',
+            url: APP_URL + '/admin/leads/data',
             dataSrc: 'data'
         },
         columns: [
@@ -18,55 +18,74 @@ $(document).ready(function () {
                 }
             },
             {
-                data: 'customer_type',
-                render: function (data, type) {
-                    if (type !== 'display') return (data || 'user').toUpperCase();
-                    let badgeClass = data === 'reseller' ? 'bg-label-info' : 'bg-label-primary';
-                    return `<span class="badge ${badgeClass} text-uppercase">${data || 'user'}</span>`;
-                }
-            },
-            {
-                data: 'name',
+                data: 'lead_title',
                 render: function (data, type) {
                     if (type !== 'display') return data || '';
                     return `<strong>${data}</strong>`;
                 }
             },
             {
-                data: 'company_name',
+                data: 'customer',
                 render: function (data, type) {
-                    if (type !== 'display') return data || 'N/A';
-                    return data ? data : '<span class="text-muted">N/A</span>';
-                }
-            },
-            { data: 'mobile' },
-            {
-                data: 'email',
-                render: function (data, type) {
-                    if (type !== 'display') return data || 'N/A';
-                    return data ? data : '<span class="text-muted">N/A</span>';
+                    if (!data) return type !== 'display' ? 'N/A' : '<span class="text-muted">N/A</span>';
+                    if (type !== 'display') return `${data.name} (${data.mobile})`;
+                    return `<div><strong>${data.name}</strong><br><small class="text-muted">${data.mobile}</small></div>`;
                 }
             },
             {
-                data: null,
-                render: function (data, type, row) {
-                    let location = [row.city, row.state].filter(Boolean).join(', ');
-                    if (type !== 'display') return location || 'N/A';
-                    return location ? location : '<span class="text-muted">N/A</span>';
+                data: 'lead_source',
+                render: function (data, type) {
+                    if (!data) return type !== 'display' ? 'N/A' : '<span class="text-muted">N/A</span>';
+                    if (type !== 'display') return data.name;
+                    return `<span class="badge bg-label-info">${data.name}</span>`;
+                }
+            },
+            {
+                data: 'priority',
+                render: function (data, type) {
+                    if (type !== 'display') return (data || '').toUpperCase();
+                    let badgeClass = 'bg-label-secondary';
+                    if (data === 'urgent') badgeClass = 'bg-label-danger';
+                    else if (data === 'high') badgeClass = 'bg-label-warning';
+                    else if (data === 'medium') badgeClass = 'bg-label-primary';
+                    else if (data === 'low') badgeClass = 'bg-label-info';
+                    return `<span class="badge ${badgeClass} text-uppercase">${data}</span>`;
+                }
+            },
+            {
+                data: 'expected_amount',
+                render: function (data, type) {
+                    let formatted = data ? `₹${parseFloat(data).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '-';
+                    if (type !== 'display') return data ? parseFloat(data).toFixed(2) : '-';
+                    return data ? formatted : '<span class="text-muted">-</span>';
+                }
+            },
+            {
+                data: 'assigned_user',
+                render: function (data, type) {
+                    if (!data) return type !== 'display' ? 'Unassigned' : '<span class="badge bg-label-secondary">Unassigned</span>';
+                    return data.name;
+                }
+            },
+            {
+                data: 'next_followup_date',
+                render: function (data, type) {
+                    if (type !== 'display') return data || '-';
+                    return data ? `<span class="text-nowrap"><i class="bx bx-calendar me-1"></i>${data}</span>` : '<span class="text-muted">-</span>';
                 }
             },
             {
                 data: 'status',
                 render: function (data, type, row) {
-                    let statusText = data == 1 ? 'Active' : 'Inactive';
+                    let statusText = data == 1 ? 'Active' : 'Closed';
                     if (type !== 'display') return statusText;
                     let isChecked = data == 1 ? 'checked' : '';
-                    let statusLabel = data == 1 ? '<span class="badge bg-label-success">Active</span>' : '<span class="badge bg-label-secondary">Inactive</span>';
+                    let statusLabel = data == 1 ? '<span class="badge bg-label-success">Active</span>' : '<span class="badge bg-label-secondary">Closed</span>';
                     return `
                         <div class="d-flex align-items-center gap-2">
                             ${statusLabel}
                             <div class="form-check form-switch mb-0">
-                                <input class="form-check-input btn-toggle-status" type="checkbox" data-id="${row.customer_id}" ${isChecked}>
+                                <input class="form-check-input btn-toggle-lead-status" type="checkbox" data-id="${row.lead_id}" ${isChecked}>
                             </div>
                         </div>
                     `;
@@ -77,10 +96,10 @@ $(document).ready(function () {
                 orderable: false,
                 render: function (data, type, row) {
                     return `
-                        <button class="btn btn-sm btn-outline-primary btn-edit-customer me-1" data-id="${row.customer_id}">
+                        <button class="btn btn-sm btn-outline-primary btn-edit-lead me-1" data-id="${row.lead_id}">
                             <i class="bx bx-edit-alt"></i>
                         </button>
-                        <button class="btn btn-sm btn-outline-danger btn-delete-customer" data-id="${row.customer_id}" data-name="${row.name}">
+                        <button class="btn btn-sm btn-outline-danger btn-delete-lead" data-id="${row.lead_id}" data-title="${row.lead_title}">
                             <i class="bx bx-trash"></i>
                         </button>
                     `;
@@ -124,27 +143,24 @@ $(document).ready(function () {
 
     function clearValidationErrors(form) {
         form.find('.is-invalid').removeClass('is-invalid');
-        form.find('.invalid-feedback').text('').hide();
+        form.find('.invalid-feedback').text('').css('display', 'none');
     }
 
     function showValidationErrors(form, errors) {
         clearValidationErrors(form);
-
         $.each(errors, function (field, messages) {
-            const input = form.find(`[name="${field}"]`);
-
-            if (!input.length) {
-                return;
-            }
-
-            input.addClass('is-invalid');
-
-            const errorDiv = input
-                .siblings('.invalid-feedback')
-                .first();
-
-            if (errorDiv.length) {
-                errorDiv.text(messages[0]).show();
+            let input = form.find(`[name="${field}"]`);
+            if (input.length) {
+                input.addClass('is-invalid');
+                let errorDiv = input.siblings('.invalid-feedback');
+                if (!errorDiv.length) {
+                    errorDiv = input.parent().find('.invalid-feedback');
+                }
+                if (!errorDiv.length) {
+                    errorDiv = $('<div class="invalid-feedback"></div>');
+                    input.after(errorDiv);
+                }
+                errorDiv.text(messages[0]).css('display', 'block');
             }
         });
     }
@@ -157,11 +173,11 @@ $(document).ready(function () {
         }
     });
 
-    // Add Customer Form Submit
-    $('#addCustomerForm').on('submit', function (e) {
+    // Add Lead Form Submit
+    $('#addLeadForm').on('submit', function (e) {
         e.preventDefault();
         let form = $(this);
-        let submitBtn = $('#addCustomerSubmitBtn');
+        let submitBtn = $('#addLeadSubmitBtn');
         let spinner = submitBtn.find('.spinner-border');
 
         submitBtn.prop('disabled', true);
@@ -169,14 +185,14 @@ $(document).ready(function () {
         clearValidationErrors(form);
 
         $.ajax({
-            url: APP_URL + '/admin/customers/store',
+            url: APP_URL + '/admin/leads/store',
             type: 'POST',
             data: form.serialize(),
             success: function (response) {
                 if (response.status) {
-                    $('#addCustomerModal').modal('hide');
+                    $('#addLeadModal').modal('hide');
                     form[0].reset();
-                    customerTable.ajax.reload(null, false);
+                    leadTable.ajax.reload(null, false);
                     showAlert('success', response.message);
                 }
             },
@@ -194,47 +210,47 @@ $(document).ready(function () {
         });
     });
 
-    // Open Edit Customer Modal
-    $(document).on('click', '.btn-edit-customer', function () {
+    // Open Edit Lead Modal
+    $(document).on('click', '.btn-edit-lead', function () {
         let id = $(this).data('id');
-        let form = $('#editCustomerForm');
+        let form = $('#editLeadForm');
         clearValidationErrors(form);
 
         $.ajax({
-            url: APP_URL + '/admin/customers/edit/' + id,
+            url: APP_URL + '/admin/leads/edit/' + id,
             type: 'GET',
             success: function (response) {
                 if (response.status) {
-                    let customer = response.data;
-                    $('#edit_customer_id').val(customer.customer_id);
-                    $('#edit_customer_type').val(customer.customer_type);
-                    $('#edit_name').val(customer.name);
-                    $('#edit_company_name').val(customer.company_name);
-                    $('#edit_mobile').val(customer.mobile);
-                    $('#edit_email').val(customer.email);
-                    $('#edit_alternate_mobile').val(customer.alternate_mobile);
-                    $('#edit_address').val(customer.address);
-                    $('#edit_city').val(customer.city);
-                    $('#edit_state').val(customer.state);
-                    $('#edit_country').val(customer.country);
-                    $('#edit_pincode').val(customer.pincode);
-                    $('#edit_status').val(customer.status);
+                    let lead = response.data;
+                    $('#edit_lead_id').val(lead.lead_id);
+                    $('#edit_lead_customer_id').val(lead.customer_id);
+                    $('#edit_lead_title').val(lead.lead_title);
+                    $('#edit_lead_source_id').val(lead.lead_source_id || '');
+                    $('#edit_lead_stage_id').val(lead.lead_stage_id || '');
+                    $('#edit_lead_requirement_id').val(lead.lead_requirement_id || '');
+                    $('#edit_lost_reason_id').val(lead.lost_reason_id || '');
+                    $('#edit_lead_assigned_to').val(lead.assigned_to || '');
+                    $('#edit_lead_priority').val(lead.priority);
+                    $('#edit_lead_expected_amount').val(lead.expected_amount || '');
+                    $('#edit_lead_next_followup_date').val(lead.next_followup_date || '');
+                    $('#edit_lead_description').val(lead.description || '');
+                    $('#edit_lead_status').val(lead.status);
 
-                    $('#editCustomerModal').modal('show');
+                    $('#editLeadModal').modal('show');
                 }
             },
             error: function () {
-                showAlert('danger', 'Failed to fetch customer details.');
+                showAlert('danger', 'Failed to fetch lead details.');
             }
         });
     });
 
-    // Update Customer Form Submit
-    $('#editCustomerForm').on('submit', function (e) {
+    // Update Lead Form Submit
+    $('#editLeadForm').on('submit', function (e) {
         e.preventDefault();
         let form = $(this);
-        let id = $('#edit_customer_id').val();
-        let submitBtn = $('#editCustomerSubmitBtn');
+        let id = $('#edit_lead_id').val();
+        let submitBtn = $('#editLeadSubmitBtn');
         let spinner = submitBtn.find('.spinner-border');
 
         submitBtn.prop('disabled', true);
@@ -242,13 +258,13 @@ $(document).ready(function () {
         clearValidationErrors(form);
 
         $.ajax({
-            url: APP_URL + '/admin/customers/update/' + id,
+            url: APP_URL + '/admin/leads/update/' + id,
             type: 'POST',
             data: form.serialize(),
             success: function (response) {
                 if (response.status) {
-                    $('#editCustomerModal').modal('hide');
-                    customerTable.ajax.reload(null, false);
+                    $('#editLeadModal').modal('hide');
+                    leadTable.ajax.reload(null, false);
                     showAlert('success', response.message);
                 }
             },
@@ -256,7 +272,7 @@ $(document).ready(function () {
                 if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
                     showValidationErrors(form, xhr.responseJSON.errors);
                 } else {
-                    showAlert('danger', 'An error occurred while updating customer.');
+                    showAlert('danger', 'An error occurred while updating lead.');
                 }
             },
             complete: function () {
@@ -267,52 +283,52 @@ $(document).ready(function () {
     });
 
     // Open Delete Confirmation Modal
-    let deleteTargetId = null;
-    $(document).on('click', '.btn-delete-customer', function () {
-        deleteTargetId = $(this).data('id');
-        let name = $(this).data('name');
-        $('#delete_customer_name').text(name);
-        $('#deleteCustomerModal').modal('show');
+    let deleteLeadId = null;
+    $(document).on('click', '.btn-delete-lead', function () {
+        deleteLeadId = $(this).data('id');
+        let title = $(this).data('title');
+        $('#delete_lead_title').text(title);
+        $('#deleteLeadModal').modal('show');
     });
 
-    // Confirm Delete Customer
-    $('#confirmDeleteCustomerBtn').on('click', function () {
-        if (!deleteTargetId) return;
+    // Confirm Delete Lead
+    $('#confirmDeleteLeadBtn').on('click', function () {
+        if (!deleteLeadId) return;
 
         let btn = $(this);
         btn.prop('disabled', true);
 
         $.ajax({
-            url: APP_URL + '/admin/customers/delete/' + deleteTargetId,
+            url: APP_URL + '/admin/leads/delete/' + deleteLeadId,
             type: 'DELETE',
             success: function (response) {
                 if (response.status) {
-                    $('#deleteCustomerModal').modal('hide');
-                    customerTable.ajax.reload(null, false);
+                    $('#deleteLeadModal').modal('hide');
+                    leadTable.ajax.reload(null, false);
                     showAlert('success', response.message);
                 }
             },
             error: function () {
-                showAlert('danger', 'Failed to delete customer.');
+                showAlert('danger', 'Failed to delete lead.');
             },
             complete: function () {
                 btn.prop('disabled', false);
-                deleteTargetId = null;
+                deleteLeadId = null;
             }
         });
     });
 
     // Toggle Status
-    $(document).on('change', '.btn-toggle-status', function () {
+    $(document).on('change', '.btn-toggle-lead-status', function () {
         let id = $(this).data('id');
         let checkbox = $(this);
 
         $.ajax({
-            url: APP_URL + '/admin/customers/change-status/' + id,
+            url: APP_URL + '/admin/leads/change-status/' + id,
             type: 'POST',
             success: function (response) {
                 if (response.status) {
-                    customerTable.ajax.reload(null, false);
+                    leadTable.ajax.reload(null, false);
                     showAlert('success', response.message);
                 }
             },

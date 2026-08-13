@@ -12,6 +12,7 @@ class GeneralSetting extends Model
     protected $fillable = [
         'company_name',
         'logo',
+        'favicon',
         'whatsapp_no',
         'theme_color',
     ];
@@ -36,6 +37,7 @@ class GeneralSetting extends Model
                 $setting = static::create([
                     'company_name' => 'Erixon CRM',
                     'logo' => null,
+                    'favicon' => null,
                     'whatsapp_no' => null,
                     'theme_color' => '#00b2a9',
                 ]);
@@ -46,6 +48,7 @@ class GeneralSetting extends Model
             return new static([
                 'company_name' => 'Erixon CRM',
                 'logo' => null,
+                'favicon' => null,
                 'whatsapp_no' => null,
                 'theme_color' => '#00b2a9',
             ]);
