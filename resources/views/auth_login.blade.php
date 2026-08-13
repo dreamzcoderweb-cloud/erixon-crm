@@ -13,7 +13,7 @@
     <meta name="description" content="" />
 
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="{{ asset('assets/img/fav_icon.png') }}" />
+    <link rel="icon" type="image/x-icon" href="{{ company_favicon() }}" />
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />

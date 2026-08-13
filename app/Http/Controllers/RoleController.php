@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Role;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 
 class RoleController extends Controller
 {
@@ -23,7 +24,7 @@ class RoleController extends Controller
 
         $validated = $request->validate(
             [
-                'name' => ['required', 'string', 'min:3', 'max:50', 'regex:/^[a-zA-Z0-9 _-]+$/', 'unique:roles,name'],
+                'name' => ['required', 'string', 'min:3', 'max:50', 'regex:/^[a-zA-Z0-9 _-]+$/', Rule::unique('roles', 'name')->withoutTrashed()],
                 'permissions' => ['nullable', 'array'],
                 'permissions.*' => ['integer', 'exists:permissions,id'],
             ],
@@ -57,7 +58,7 @@ class RoleController extends Controller
 
         $validated = $request->validate(
             [
-                'name' => ['required', 'string', 'min:3', 'max:50', 'regex:/^[a-zA-Z0-9 _-]+$/', 'unique:roles,name,' . $role->id],
+                'name' => ['required', 'string', 'min:3', 'max:50', 'regex:/^[a-zA-Z0-9 _-]+$/', Rule::unique('roles', 'name')->ignore($role->id)->withoutTrashed()],
                 'permissions' => ['nullable', 'array'],
                 'permissions.*' => ['integer', 'exists:permissions,id'],
             ],

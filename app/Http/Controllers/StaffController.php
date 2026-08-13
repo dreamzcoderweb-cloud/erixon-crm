@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Role;
 
 class StaffController extends Controller
@@ -31,7 +32,7 @@ class StaffController extends Controller
         $validated = $request->validate(
             [
                 'name' => ['required', 'string', 'min:3', 'max:50'],
-                'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+                'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->withoutTrashed()],
                 'password' => ['required', 'string', 'min:8', 'confirmed'],
                 'role_id' => ['required', 'integer', 'exists:roles,id'],
             ]
@@ -74,7 +75,7 @@ class StaffController extends Controller
         $validated = $request->validate(
             [
                 'name' => ['required', 'string', 'min:3', 'max:50'],
-                'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $user->id],
+                'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)->withoutTrashed()],
                 'password' => ['nullable', 'string', 'min:8', 'confirmed'],
                 'role_id' => ['required', 'integer', 'exists:roles,id'],
             ]

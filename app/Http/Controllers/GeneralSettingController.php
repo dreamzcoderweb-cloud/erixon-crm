@@ -21,6 +21,7 @@ class GeneralSettingController extends Controller
         $validated = $request->validate([
             'company_name' => ['required', 'string', 'max:100'],
             'logo' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp,svg', 'max:2048'],
+            'favicon' => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp,svg,ico,cur', 'max:2048'],
             'whatsapp_no' => ['nullable', 'string', 'max:20'],
             'theme_color' => ['required', 'string', 'regex:/^#([a-fA-F0-9]{3}|[a-fA-F0-9]{6})$/i'],
         ]);
@@ -30,15 +31,11 @@ class GeneralSettingController extends Controller
         $setting->theme_color = strtolower($validated['theme_color']);
 
         if ($request->hasFile('logo')) {
-            // Delete old logo if exists
-            if ($setting->logo && File::exists(public_path($setting->logo))) {
-                File::delete(public_path($setting->logo));
-            }
+            $setting->logo = upload_file($request->file('logo'), 'settings', $setting->logo, 'logo');
+        }
 
-            $file = $request->file('logo');
-            $filename = 'logo_' . time() . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path('uploads/settings'), $filename);
-            $setting->logo = 'uploads/settings/' . $filename;
+        if ($request->hasFile('favicon')) {
+            $setting->favicon = upload_file($request->file('favicon'), 'settings', $setting->favicon, 'favicon');
         }
 
         $setting->save();

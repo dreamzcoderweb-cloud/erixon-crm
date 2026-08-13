@@ -54,13 +54,65 @@
             </li>
         @endcanany
 
-        @canany(['customers.view'])
-            <li
-                class="menu-item {{ request()->is('admin/customers') ? 'active' : '' }}">
+        @can('customers.view')
+            <li class="menu-item {{ request()->is('admin/customers') ? 'active' : '' }}">
                 <a href="{{ route('admin.customers.index') }}" class="menu-link">
                     <i class="menu-icon tf-icons bx bx-user"></i>
-                    <div class="text-truncate" data-i18n="services">Customers</div>
+                    <div class="text-truncate">Customers</div>
                 </a>
+            </li>
+        @endcan
+
+        @canany(['lead-sources.view', 'lead-stages.view', 'lead-requirements.view', 'lost-reasons.view', 'followups.view', 'leads.view'])
+            <li class="menu-item {{ request()->is('admin/lead-sources*') || request()->is('admin/lead-stages*') || request()->is('admin/lead-requirements*') || request()->is('admin/lost-reasons*') || request()->is('admin/followups*') || request()->is('admin/leads*') ? 'active open' : '' }}">
+                <a href="javascript:void(0);" class="menu-link menu-toggle">
+                    <i class="menu-icon tf-icons bx bx-target-lock"></i>
+                    <div class="text-truncate">Leads Management</div>
+                </a>
+                <ul class="menu-sub">
+                    @can('lead-sources.view')
+                        <li class="menu-item {{ request()->is('admin/lead-sources*') ? 'active' : '' }}">
+                            <a href="{{ route('admin.lead-sources.index') }}" class="menu-link">
+                                <div class="text-truncate">Lead Sources</div>
+                            </a>
+                        </li>
+                    @endcan
+                    @can('lead-stages.view')
+                        <li class="menu-item {{ request()->is('admin/lead-stages*') ? 'active' : '' }}">
+                            <a href="{{ route('admin.lead-stages.index') }}" class="menu-link">
+                                <div class="text-truncate">Lead Stages</div>
+                            </a>
+                        </li>
+                    @endcan
+                    @can('lead-requirements.view')
+                        <li class="menu-item {{ request()->is('admin/lead-requirements*') ? 'active' : '' }}">
+                            <a href="{{ route('admin.lead-requirements.index') }}" class="menu-link">
+                                <div class="text-truncate">Lead Requirements</div>
+                            </a>
+                        </li>
+                    @endcan
+                    @can('lost-reasons.view')
+                        <li class="menu-item {{ request()->is('admin/lost-reasons*') ? 'active' : '' }}">
+                            <a href="{{ route('admin.lost-reasons.index') }}" class="menu-link">
+                                <div class="text-truncate">Lost Reasons</div>
+                            </a>
+                        </li>
+                    @endcan
+                    @can('followups.view')
+                        <li class="menu-item {{ request()->is('admin/followups*') ? 'active' : '' }}">
+                            <a href="{{ route('admin.followups.index') }}" class="menu-link">
+                                <div class="text-truncate">Follow-ups</div>
+                            </a>
+                        </li>
+                    @endcan
+                    @can('leads.view')
+                        <li class="menu-item {{ request()->is('admin/leads*') ? 'active' : '' }}">
+                            <a href="{{ route('admin.leads.index') }}" class="menu-link">
+                                <div class="text-truncate">Leads</div>
+                            </a>
+                        </li>
+                    @endcan
+                </ul>
             </li>
         @endcanany
 

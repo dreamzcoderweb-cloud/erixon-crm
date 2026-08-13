@@ -52,6 +52,23 @@ if (!function_exists('company_logo')) {
     }
 }
 
+if (!function_exists('company_favicon')) {
+    /**
+     * Get company favicon asset URL or fallback
+     *
+     * @param string|null $default
+     * @return string|null
+     */
+    function company_favicon($default = null)
+    {
+        $favicon = general_setting('favicon');
+        if (!empty($favicon) && file_exists(public_path($favicon))) {
+            return asset($favicon);
+        }
+        return $default ?: asset('assets/img/fav_icon.png');
+    }
+}
+
 if (!function_exists('theme_color')) {
     /**
      * Get theme color setting
@@ -75,5 +92,34 @@ if (!function_exists('whatsapp_no')) {
     function whatsapp_no($default = null)
     {
         return general_setting('whatsapp_no', $default);
+    }
+}
+
+if (!function_exists('upload_file')) {
+    /**
+     * Upload a file using FileUploadService
+     *
+     * @param \Illuminate\Http\UploadedFile $file
+     * @param string $category
+     * @param string|null $oldFilePath
+     * @param string|null $customPrefix
+     * @return string
+     */
+    function upload_file(\Illuminate\Http\UploadedFile $file, string $category = 'documents', ?string $oldFilePath = null, ?string $customPrefix = null): string
+    {
+        return \App\Services\FileUploadService::upload($file, $category, $oldFilePath, $customPrefix);
+    }
+}
+
+if (!function_exists('delete_file')) {
+    /**
+     * Delete a file using FileUploadService
+     *
+     * @param string|null $filePath
+     * @return bool
+     */
+    function delete_file(?string $filePath): bool
+    {
+        return \App\Services\FileUploadService::delete($filePath);
     }
 }

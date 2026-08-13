@@ -25,21 +25,21 @@ id="layout-navbar">
             <a class="nav-link dropdown-toggle hide-arrow p-0" href="javascript:void(0);"
                 data-bs-toggle="dropdown">
                 <div class="avatar avatar-online">
-                    <img src="{{ asset('assets/img/avatars/1.png') }}" alt="" class="w-px-40 h-auto rounded-circle" />
+                    <img src="{{ Auth::user()?->profile_image_url }}" alt="avatar" class="w-px-40 h-auto rounded-circle" style="object-fit: cover; width: 40px; height: 40px;" />
                 </div>
             </a>
             <ul class="dropdown-menu dropdown-menu-end">
                 <li>
-                    <a class="dropdown-item" href="#">
+                    <a class="dropdown-item" href="{{ url('admin/profile') }}">
                         <div class="d-flex">
                             <div class="flex-shrink-0 me-3">
                                 <div class="avatar avatar-online">
-                                    <img src="{{ asset('assets/img/avatars/1.png') }}" alt="" class="w-px-40 h-auto rounded-circle" />
+                                    <img src="{{ Auth::user()?->profile_image_url }}" alt="avatar" class="w-px-40 h-auto rounded-circle" style="object-fit: cover; width: 40px; height: 40px;" />
                                 </div>
                             </div>
                             <div class="flex-grow-1">
-                                <h6 class="mb-0">John Doe</h6>
-                                <small class="text-muted">Admin</small>
+                                <h6 class="mb-0">{{ Auth::user()?->name ?? 'Admin' }}</h6>
+                                <small class="text-muted">{{ Auth::user()?->roles?->first()?->name ?? Auth::user()?->email }}</small>
                             </div>
                         </div>
                     </a>
