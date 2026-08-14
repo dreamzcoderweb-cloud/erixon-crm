@@ -35,12 +35,16 @@ class StaffController extends Controller
                 'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->withoutTrashed()],
                 'password' => ['required', 'string', 'min:8', 'confirmed'],
                 'role_id' => ['required', 'integer', 'exists:roles,id'],
+                'mobile_number' => ['nullable', 'string', 'max:20'],
+                'address' => ['nullable', 'string', 'max:255'],
             ]
         );
 
         $user = new User();
         $user->name = $validated['name'];
         $user->email = $validated['email'];
+        $user->mobile_number = $validated['mobile_number'] ?? null;
+        $user->address = $validated['address'] ?? null;
         $user->password = Hash::make($validated['password']);
         $user->save();
 
@@ -78,11 +82,15 @@ class StaffController extends Controller
                 'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)->withoutTrashed()],
                 'password' => ['nullable', 'string', 'min:8', 'confirmed'],
                 'role_id' => ['required', 'integer', 'exists:roles,id'],
+                'mobile_number' => ['nullable', 'string', 'max:20'],
+                'address' => ['nullable', 'string', 'max:255'],
             ]
         );
 
         $user->name = $validated['name'];
         $user->email = $validated['email'];
+        $user->mobile_number = $validated['mobile_number'] ?? null;
+        $user->address = $validated['address'] ?? null;
         if (!empty($validated['password'])) {
             $user->password = Hash::make($validated['password']);
         }

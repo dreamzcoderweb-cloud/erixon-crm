@@ -22,6 +22,16 @@
                             </div>
 
                             <div class="row mb-6">
+                                <label class="col-sm-2 col-form-label" for="mobile_number">Mobile Number <span
+                                        class="text-danger"></span></label>
+                                <div class="col-sm-10">
+                                    <input type="text" class="form-control" id="mobile_number" name="mobile_number"
+                                        value="{{ old('mobile_number', $staff->mobile_number) }}" />
+                                    <span class="text-danger">{{ $errors->first('mobile_number') }}</span>
+                                </div>
+                            </div>
+
+                            <div class="row mb-6">
                                 <label class="col-sm-2 col-form-label" for="email">Email <span
                                         class="text-danger">*</span></label>
                                 <div class="col-sm-10">
@@ -47,6 +57,22 @@
                                     <span class="text-danger">{{ $errors->first('role_id') }}</span>
                                 </div>
                             </div>
+
+                            <div class="row mb-6">
+                                <label class="col-sm-2 col-form-label" for="address">
+                                    Address <span class="text-danger"></span>
+                                </label>
+
+                                <div class="col-sm-10">
+                                    <textarea
+                                        class="form-control"
+                                        id="address"
+                                        name="address"
+                                        rows="3">{{ old('address', $staff->address) }}</textarea>
+
+                                    <span class="text-danger">{{ $errors->first('address') }}</span>
+                                </div>
+</div>
 
                             <div class="row mb-6">
                                 <label class="col-sm-2 col-form-label" for="password">New Password</label>
