@@ -9,7 +9,7 @@
                         <h5 class="mb-0">Add Staff</h5>
                     </div>
                     <div class="card-body">
-                        <form action="{{ url('admin/add_staff') }}" method="POST">
+                        <form action="{{ url('admin/add_staff') }}" method="POST" autocomplete="off">
                             @csrf
                             <div class="row mb-6">
                                 <label class="col-sm-2 col-form-label" for="name">Name <span
@@ -36,7 +36,7 @@
                                         class="text-danger">*</span></label>
                                 <div class="col-sm-10">
                                     <input type="email" class="form-control" id="email" name="email"
-                                        value="{{ old('email') }}" />
+                                        value="{{ old('email') }}" autocomplete="off" />
                                     <span class="text-danger">{{ $errors->first('email') }}</span>
                                 </div>
                             </div>
@@ -64,9 +64,7 @@
                                 </label>
 
                                 <div class="col-sm-10">
-                                    <textarea class="form-control" id="address" name="address" rows="3">
-                                        {{ old('address', $staff->address) }}
-                                    </textarea>
+                                    <textarea class="form-control" id="address" name="address" rows="3">{{ old('address') }}</textarea>
                                     <span class="text-danger">{{ $errors->first('address') }}</span>
                                 </div>
                             </div>
@@ -75,7 +73,8 @@
                                 <label class="col-sm-2 col-form-label" for="password">Password <span
                                         class="text-danger">*</span></label>
                                 <div class="col-sm-10">
-                                    <input type="password" class="form-control" id="password" name="password" />
+                                    <input type="password" class="form-control" id="password" name="password"
+                                        autocomplete="new-password" />
                                     <span class="text-danger">{{ $errors->first('password') }}</span>
                                 </div>
                             </div>
@@ -85,7 +84,7 @@
                                     <span class="text-danger">*</span></label>
                                 <div class="col-sm-10">
                                     <input type="password" class="form-control" id="password_confirmation"
-                                        name="password_confirmation" />
+                                        name="password_confirmation" autocomplete="new-password" />
                                 </div>
                             </div>
 
