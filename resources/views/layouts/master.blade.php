@@ -224,6 +224,50 @@
         </div>
     </div>
 
+    <!-- Today's Follow-up Reminder Popup Modal for Staff -->
+    <div class="modal fade" id="todayFollowupReminderModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+            <div class="modal-content shadow-lg border-0">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title text-white d-flex align-items-center">
+                        <i class="bx bx-bell bx-tada me-2 fs-4"></i> Today's Follow-up Reminders
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="alert alert-info d-flex align-items-center mb-3">
+                        <i class="bx bx-info-circle me-2 fs-4"></i>
+                        <div>You have scheduled client follow-ups for today. Please review and process them.</div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle border">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Client Name</th>
+                                    <th>Contact No</th>
+                                    <th>Date & Time</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Notes</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="todayFollowupReminderTbody">
+                                <!-- Loaded dynamically via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <a href="{{ url('admin/followups') }}" class="btn btn-primary me-2">
+                        <i class="bx bx-list-ul me-1"></i> Go to All Follow-ups
+                    </a>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Core JS -->
     <script src="{{ asset('assets/vendor/libs/popper/popper.js') }}"></script>
     <script src="{{ asset('assets/vendor/js/bootstrap.js') }}"></script>
@@ -240,6 +284,11 @@
     <script src="{{ asset('assets/js/custom-js/lead.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/role.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/staff.js') }}"></script>
+    <script src="{{ asset('assets/js/custom-js/lead_document.js') }}"></script>
+    <script src="{{ asset('assets/js/custom-js/template.js') }}"></script>
+    <script src="{{ asset('assets/js/custom-js/call_recording.js') }}"></script>
+    <script src="{{ asset('assets/js/custom-js/attendance.js') }}"></script>
+    <script src="{{ asset('assets/js/custom-js/attendance_report.js') }}"></script>
 
     <!-- Vendors JS -->
     <script src="{{ asset('assets/vendor/libs/apex-charts/apexcharts.js') }}"></script>

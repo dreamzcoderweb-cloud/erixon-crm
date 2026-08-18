@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Aug 13, 2026 at 09:24 AM
+-- Generation Time: Aug 18, 2026 at 12:10 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -24,6 +24,32 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `attendance`
+--
+
+CREATE TABLE `attendance` (
+  `attendance_id` bigint(20) UNSIGNED NOT NULL,
+  `user_id` bigint(20) UNSIGNED NOT NULL,
+  `date` date NOT NULL,
+  `check_in` time NOT NULL,
+  `check_out` time DEFAULT NULL,
+  `working_hours` varchar(255) DEFAULT NULL,
+  `status` varchar(255) NOT NULL DEFAULT 'Present',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `attendance`
+--
+
+INSERT INTO `attendance` (`attendance_id`, `user_id`, `date`, `check_in`, `check_out`, `working_hours`, `status`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 3, '2026-08-18', '09:00:00', '17:30:00', '8 hrs 30 mins', 'Present', '2026-08-18 04:38:11', '2026-08-18 04:38:11', NULL);
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `cache`
 --
 
@@ -38,7 +64,7 @@ CREATE TABLE `cache` (
 --
 
 INSERT INTO `cache` (`key`, `value`, `expiration`) VALUES
-('spatie.permission.cache', 'a:3:{s:5:\"alias\";a:4:{s:1:\"a\";s:2:\"id\";s:1:\"b\";s:4:\"name\";s:1:\"c\";s:10:\"guard_name\";s:1:\"r\";s:5:\"roles\";}s:11:\"permissions\";a:43:{i:0;a:4:{s:1:\"a\";i:1;s:1:\"b\";s:14:\"dashboard.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:1;a:4:{s:1:\"a\";i:2;s:1:\"b\";s:12:\"profile.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:2;a:4:{s:1:\"a\";i:3;s:1:\"b\";s:16:\"profile.password\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:3;a:4:{s:1:\"a\";i:4;s:1:\"b\";s:10:\"roles.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:4;a:4:{s:1:\"a\";i:5;s:1:\"b\";s:12:\"roles.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:5;a:4:{s:1:\"a\";i:6;s:1:\"b\";s:10:\"roles.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:6;a:4:{s:1:\"a\";i:7;s:1:\"b\";s:12:\"roles.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:7;a:4:{s:1:\"a\";i:8;s:1:\"b\";s:10:\"staff.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:8;a:4:{s:1:\"a\";i:9;s:1:\"b\";s:12:\"staff.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:9;a:4:{s:1:\"a\";i:10;s:1:\"b\";s:10:\"staff.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:10;a:4:{s:1:\"a\";i:11;s:1:\"b\";s:12:\"staff.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:11;a:4:{s:1:\"a\";i:12;s:1:\"b\";s:14:\"customers.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:12;a:4:{s:1:\"a\";i:13;s:1:\"b\";s:21:\"general-settings.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:13;a:4:{s:1:\"a\";i:14;s:1:\"b\";s:21:\"general-settings.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:14;a:4:{s:1:\"a\";i:15;s:1:\"b\";s:22:\"referral-settings.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:15;a:4:{s:1:\"a\";i:16;s:1:\"b\";s:22:\"referral-settings.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:16;a:4:{s:1:\"a\";i:17;s:1:\"b\";s:16:\"customers.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:17;a:4:{s:1:\"a\";i:18;s:1:\"b\";s:14:\"customers.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:18;a:4:{s:1:\"a\";i:19;s:1:\"b\";s:16:\"customers.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:19;a:4:{s:1:\"a\";i:20;s:1:\"b\";s:17:\"lead-sources.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:20;a:4:{s:1:\"a\";i:21;s:1:\"b\";s:19:\"lead-sources.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:21;a:4:{s:1:\"a\";i:22;s:1:\"b\";s:17:\"lead-sources.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:22;a:4:{s:1:\"a\";i:23;s:1:\"b\";s:19:\"lead-sources.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:23;a:4:{s:1:\"a\";i:24;s:1:\"b\";s:10:\"leads.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:24;a:4:{s:1:\"a\";i:25;s:1:\"b\";s:12:\"leads.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:25;a:4:{s:1:\"a\";i:26;s:1:\"b\";s:10:\"leads.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:26;a:4:{s:1:\"a\";i:27;s:1:\"b\";s:12:\"leads.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:27;a:4:{s:1:\"a\";i:28;s:1:\"b\";s:16:\"lead-stages.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:28;a:4:{s:1:\"a\";i:29;s:1:\"b\";s:18:\"lead-stages.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:29;a:4:{s:1:\"a\";i:30;s:1:\"b\";s:16:\"lead-stages.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:30;a:4:{s:1:\"a\";i:31;s:1:\"b\";s:18:\"lead-stages.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:31;a:4:{s:1:\"a\";i:32;s:1:\"b\";s:22:\"lead-requirements.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:32;a:4:{s:1:\"a\";i:33;s:1:\"b\";s:24:\"lead-requirements.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:33;a:4:{s:1:\"a\";i:34;s:1:\"b\";s:22:\"lead-requirements.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:34;a:4:{s:1:\"a\";i:35;s:1:\"b\";s:24:\"lead-requirements.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:35;a:4:{s:1:\"a\";i:36;s:1:\"b\";s:17:\"lost-reasons.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:36;a:4:{s:1:\"a\";i:37;s:1:\"b\";s:19:\"lost-reasons.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:37;a:4:{s:1:\"a\";i:38;s:1:\"b\";s:17:\"lost-reasons.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:38;a:4:{s:1:\"a\";i:39;s:1:\"b\";s:19:\"lost-reasons.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:39;a:4:{s:1:\"a\";i:40;s:1:\"b\";s:14:\"followups.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:40;a:4:{s:1:\"a\";i:41;s:1:\"b\";s:16:\"followups.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:41;a:4:{s:1:\"a\";i:42;s:1:\"b\";s:14:\"followups.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:42;a:4:{s:1:\"a\";i:43;s:1:\"b\";s:16:\"followups.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}}s:5:\"roles\";a:2:{i:0;a:3:{s:1:\"a\";i:1;s:1:\"b\";s:11:\"Super Admin\";s:1:\"c\";s:3:\"web\";}i:1;a:3:{s:1:\"a\";i:2;s:1:\"b\";s:7:\"manager\";s:1:\"c\";s:3:\"web\";}}}', 1786691372);
+('spatie.permission.cache', 'a:3:{s:5:\"alias\";a:4:{s:1:\"a\";s:2:\"id\";s:1:\"b\";s:4:\"name\";s:1:\"c\";s:10:\"guard_name\";s:1:\"r\";s:5:\"roles\";}s:11:\"permissions\";a:62:{i:0;a:4:{s:1:\"a\";i:1;s:1:\"b\";s:14:\"dashboard.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:1;a:4:{s:1:\"a\";i:2;s:1:\"b\";s:12:\"profile.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:2;a:4:{s:1:\"a\";i:3;s:1:\"b\";s:16:\"profile.password\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:3;a:4:{s:1:\"a\";i:4;s:1:\"b\";s:10:\"roles.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:4;a:4:{s:1:\"a\";i:5;s:1:\"b\";s:12:\"roles.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:5;a:4:{s:1:\"a\";i:6;s:1:\"b\";s:10:\"roles.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:6;a:4:{s:1:\"a\";i:7;s:1:\"b\";s:12:\"roles.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:7;a:4:{s:1:\"a\";i:8;s:1:\"b\";s:10:\"staff.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:8;a:4:{s:1:\"a\";i:9;s:1:\"b\";s:12:\"staff.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:9;a:4:{s:1:\"a\";i:10;s:1:\"b\";s:10:\"staff.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:10;a:4:{s:1:\"a\";i:11;s:1:\"b\";s:12:\"staff.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:11;a:4:{s:1:\"a\";i:12;s:1:\"b\";s:14:\"customers.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:12;a:4:{s:1:\"a\";i:13;s:1:\"b\";s:21:\"general-settings.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:13;a:4:{s:1:\"a\";i:14;s:1:\"b\";s:21:\"general-settings.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:14;a:4:{s:1:\"a\";i:15;s:1:\"b\";s:22:\"referral-settings.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:15;a:4:{s:1:\"a\";i:16;s:1:\"b\";s:22:\"referral-settings.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:16;a:4:{s:1:\"a\";i:17;s:1:\"b\";s:16:\"customers.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:17;a:4:{s:1:\"a\";i:18;s:1:\"b\";s:14:\"customers.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:18;a:4:{s:1:\"a\";i:19;s:1:\"b\";s:16:\"customers.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:19;a:4:{s:1:\"a\";i:20;s:1:\"b\";s:17:\"lead-sources.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:20;a:4:{s:1:\"a\";i:21;s:1:\"b\";s:19:\"lead-sources.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:21;a:4:{s:1:\"a\";i:22;s:1:\"b\";s:17:\"lead-sources.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:22;a:4:{s:1:\"a\";i:23;s:1:\"b\";s:19:\"lead-sources.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:23;a:4:{s:1:\"a\";i:24;s:1:\"b\";s:10:\"leads.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:24;a:4:{s:1:\"a\";i:25;s:1:\"b\";s:12:\"leads.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:25;a:4:{s:1:\"a\";i:26;s:1:\"b\";s:10:\"leads.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:26;a:4:{s:1:\"a\";i:27;s:1:\"b\";s:12:\"leads.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:27;a:4:{s:1:\"a\";i:28;s:1:\"b\";s:16:\"lead-stages.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:28;a:4:{s:1:\"a\";i:29;s:1:\"b\";s:18:\"lead-stages.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:29;a:4:{s:1:\"a\";i:30;s:1:\"b\";s:16:\"lead-stages.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:30;a:4:{s:1:\"a\";i:31;s:1:\"b\";s:18:\"lead-stages.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:31;a:4:{s:1:\"a\";i:32;s:1:\"b\";s:22:\"lead-requirements.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:32;a:4:{s:1:\"a\";i:33;s:1:\"b\";s:24:\"lead-requirements.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:33;a:4:{s:1:\"a\";i:34;s:1:\"b\";s:22:\"lead-requirements.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:34;a:4:{s:1:\"a\";i:35;s:1:\"b\";s:24:\"lead-requirements.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:35;a:4:{s:1:\"a\";i:36;s:1:\"b\";s:17:\"lost-reasons.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:36;a:4:{s:1:\"a\";i:37;s:1:\"b\";s:19:\"lost-reasons.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:37;a:4:{s:1:\"a\";i:38;s:1:\"b\";s:17:\"lost-reasons.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:38;a:4:{s:1:\"a\";i:39;s:1:\"b\";s:19:\"lost-reasons.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:39;a:4:{s:1:\"a\";i:40;s:1:\"b\";s:14:\"followups.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:40;a:4:{s:1:\"a\";i:41;s:1:\"b\";s:16:\"followups.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:41;a:4:{s:1:\"a\";i:42;s:1:\"b\";s:14:\"followups.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:42;a:4:{s:1:\"a\";i:43;s:1:\"b\";s:16:\"followups.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:43;a:4:{s:1:\"a\";i:44;s:1:\"b\";s:18:\"followups.reassign\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:44;a:4:{s:1:\"a\";i:45;s:1:\"b\";s:11:\"staff.leave\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:45;a:4:{s:1:\"a\";i:46;s:1:\"b\";s:19:\"lead-documents.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:46;a:4:{s:1:\"a\";i:47;s:1:\"b\";s:21:\"lead-documents.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:47;a:4:{s:1:\"a\";i:48;s:1:\"b\";s:19:\"lead-documents.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:48;a:4:{s:1:\"a\";i:49;s:1:\"b\";s:21:\"lead-documents.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:49;a:4:{s:1:\"a\";i:50;s:1:\"b\";s:14:\"templates.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:50;a:4:{s:1:\"a\";i:51;s:1:\"b\";s:16:\"templates.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:51;a:4:{s:1:\"a\";i:52;s:1:\"b\";s:14:\"templates.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:52;a:4:{s:1:\"a\";i:53;s:1:\"b\";s:16:\"templates.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:53;a:4:{s:1:\"a\";i:54;s:1:\"b\";s:20:\"call-recordings.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:54;a:4:{s:1:\"a\";i:55;s:1:\"b\";s:22:\"call-recordings.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:55;a:4:{s:1:\"a\";i:56;s:1:\"b\";s:20:\"call-recordings.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:56;a:4:{s:1:\"a\";i:57;s:1:\"b\";s:22:\"call-recordings.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:57;a:4:{s:1:\"a\";i:58;s:1:\"b\";s:15:\"attendance.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:58;a:4:{s:1:\"a\";i:59;s:1:\"b\";s:17:\"attendance.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:59;a:4:{s:1:\"a\";i:60;s:1:\"b\";s:15:\"attendance.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:60;a:4:{s:1:\"a\";i:61;s:1:\"b\";s:17:\"attendance.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:61;a:4:{s:1:\"a\";i:62;s:1:\"b\";s:23:\"attendance-reports.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}}s:5:\"roles\";a:2:{i:0;a:3:{s:1:\"a\";i:1;s:1:\"b\";s:11:\"Super Admin\";s:1:\"c\";s:3:\"web\";}i:1;a:3:{s:1:\"a\";i:2;s:1:\"b\";s:7:\"manager\";s:1:\"c\";s:3:\"web\";}}}', 1787133989);
 
 -- --------------------------------------------------------
 
@@ -51,6 +77,30 @@ CREATE TABLE `cache_locks` (
   `owner` varchar(255) NOT NULL,
   `expiration` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `call_recordings`
+--
+
+CREATE TABLE `call_recordings` (
+  `call_id` bigint(20) UNSIGNED NOT NULL,
+  `lead_id` bigint(20) UNSIGNED NOT NULL,
+  `recording_file` varchar(255) NOT NULL,
+  `duration` varchar(255) DEFAULT NULL,
+  `created_by` bigint(20) UNSIGNED DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `call_recordings`
+--
+
+INSERT INTO `call_recordings` (`call_id`, `lead_id`, `recording_file`, `duration`, `created_by`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 1, 'uploads/call_recordings/1787046839_Jailer-2-Announcement-Bgm.mp3', '1 minute', 1, '2026-08-18 04:23:59', '2026-08-18 04:24:40', '2026-08-18 04:24:40');
 
 -- --------------------------------------------------------
 
@@ -114,6 +164,7 @@ CREATE TABLE `followups` (
   `followups_id` bigint(20) UNSIGNED NOT NULL,
   `lead_id` bigint(20) UNSIGNED NOT NULL,
   `followup_type` varchar(255) NOT NULL,
+  `duration` varchar(255) DEFAULT NULL,
   `remarks` text DEFAULT NULL,
   `next_followup_date` datetime DEFAULT NULL,
   `followup_status` varchar(255) NOT NULL DEFAULT 'Pending',
@@ -128,8 +179,33 @@ CREATE TABLE `followups` (
 -- Dumping data for table `followups`
 --
 
-INSERT INTO `followups` (`followups_id`, `lead_id`, `followup_type`, `remarks`, `next_followup_date`, `followup_status`, `forward_to`, `created_by`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, 1, 'Call', NULL, '2026-08-27 12:50:00', 'Pending', 2, 1, '2026-08-13 01:50:29', '2026-08-13 01:50:29', NULL);
+INSERT INTO `followups` (`followups_id`, `lead_id`, `followup_type`, `duration`, `remarks`, `next_followup_date`, `followup_status`, `forward_to`, `created_by`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 1, 'Call', '5 minutes', NULL, '2026-08-18 10:00:00', 'Pending', 2, 2, '2026-08-13 01:50:29', '2026-08-18 04:19:53', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `followup_reassignments`
+--
+
+CREATE TABLE `followup_reassignments` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `followup_id` bigint(20) UNSIGNED NOT NULL,
+  `previous_staff_id` bigint(20) UNSIGNED NOT NULL,
+  `new_staff_id` bigint(20) UNSIGNED NOT NULL,
+  `reassigned_by` bigint(20) UNSIGNED NOT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `followup_reassignments`
+--
+
+INSERT INTO `followup_reassignments` (`id`, `followup_id`, `previous_staff_id`, `new_staff_id`, `reassigned_by`, `notes`, `created_at`, `updated_at`) VALUES
+(1, 1, 2, 3, 1, 'Reassigned due to staff leave', '2026-08-18 03:57:11', '2026-08-18 03:57:11'),
+(2, 1, 3, 2, 1, 'Reassigned due to staff leave', '2026-08-18 04:19:53', '2026-08-18 04:19:53');
 
 -- --------------------------------------------------------
 
@@ -153,7 +229,7 @@ CREATE TABLE `general_settings` (
 --
 
 INSERT INTO `general_settings` (`id`, `company_name`, `logo`, `favicon`, `whatsapp_no`, `theme_color`, `created_at`, `updated_at`) VALUES
-(1, 'Erixon CRM', 'uploads/settings/logo_1786084263.png', 'uploads/settings/favicon_1786599209.png', '8610747034', '#1a47cb', '2026-08-07 00:49:16', '2026-08-13 00:09:14');
+(1, 'Erixon CRM', 'uploads/settings/logo_1786084263.png', 'uploads/settings/favicon_1786599209.png', '8610747034', '#c66306', '2026-08-07 00:49:16', '2026-08-18 00:16:58');
 
 -- --------------------------------------------------------
 
@@ -221,7 +297,32 @@ CREATE TABLE `leads` (
 --
 
 INSERT INTO `leads` (`lead_id`, `customer_id`, `lead_title`, `lead_source_id`, `lead_stage_id`, `lead_requirement_id`, `assigned_to`, `priority`, `expected_amount`, `description`, `next_followup_date`, `status`, `lost_reason_id`, `created_by`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, 1, 'ecommerce website', 2, 1, 5, 2, 'medium', 100000.00, 'dynamic ecommerce website with payment gateway', '2026-08-27', 1, NULL, 1, '2026-08-13 01:49:42', '2026-08-13 01:50:29', NULL);
+(1, 1, 'ecommerce website', 2, 1, 5, 2, 'medium', 100000.00, 'dynamic ecommerce website with payment gateway', '2026-08-19', 1, NULL, 1, '2026-08-13 01:49:42', '2026-08-18 03:52:27', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `lead_documents`
+--
+
+CREATE TABLE `lead_documents` (
+  `lead_documents_id` bigint(20) UNSIGNED NOT NULL,
+  `lead_id` bigint(20) UNSIGNED NOT NULL,
+  `document_type` varchar(255) NOT NULL,
+  `file_name` varchar(255) NOT NULL,
+  `file_path` varchar(255) NOT NULL,
+  `uploaded_by` bigint(20) UNSIGNED DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `lead_documents`
+--
+
+INSERT INTO `lead_documents` (`lead_documents_id`, `lead_id`, `document_type`, `file_name`, `file_path`, `uploaded_by`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 1, 'ID Proof', 'WhatsApp Image 2026-08-14 at 11.53.04 AM (2).jpeg', 'uploads/lead_documents/1787046386_WhatsApp_Image_2026-08-14_at_11.53.04_AM_(2).jpeg', 1, '2026-08-18 04:16:26', '2026-08-18 04:16:26', NULL);
 
 -- --------------------------------------------------------
 
@@ -248,7 +349,7 @@ INSERT INTO `lead_requirements` (`lead_requirements_id`, `name`, `status`, `crea
 (3, 'Voice Call', 1, '2026-08-13 01:45:00', '2026-08-13 01:45:00', NULL),
 (4, 'Website', 1, '2026-08-13 01:45:08', '2026-08-13 01:45:08', NULL),
 (5, 'Software', 1, '2026-08-13 01:45:16', '2026-08-13 01:45:16', NULL),
-(6, 'Hardware', 1, '2026-08-13 01:45:24', '2026-08-13 01:51:23', NULL);
+(6, 'Hardware', 1, '2026-08-13 01:45:24', '2026-08-17 05:26:21', NULL);
 
 -- --------------------------------------------------------
 
@@ -275,7 +376,7 @@ INSERT INTO `lead_sources` (`lead_sources_id`, `name`, `status`, `created_at`, `
 (3, 'Campaign', 1, '2026-08-13 01:41:55', '2026-08-13 01:41:55', NULL),
 (4, 'Website', 1, '2026-08-13 01:42:04', '2026-08-13 01:42:04', NULL),
 (5, 'WhatsApp', 1, '2026-08-13 01:42:13', '2026-08-13 01:42:13', NULL),
-(6, 'Facebook', 1, '2026-08-13 01:42:20', '2026-08-13 01:42:20', NULL);
+(6, 'Facebook', 1, '2026-08-13 01:42:20', '2026-08-14 01:52:50', NULL);
 
 -- --------------------------------------------------------
 
@@ -364,7 +465,14 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 (16, '2026_08_13_000008_create_lead_requirements_table', 5),
 (17, '2026_08_13_000009_create_lost_reasons_table', 5),
 (18, '2026_08_13_000010_create_followups_table', 5),
-(19, '2026_08_13_000011_add_lead_foreign_key_constraints', 5);
+(19, '2026_08_13_000011_add_lead_foreign_key_constraints', 5),
+(20, '2026_08_18_000001_add_duration_to_followups_table', 6),
+(21, '2026_08_18_000002_add_is_on_leave_to_users_table', 6),
+(22, '2026_08_18_000003_create_followup_reassignments_table', 6),
+(23, '2026_08_18_000004_create_lead_documents_table', 7),
+(24, '2026_08_18_000005_create_templates_table', 7),
+(25, '2026_08_18_000006_create_call_recordings_table', 7),
+(26, '2026_08_18_000007_create_attendance_table', 7);
 
 -- --------------------------------------------------------
 
@@ -396,7 +504,8 @@ CREATE TABLE `model_has_roles` (
 
 INSERT INTO `model_has_roles` (`role_id`, `model_type`, `model_id`) VALUES
 (1, 'App\\Models\\User', 1),
-(2, 'App\\Models\\User', 2);
+(2, 'App\\Models\\User', 2),
+(2, 'App\\Models\\User', 3);
 
 -- --------------------------------------------------------
 
@@ -471,7 +580,26 @@ INSERT INTO `permissions` (`id`, `name`, `guard_name`, `created_at`, `updated_at
 (40, 'followups.view', 'web', '2026-08-13 01:38:45', '2026-08-13 01:38:45'),
 (41, 'followups.create', 'web', '2026-08-13 01:38:45', '2026-08-13 01:38:45'),
 (42, 'followups.edit', 'web', '2026-08-13 01:38:45', '2026-08-13 01:38:45'),
-(43, 'followups.delete', 'web', '2026-08-13 01:38:45', '2026-08-13 01:38:45');
+(43, 'followups.delete', 'web', '2026-08-13 01:38:45', '2026-08-13 01:38:45'),
+(44, 'followups.reassign', 'web', '2026-08-18 03:41:45', '2026-08-18 03:41:45'),
+(45, 'staff.leave', 'web', '2026-08-18 03:41:45', '2026-08-18 03:41:45'),
+(46, 'lead-documents.view', 'web', '2026-08-18 04:09:51', '2026-08-18 04:09:51'),
+(47, 'lead-documents.create', 'web', '2026-08-18 04:09:51', '2026-08-18 04:09:51'),
+(48, 'lead-documents.edit', 'web', '2026-08-18 04:09:51', '2026-08-18 04:09:51'),
+(49, 'lead-documents.delete', 'web', '2026-08-18 04:09:51', '2026-08-18 04:09:51'),
+(50, 'templates.view', 'web', '2026-08-18 04:09:51', '2026-08-18 04:09:51'),
+(51, 'templates.create', 'web', '2026-08-18 04:09:51', '2026-08-18 04:09:51'),
+(52, 'templates.edit', 'web', '2026-08-18 04:09:51', '2026-08-18 04:09:51'),
+(53, 'templates.delete', 'web', '2026-08-18 04:09:51', '2026-08-18 04:09:51'),
+(54, 'call-recordings.view', 'web', '2026-08-18 04:09:51', '2026-08-18 04:09:51'),
+(55, 'call-recordings.create', 'web', '2026-08-18 04:09:51', '2026-08-18 04:09:51'),
+(56, 'call-recordings.edit', 'web', '2026-08-18 04:09:51', '2026-08-18 04:09:51'),
+(57, 'call-recordings.delete', 'web', '2026-08-18 04:09:51', '2026-08-18 04:09:51'),
+(58, 'attendance.view', 'web', '2026-08-18 04:09:51', '2026-08-18 04:09:51'),
+(59, 'attendance.create', 'web', '2026-08-18 04:09:51', '2026-08-18 04:09:51'),
+(60, 'attendance.edit', 'web', '2026-08-18 04:09:51', '2026-08-18 04:09:51'),
+(61, 'attendance.delete', 'web', '2026-08-18 04:09:51', '2026-08-18 04:09:51'),
+(62, 'attendance-reports.view', 'web', '2026-08-18 04:36:18', '2026-08-18 04:36:18');
 
 -- --------------------------------------------------------
 
@@ -554,7 +682,9 @@ INSERT INTO `role_has_permissions` (`permission_id`, `role_id`) VALUES
 (1, 1),
 (1, 2),
 (2, 1),
+(2, 2),
 (3, 1),
+(3, 2),
 (4, 1),
 (5, 1),
 (6, 1),
@@ -565,36 +695,82 @@ INSERT INTO `role_has_permissions` (`permission_id`, `role_id`) VALUES
 (11, 1),
 (12, 1),
 (13, 1),
+(13, 2),
 (14, 1),
+(14, 2),
 (15, 1),
 (16, 1),
 (17, 1),
 (18, 1),
 (19, 1),
 (20, 1),
+(20, 2),
 (21, 1),
+(21, 2),
 (22, 1),
+(22, 2),
 (23, 1),
+(23, 2),
 (24, 1),
+(24, 2),
 (25, 1),
+(25, 2),
 (26, 1),
+(26, 2),
 (27, 1),
+(27, 2),
 (28, 1),
+(28, 2),
 (29, 1),
+(29, 2),
 (30, 1),
+(30, 2),
 (31, 1),
+(31, 2),
 (32, 1),
+(32, 2),
 (33, 1),
+(33, 2),
 (34, 1),
+(34, 2),
 (35, 1),
+(35, 2),
 (36, 1),
+(36, 2),
 (37, 1),
+(37, 2),
 (38, 1),
+(38, 2),
 (39, 1),
+(39, 2),
 (40, 1),
+(40, 2),
 (41, 1),
+(41, 2),
 (42, 1),
-(43, 1);
+(42, 2),
+(43, 1),
+(43, 2),
+(44, 1),
+(44, 2),
+(45, 1),
+(46, 1),
+(47, 1),
+(48, 1),
+(49, 1),
+(50, 1),
+(51, 1),
+(52, 1),
+(53, 1),
+(54, 1),
+(55, 1),
+(56, 1),
+(57, 1),
+(58, 1),
+(59, 1),
+(60, 1),
+(61, 1),
+(62, 1);
 
 -- --------------------------------------------------------
 
@@ -616,7 +792,24 @@ CREATE TABLE `sessions` (
 --
 
 INSERT INTO `sessions` (`id`, `user_id`, `ip_address`, `user_agent`, `payload`, `last_activity`) VALUES
-('1pXAa3xtZ0XhOz0D7HvHN3j7vEvN18zb6fZ3VAS0', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', 'YTo1OntzOjY6Il90b2tlbiI7czo0MDoiZ3dUMDNZbWl4Y2tSdWZUZHUzazhQeUpKTnpPb1QwMUY5M1NOaUdjZyI7czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6Mzc6Imh0dHA6Ly8xMjcuMC4wLjE6ODAwMC9hZG1pbi9mb2xsb3d1cHMiO31zOjY6Il9mbGFzaCI7YToyOntzOjM6Im9sZCI7YTowOnt9czozOiJuZXciO2E6MDp7fX1zOjUwOiJsb2dpbl93ZWJfNTliYTM2YWRkYzJiMmY5NDAxNTgwZjAxNGM3ZjU4ZWE0ZTMwOTg5ZCI7aToxO3M6MTc6InBhc3N3b3JkX2hhc2hfd2ViIjtzOjYwOiIkMnkkMTIkcy40SkhRT3NSTzd1WDZvYVJJVG5hZVg2QkdILlNIeEs1b3JhbFZYWXFPNmJQOXNrc0pXL3kiO30=', 1786605716);
+('wSkwWV5WAa8AouTOODsup3uNGWkiEUKrt9q5I5op', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', 'YTo1OntzOjY6Il90b2tlbiI7czo0MDoiekFDcFN2MVVJVURqdkp0bDdDMlBtMlN4SjNQQmk4TldYZE53Y2dLbCI7czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6NDU6Imh0dHA6Ly8xMjcuMC4wLjE6ODAwMC9hZG1pbi9hdHRlbmRhbmNlL3JlcG9ydCI7fXM6NjoiX2ZsYXNoIjthOjI6e3M6Mzoib2xkIjthOjA6e31zOjM6Im5ldyI7YTowOnt9fXM6NTA6ImxvZ2luX3dlYl81OWJhMzZhZGRjMmIyZjk0MDE1ODBmMDE0YzdmNThlYTRlMzA5ODlkIjtpOjE7czoxNzoicGFzc3dvcmRfaGFzaF93ZWIiO3M6NjA6IiQyeSQxMiR0d2o4SVBLcFNRTE9WWjE2L2pGaW9lSzNPdmZnYjVKWUw3cUFReC96SG9OWG5zczIvYWdybSI7fQ==', 1787047785);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `templates`
+--
+
+CREATE TABLE `templates` (
+  `template_id` bigint(20) UNSIGNED NOT NULL,
+  `type` varchar(255) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `content` text NOT NULL,
+  `status` varchar(255) NOT NULL DEFAULT 'Active',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -629,6 +822,9 @@ CREATE TABLE `users` (
   `name` varchar(255) NOT NULL,
   `email` varchar(255) NOT NULL,
   `profile_image` varchar(255) DEFAULT NULL,
+  `mobile_number` varchar(255) DEFAULT NULL,
+  `address` varchar(255) DEFAULT NULL,
+  `is_on_leave` tinyint(1) NOT NULL DEFAULT 0,
   `email_verified_at` timestamp NULL DEFAULT NULL,
   `password` varchar(255) NOT NULL,
   `remember_token` varchar(100) DEFAULT NULL,
@@ -641,13 +837,21 @@ CREATE TABLE `users` (
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `name`, `email`, `profile_image`, `email_verified_at`, `password`, `remember_token`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, 'super admin', 'admin@gmail.com', 'uploads/profile/profile_1_1786599405.png', NULL, '$2y$12$s.4JHQOsRO7uX6oaRITnaeX6BGH.SHxK5oralVXYqO6bP9sksJW/y', NULL, NULL, '2026-08-13 00:06:45', NULL),
-(2, 'Tharik', 'tharik@gmail.com', NULL, NULL, '$2y$12$nvQqM42ktwFGRloxSpQAcOgWt.BehFmDS5nFmbQZauVenLnXWaxwi', NULL, '2026-08-07 02:06:43', '2026-08-07 02:06:43', NULL);
+INSERT INTO `users` (`id`, `name`, `email`, `profile_image`, `mobile_number`, `address`, `is_on_leave`, `email_verified_at`, `password`, `remember_token`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 'super admin', 'admin@gmail.com', 'uploads/profile/profile_1_1786965689_9c2cd997.png', NULL, NULL, 0, NULL, '$2y$12$twj8IPKpSQLOVZ16/jFioeK3Ovfgb5JYL7qAQx/zHoNXnss2/agrm', NULL, NULL, '2026-08-17 05:51:29', NULL),
+(2, 'Tharik', 'tharik@gmail.com', NULL, '9489042085', 'madurai,tamil nadu', 0, NULL, '$2y$12$eUdwxokNoIPWttFsek7eO.ZhMSHz5LjJ9POfUbnWviBEp5SaS5OzK', NULL, '2026-08-07 02:06:43', '2026-08-18 04:19:24', NULL),
+(3, 'riyaz', 'riyaz@gmail.com', NULL, '9485042596', 'madurai,tamil nadu', 0, NULL, '$2y$12$wAOG0XmS9NXsMTXhNuz.EuraSyKW60ha6/y6flLrvx.3gOoHy6hLq', NULL, '2026-08-18 03:55:32', '2026-08-18 03:55:32', NULL);
 
 --
 -- Indexes for dumped tables
 --
+
+--
+-- Indexes for table `attendance`
+--
+ALTER TABLE `attendance`
+  ADD PRIMARY KEY (`attendance_id`),
+  ADD KEY `attendance_user_id_foreign` (`user_id`);
 
 --
 -- Indexes for table `cache`
@@ -660,6 +864,14 @@ ALTER TABLE `cache`
 --
 ALTER TABLE `cache_locks`
   ADD PRIMARY KEY (`key`);
+
+--
+-- Indexes for table `call_recordings`
+--
+ALTER TABLE `call_recordings`
+  ADD PRIMARY KEY (`call_id`),
+  ADD KEY `call_recordings_lead_id_foreign` (`lead_id`),
+  ADD KEY `call_recordings_created_by_foreign` (`created_by`);
 
 --
 -- Indexes for table `customers`
@@ -684,6 +896,16 @@ ALTER TABLE `followups`
   ADD KEY `followups_lead_id_foreign` (`lead_id`),
   ADD KEY `followups_forward_to_foreign` (`forward_to`),
   ADD KEY `followups_created_by_foreign` (`created_by`);
+
+--
+-- Indexes for table `followup_reassignments`
+--
+ALTER TABLE `followup_reassignments`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `followup_reassignments_followup_id_foreign` (`followup_id`),
+  ADD KEY `followup_reassignments_previous_staff_id_foreign` (`previous_staff_id`),
+  ADD KEY `followup_reassignments_new_staff_id_foreign` (`new_staff_id`),
+  ADD KEY `followup_reassignments_reassigned_by_foreign` (`reassigned_by`);
 
 --
 -- Indexes for table `general_settings`
@@ -716,6 +938,14 @@ ALTER TABLE `leads`
   ADD KEY `leads_lead_stage_id_foreign` (`lead_stage_id`),
   ADD KEY `leads_lead_requirement_id_foreign` (`lead_requirement_id`),
   ADD KEY `leads_lost_reason_id_foreign` (`lost_reason_id`);
+
+--
+-- Indexes for table `lead_documents`
+--
+ALTER TABLE `lead_documents`
+  ADD PRIMARY KEY (`lead_documents_id`),
+  ADD KEY `lead_documents_lead_id_foreign` (`lead_id`),
+  ADD KEY `lead_documents_uploaded_by_foreign` (`uploaded_by`);
 
 --
 -- Indexes for table `lead_requirements`
@@ -812,6 +1042,12 @@ ALTER TABLE `sessions`
   ADD KEY `sessions_last_activity_index` (`last_activity`);
 
 --
+-- Indexes for table `templates`
+--
+ALTER TABLE `templates`
+  ADD PRIMARY KEY (`template_id`);
+
+--
 -- Indexes for table `users`
 --
 ALTER TABLE `users`
@@ -821,6 +1057,18 @@ ALTER TABLE `users`
 --
 -- AUTO_INCREMENT for dumped tables
 --
+
+--
+-- AUTO_INCREMENT for table `attendance`
+--
+ALTER TABLE `attendance`
+  MODIFY `attendance_id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `call_recordings`
+--
+ALTER TABLE `call_recordings`
+  MODIFY `call_id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `customers`
@@ -841,6 +1089,12 @@ ALTER TABLE `followups`
   MODIFY `followups_id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
+-- AUTO_INCREMENT for table `followup_reassignments`
+--
+ALTER TABLE `followup_reassignments`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
 -- AUTO_INCREMENT for table `general_settings`
 --
 ALTER TABLE `general_settings`
@@ -857,6 +1111,12 @@ ALTER TABLE `jobs`
 --
 ALTER TABLE `leads`
   MODIFY `lead_id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `lead_documents`
+--
+ALTER TABLE `lead_documents`
+  MODIFY `lead_documents_id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `lead_requirements`
@@ -886,19 +1146,19 @@ ALTER TABLE `lost_reasons`
 -- AUTO_INCREMENT for table `migrations`
 --
 ALTER TABLE `migrations`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
 
 --
 -- AUTO_INCREMENT for table `permissions`
 --
 ALTER TABLE `permissions`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=44;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=63;
 
 --
 -- AUTO_INCREMENT for table `personal_access_tokens`
 --
 ALTER TABLE `personal_access_tokens`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `referral_settings`
@@ -913,14 +1173,33 @@ ALTER TABLE `roles`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
+-- AUTO_INCREMENT for table `templates`
+--
+ALTER TABLE `templates`
+  MODIFY `template_id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- Constraints for dumped tables
 --
+
+--
+-- Constraints for table `attendance`
+--
+ALTER TABLE `attendance`
+  ADD CONSTRAINT `attendance_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `call_recordings`
+--
+ALTER TABLE `call_recordings`
+  ADD CONSTRAINT `call_recordings_created_by_foreign` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `call_recordings_lead_id_foreign` FOREIGN KEY (`lead_id`) REFERENCES `leads` (`lead_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `customers`
@@ -937,6 +1216,15 @@ ALTER TABLE `followups`
   ADD CONSTRAINT `followups_lead_id_foreign` FOREIGN KEY (`lead_id`) REFERENCES `leads` (`lead_id`) ON DELETE CASCADE;
 
 --
+-- Constraints for table `followup_reassignments`
+--
+ALTER TABLE `followup_reassignments`
+  ADD CONSTRAINT `followup_reassignments_followup_id_foreign` FOREIGN KEY (`followup_id`) REFERENCES `followups` (`followups_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `followup_reassignments_new_staff_id_foreign` FOREIGN KEY (`new_staff_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `followup_reassignments_previous_staff_id_foreign` FOREIGN KEY (`previous_staff_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `followup_reassignments_reassigned_by_foreign` FOREIGN KEY (`reassigned_by`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
 -- Constraints for table `leads`
 --
 ALTER TABLE `leads`
@@ -947,6 +1235,13 @@ ALTER TABLE `leads`
   ADD CONSTRAINT `leads_lead_source_id_foreign` FOREIGN KEY (`lead_source_id`) REFERENCES `lead_sources` (`lead_sources_id`) ON DELETE SET NULL,
   ADD CONSTRAINT `leads_lead_stage_id_foreign` FOREIGN KEY (`lead_stage_id`) REFERENCES `lead_stages` (`lead_stage_id`) ON DELETE SET NULL,
   ADD CONSTRAINT `leads_lost_reason_id_foreign` FOREIGN KEY (`lost_reason_id`) REFERENCES `lost_reasons` (`lost_reason_id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `lead_documents`
+--
+ALTER TABLE `lead_documents`
+  ADD CONSTRAINT `lead_documents_lead_id_foreign` FOREIGN KEY (`lead_id`) REFERENCES `leads` (`lead_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `lead_documents_uploaded_by_foreign` FOREIGN KEY (`uploaded_by`) REFERENCES `users` (`id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `model_has_permissions`

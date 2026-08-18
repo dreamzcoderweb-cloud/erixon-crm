@@ -16,6 +16,7 @@ class Followup extends Model
     protected $fillable = [
         'lead_id',
         'followup_type',
+        'duration',
         'remarks',
         'next_followup_date',
         'followup_status',
@@ -36,5 +37,10 @@ class Followup extends Model
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by', 'id');
+    }
+
+    public function reassignments()
+    {
+        return $this->hasMany(FollowupReassignment::class, 'followup_id', 'followups_id');
     }
 }

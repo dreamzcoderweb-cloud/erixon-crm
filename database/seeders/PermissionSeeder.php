@@ -57,6 +57,8 @@ class PermissionSeeder extends Seeder
             'followups.create',
             'followups.edit',
             'followups.delete',
+            'followups.reassign',
+            'staff.leave',
 
             'leads.view',
             'leads.create',
@@ -67,6 +69,27 @@ class PermissionSeeder extends Seeder
             'general-settings.edit',
             'referral-settings.view',
             'referral-settings.edit',
+
+            'lead-documents.view',
+            'lead-documents.create',
+            'lead-documents.edit',
+            'lead-documents.delete',
+
+            'templates.view',
+            'templates.create',
+            'templates.edit',
+            'templates.delete',
+
+            'call-recordings.view',
+            'call-recordings.create',
+            'call-recordings.edit',
+            'call-recordings.delete',
+
+            'attendance.view',
+            'attendance.create',
+            'attendance.edit',
+            'attendance.delete',
+            'attendance-reports.view',
         ];
 
         foreach ($permissions as $name) {

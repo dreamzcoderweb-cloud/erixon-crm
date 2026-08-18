@@ -27,6 +27,7 @@ class User extends Authenticatable
         'password',
         'mobile_number',
         'address',
+        'is_on_leave',
     ];
 
     /**
@@ -48,8 +49,17 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'is_on_leave' => 'boolean',
             // 'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Scope to filter active staff not on leave
+     */
+    public function scopeAvailableForAssignment($query)
+    {
+        return $query->where('is_on_leave', false);
     }
 
     /**

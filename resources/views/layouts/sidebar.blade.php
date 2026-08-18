@@ -25,9 +25,9 @@
             </a>
         </li>
 
-        @canany(['roles.view', 'staff.view'])
+        @canany(['roles.view', 'staff.view', 'attendance.view'])
             <li
-                class="menu-item {{ request()->is('admin/roles_with_filter') || request()->is('admin/add_role') || request()->is('admin/edit_role/*') || request()->is('admin/staff') || request()->is('admin/add_staff') || request()->is('admin/edit_staff/*') ? 'active open' : '' }}">
+                class="menu-item {{ request()->is('admin/roles_with_filter') || request()->is('admin/add_role') || request()->is('admin/edit_role/*') || request()->is('admin/staff*') || request()->is('admin/attendance*') ? 'active open' : '' }}">
                 <a href="javascript:void(0);" class="menu-link menu-toggle">
                     <i class="menu-icon tf-icons bx bx-lock-alt"></i>
                     <div class="text-truncate">Access Control</div>
@@ -44,9 +44,25 @@
                     @endcan
                     @can('staff.view')
                         <li
-                            class="menu-item {{ request()->is('admin/staff') || request()->is('admin/add_staff') || request()->is('admin/edit_staff/*') ? 'active' : '' }}">
+                            class="menu-item {{ request()->is('admin/staff*') ? 'active' : '' }}">
                             <a href="{{ route('admin.staff.index') }}" class="menu-link">
                                 <div class="text-truncate">Staff</div>
+                            </a>
+                        </li>
+                    @endcan
+                    @can('attendance.view')
+                        <li
+                            class="menu-item {{ request()->is('admin/attendance') || request()->is('admin/attendance/*') && !request()->is('admin/attendance/report*') ? 'active' : '' }}">
+                            <a href="{{ route('admin.attendance.index') }}" class="menu-link">
+                                <div class="text-truncate">Attendance</div>
+                            </a>
+                        </li>
+                    @endcan
+                    @can('attendance-reports.view')
+                        <li
+                            class="menu-item {{ request()->is('admin/attendance/report*') ? 'active' : '' }}">
+                            <a href="{{ route('admin.attendance.report') }}" class="menu-link">
+                                <div class="text-truncate">Attendance Report</div>
                             </a>
                         </li>
                     @endcan
@@ -55,7 +71,7 @@
         @endcanany
 
         @can('customers.view')
-            <li class="menu-item {{ request()->is('admin/customers') ? 'active' : '' }}">
+            <li class="menu-item {{ request()->is('admin/customers*') ? 'active' : '' }}">
                 <a href="{{ route('admin.customers.index') }}" class="menu-link">
                     <i class="menu-icon tf-icons bx bx-user"></i>
                     <div class="text-truncate">Customers</div>
@@ -63,13 +79,41 @@
             </li>
         @endcan
 
-        @canany(['lead-sources.view', 'lead-stages.view', 'lead-requirements.view', 'lost-reasons.view', 'followups.view', 'leads.view'])
-            <li class="menu-item {{ request()->is('admin/lead-sources*') || request()->is('admin/lead-stages*') || request()->is('admin/lead-requirements*') || request()->is('admin/lost-reasons*') || request()->is('admin/followups*') || request()->is('admin/leads*') ? 'active open' : '' }}">
+        @canany(['lead-sources.view', 'lead-stages.view', 'lead-requirements.view', 'lost-reasons.view', 'followups.view', 'leads.view', 'lead-documents.view', 'call-recordings.view'])
+            <li class="menu-item {{ request()->is('admin/lead-sources*') || request()->is('admin/lead-stages*') || request()->is('admin/lead-requirements*') || request()->is('admin/lost-reasons*') || request()->is('admin/followups*') || request()->is('admin/leads*') || request()->is('admin/lead-documents*') || request()->is('admin/call-recordings*') ? 'active open' : '' }}">
                 <a href="javascript:void(0);" class="menu-link menu-toggle">
                     <i class="menu-icon tf-icons bx bx-target-lock"></i>
                     <div class="text-truncate">Leads Management</div>
                 </a>
                 <ul class="menu-sub">
+                    @can('leads.view')
+                        <li class="menu-item {{ request()->is('admin/leads*') ? 'active' : '' }}">
+                            <a href="{{ route('admin.leads.index') }}" class="menu-link">
+                                <div class="text-truncate">Leads</div>
+                            </a>
+                        </li>
+                    @endcan
+                    @can('followups.view')
+                        <li class="menu-item {{ request()->is('admin/followups*') ? 'active' : '' }}">
+                            <a href="{{ route('admin.followups.index') }}" class="menu-link">
+                                <div class="text-truncate">Follow-ups</div>
+                            </a>
+                        </li>
+                    @endcan
+                    @can('lead-documents.view')
+                        <li class="menu-item {{ request()->is('admin/lead-documents*') ? 'active' : '' }}">
+                            <a href="{{ route('admin.lead-documents.index') }}" class="menu-link">
+                                <div class="text-truncate">Lead Documents</div>
+                            </a>
+                        </li>
+                    @endcan
+                    @can('call-recordings.view')
+                        <li class="menu-item {{ request()->is('admin/call-recordings*') ? 'active' : '' }}">
+                            <a href="{{ route('admin.call-recordings.index') }}" class="menu-link">
+                                <div class="text-truncate">Call Recordings</div>
+                            </a>
+                        </li>
+                    @endcan
                     @can('lead-sources.view')
                         <li class="menu-item {{ request()->is('admin/lead-sources*') ? 'active' : '' }}">
                             <a href="{{ route('admin.lead-sources.index') }}" class="menu-link">
@@ -98,23 +142,18 @@
                             </a>
                         </li>
                     @endcan
-                    @can('followups.view')
-                        <li class="menu-item {{ request()->is('admin/followups*') ? 'active' : '' }}">
-                            <a href="{{ route('admin.followups.index') }}" class="menu-link">
-                                <div class="text-truncate">Follow-ups</div>
-                            </a>
-                        </li>
-                    @endcan
-                    @can('leads.view')
-                        <li class="menu-item {{ request()->is('admin/leads*') ? 'active' : '' }}">
-                            <a href="{{ route('admin.leads.index') }}" class="menu-link">
-                                <div class="text-truncate">Leads</div>
-                            </a>
-                        </li>
-                    @endcan
                 </ul>
             </li>
         @endcanany
+
+        @can('templates.view')
+            <li class="menu-item {{ request()->is('admin/templates*') ? 'active' : '' }}">
+                <a href="{{ route('admin.templates.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-file-blank"></i>
+                    <div class="text-truncate">Templates</div>
+                </a>
+            </li>
+        @endcan
 
         @canany(['general-settings.view', 'referral-settings.view'])
             <li class="menu-item {{ request()->is('admin/settings/*') ? 'active' : '' }}">
@@ -122,23 +161,6 @@
                     <i class="menu-icon tf-icons bx bx-cog"></i>
                     <div class="text-truncate">Settings</div>
                 </a>
-
-                {{-- <ul class="menu-sub">
-                    @can('general-settings.view')
-                        <li class="menu-item {{ request()->is('admin/settings/general') ? 'active' : '' }}">
-                            <a href="{{ route('admin.settings.general') }}" class="menu-link">
-                                <div class="text-truncate">General Settings</div>
-                            </a>
-                        </li>
-                    @endcan
-                    @can('referral-settings.view')
-                        <li class="menu-item {{ request()->is('admin/settings/referral') ? 'active' : '' }}">
-                            <a href="{{ route('admin.settings.referral') }}" class="menu-link">
-                                <div class="text-truncate">Referral Settings</div>
-                            </a>
-                        </li>
-                    @endcan
-                </ul> --}}
             </li>
         @endcanany
 

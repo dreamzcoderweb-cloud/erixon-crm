@@ -29,6 +29,21 @@ class Lead extends Model
         'created_by',
     ];
 
+    protected static function booted()
+    {
+        static::deleting(function ($lead) {
+            // Delete associated lead documents and physical files
+            foreach ($lead->documents as $doc) {
+                $doc->delete();
+            }
+
+            // Delete associated call recordings and physical audio files
+            foreach ($lead->callRecordings as $rec) {
+                $rec->delete();
+            }
+        });
+    }
+
     public function customer()
     {
         return $this->belongsTo(Customer::class, 'customer_id', 'customer_id');
@@ -67,5 +82,15 @@ class Lead extends Model
     public function followups()
     {
         return $this->hasMany(Followup::class, 'lead_id', 'lead_id');
+    }
+
+    public function documents()
+    {
+        return $this->hasMany(LeadDocument::class, 'lead_id', 'lead_id');
+    }
+
+    public function callRecordings()
+    {
+        return $this->hasMany(CallRecording::class, 'lead_id', 'lead_id');
     }
 }

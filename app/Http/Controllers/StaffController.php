@@ -45,6 +45,7 @@ class StaffController extends Controller
         $user->email = $validated['email'];
         $user->mobile_number = $validated['mobile_number'] ?? null;
         $user->address = $validated['address'] ?? null;
+        $user->is_on_leave = false;
         $user->password = Hash::make($validated['password']);
         $user->save();
 
@@ -117,9 +118,37 @@ class StaffController extends Controller
             return redirect('admin/staff');
         }
 
+        if (!empty($user->profile_image)) {
+            delete_file($user->profile_image);
+        }
+
         $user->delete();
         session()->flash('danger', 'Staff deleted successfully');
         return redirect('admin/staff');
     }
-}
 
+    /**
+     * Requirement 2: Toggle staff leave status (On Leave / Active)
+     */
+    public function toggleLeave(Request $request, $id)
+    {
+        $user = User::find($id);
+        if (!$user) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Staff not found.'
+            ], 404);
+        }
+
+        $user->is_on_leave = !$user->is_on_leave;
+        $user->save();
+
+        $statusText = $user->is_on_leave ? 'on leave' : 'active (available)';
+
+        return response()->json([
+            'status'      => true,
+            'is_on_leave' => $user->is_on_leave,
+            'message'     => "Staff {$user->name} is now marked as {$statusText}."
+        ]);
+    }
+}

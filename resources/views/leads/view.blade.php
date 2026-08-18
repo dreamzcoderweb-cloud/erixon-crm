@@ -54,7 +54,7 @@
                                 <select name="customer_id" class="form-select" required>
                                     <option value="">-- Select Customer --</option>
                                     @foreach ($customers as $cust)
-                                        <option value="{{ $cust->customer_id }}">{{ $cust->name }}</option>
+                                        <option value="{{ $cust->customer_id }}">{{ $cust->name }} ({{ $cust->mobile }})</option>
                                     @endforeach
                                 </select>
                                 <div class="invalid-feedback"></div>

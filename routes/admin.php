@@ -14,6 +14,10 @@ use App\Http\Controllers\FollowupController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\GeneralSettingController;
 use App\Http\Controllers\ReferralSettingController;
+use App\Http\Controllers\LeadDocumentController;
+use App\Http\Controllers\TemplateController;
+use App\Http\Controllers\CallRecordingController;
+use App\Http\Controllers\AttendanceController;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -59,6 +63,7 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
     Route::match(['get', 'post'], 'add_staff', [StaffController::class, 'add'])->middleware('permission:staff.create');
     Route::match(['get', 'post'], 'edit_staff/{id}', [StaffController::class, 'update'])->middleware('permission:staff.edit');
     Route::post('delete_staff/{id}', [StaffController::class, 'delete'])->middleware('permission:staff.delete');
+    Route::post('staff/toggle-leave/{id}', [StaffController::class, 'toggleLeave'])->middleware('permission:staff.edit');
 
     // Customer routes
     Route::get('customers', [CustomerController::class, 'index'])
@@ -151,6 +156,7 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
         ->name('followups.index');
     Route::get('followups/data', [FollowupController::class, 'listData'])
         ->middleware('permission:followups.view');
+    Route::get('followups/today-reminders', [FollowupController::class, 'getTodayReminders']);
     Route::post('followups/store', [FollowupController::class, 'store'])
         ->middleware('permission:followups.create');
     Route::get('followups/edit/{id}', [FollowupController::class, 'edit'])
@@ -161,6 +167,9 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
         ->middleware('permission:followups.delete');
     Route::post('followups/change-status/{id}', [FollowupController::class, 'changeStatus'])
         ->middleware('permission:followups.edit');
+    Route::post('followups/reassign/{id}', [FollowupController::class, 'reassign']);
+    Route::get('followups/reassignment-history', [FollowupController::class, 'reassignmentHistory']);
+    Route::get('followups/leave-staff/{staffId}', [FollowupController::class, 'getLeaveStaffFollowups']);
 
     // Leads routes
     Route::get('leads', [LeadController::class, 'index'])
@@ -193,4 +202,75 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
     Route::post('settings/referral', [ReferralSettingController::class, 'update'])
         ->middleware('permission:referral-settings.edit')
         ->name('settings.referral.update');
+
+    // Lead Documents routes
+    Route::get('lead-documents', [LeadDocumentController::class, 'index'])
+        ->middleware('permission:lead-documents.view')
+        ->name('lead-documents.index');
+    Route::get('lead-documents/data', [LeadDocumentController::class, 'listData'])
+        ->middleware('permission:lead-documents.view');
+    Route::post('lead-documents/store', [LeadDocumentController::class, 'store'])
+        ->middleware('permission:lead-documents.create');
+    Route::get('lead-documents/edit/{id}', [LeadDocumentController::class, 'edit'])
+        ->middleware('permission:lead-documents.edit');
+    Route::post('lead-documents/update/{id}', [LeadDocumentController::class, 'update'])
+        ->middleware('permission:lead-documents.edit');
+    Route::delete('lead-documents/delete/{id}', [LeadDocumentController::class, 'destroy'])
+        ->middleware('permission:lead-documents.delete');
+    Route::get('lead-documents/download/{id}', [LeadDocumentController::class, 'download'])
+        ->middleware('permission:lead-documents.view');
+
+    // Templates routes
+    Route::get('templates', [TemplateController::class, 'index'])
+        ->middleware('permission:templates.view')
+        ->name('templates.index');
+    Route::get('templates/data', [TemplateController::class, 'listData'])
+        ->middleware('permission:templates.view');
+    Route::post('templates/store', [TemplateController::class, 'store'])
+        ->middleware('permission:templates.create');
+    Route::get('templates/edit/{id}', [TemplateController::class, 'edit'])
+        ->middleware('permission:templates.edit');
+    Route::post('templates/update/{id}', [TemplateController::class, 'update'])
+        ->middleware('permission:templates.edit');
+    Route::delete('templates/delete/{id}', [TemplateController::class, 'destroy'])
+        ->middleware('permission:templates.delete');
+    Route::post('templates/change-status/{id}', [TemplateController::class, 'changeStatus'])
+        ->middleware('permission:templates.edit');
+
+    // Call Recordings routes
+    Route::get('call-recordings', [CallRecordingController::class, 'index'])
+        ->middleware('permission:call-recordings.view')
+        ->name('call-recordings.index');
+    Route::get('call-recordings/data', [CallRecordingController::class, 'listData'])
+        ->middleware('permission:call-recordings.view');
+    Route::post('call-recordings/store', [CallRecordingController::class, 'store'])
+        ->middleware('permission:call-recordings.create');
+    Route::get('call-recordings/edit/{id}', [CallRecordingController::class, 'edit'])
+        ->middleware('permission:call-recordings.edit');
+    Route::post('call-recordings/update/{id}', [CallRecordingController::class, 'update'])
+        ->middleware('permission:call-recordings.edit');
+    Route::delete('call-recordings/delete/{id}', [CallRecordingController::class, 'destroy'])
+        ->middleware('permission:call-recordings.delete');
+
+    // Attendance routes
+    Route::get('attendance', [AttendanceController::class, 'index'])
+        ->middleware('permission:attendance.view')
+        ->name('attendance.index');
+    Route::get('attendance/data', [AttendanceController::class, 'listData'])
+        ->middleware('permission:attendance.view');
+    Route::post('attendance/store', [AttendanceController::class, 'store'])
+        ->middleware('permission:attendance.create');
+    Route::get('attendance/edit/{id}', [AttendanceController::class, 'edit'])
+        ->middleware('permission:attendance.edit');
+    Route::post('attendance/update/{id}', [AttendanceController::class, 'update'])
+        ->middleware('permission:attendance.edit');
+    Route::delete('attendance/delete/{id}', [AttendanceController::class, 'destroy'])
+        ->middleware('permission:attendance.delete');
+
+    // Attendance Report routes
+    Route::get('attendance/report', [AttendanceController::class, 'report'])
+        ->middleware('permission:attendance-reports.view')
+        ->name('attendance.report');
+    Route::get('attendance/report/data', [AttendanceController::class, 'reportData'])
+        ->middleware('permission:attendance-reports.view');
 });
