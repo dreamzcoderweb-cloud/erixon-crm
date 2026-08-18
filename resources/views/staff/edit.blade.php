@@ -72,7 +72,7 @@
 
                                     <span class="text-danger">{{ $errors->first('address') }}</span>
                                 </div>
-</div>
+                            </div>
 
                             <div class="row mb-6">
                                 <label class="col-sm-2 col-form-label" for="password">New Password</label>
