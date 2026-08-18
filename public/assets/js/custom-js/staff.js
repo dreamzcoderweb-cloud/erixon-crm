@@ -27,9 +27,11 @@ $(document).ready(function () {
             lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
             pageLength: 10,
             responsive: true,
-            columnDefs: [
-                { orderable: false, targets: -1 }
-            ]
+            // columnDefs: [
+            //     { orderable: false, targets: -1 }
+            // ]
+            // Disable sorting completely
+            ordering: false
         });
     }
 

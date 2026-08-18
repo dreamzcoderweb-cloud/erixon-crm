@@ -106,7 +106,9 @@ $(document).ready(function () {
         },
         lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
         pageLength: 10,
-        responsive: true
+        responsive: true,
+        // Disable sorting completely
+            ordering: false
     });
 
     function showAlert(type, message) {
