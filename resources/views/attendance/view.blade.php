@@ -3,16 +3,20 @@
 @section('content')
     <div class="container-xxl flex-grow-1 container-p-y">
         <div id="alert-container"></div>
-
+        @php
+        $user = auth()->user();
+        $isSuperAdmin = $user->hasAnyRole(['super admin', 'super-admin','Super Admin']);
+        @endphp
+        @if(!$isSuperAdmin)
         <!-- Quick Attendance Widget for Logged In User -->
         <div class="card mb-4 bg-label-primary border-0 shadow-sm">
             <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
                 <div>
                     <h5 class="mb-1 text-primary"><i class="bx bx-time-five me-1"></i> Today's Attendance Quick Action</h5>
                     <small class="text-muted">
-                        Assigned Reference Shift: 
+                        Assigned Reference Shift:
                         <strong>
-                            {{ auth()->user()->check_in_time ? \Carbon\Carbon::parse(auth()->user()->check_in_time)->format('h:i A') : '09:00 AM' }} - 
+                            {{ auth()->user()->check_in_time ? \Carbon\Carbon::parse(auth()->user()->check_in_time)->format('h:i A') : '09:00 AM' }} -
                             {{ auth()->user()->check_out_time ? \Carbon\Carbon::parse(auth()->user()->check_out_time)->format('h:i A') : '06:00 PM' }}
                         </strong>
                     </small>
@@ -33,6 +37,7 @@
                 </div>
             </div>
         </div>
+        @endif
 
         <div class="card">
             <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
