@@ -59,6 +59,85 @@
                             </div>
 
                             <div class="row mb-6">
+                                <label class="col-sm-2 col-form-label" for="gender">Gender</label>
+                                <div class="col-sm-10">
+                                    <select class="form-select" id="gender" name="gender">
+                                        <option value="">Select Gender</option>
+                                        <option value="Male" {{ old('gender', $staff->gender) == 'Male' ? 'selected' : '' }}>Male</option>
+                                        <option value="Female" {{ old('gender', $staff->gender) == 'Female' ? 'selected' : '' }}>Female</option>
+                                        <option value="Other" {{ old('gender', $staff->gender) == 'Other' ? 'selected' : '' }}>Other</option>
+                                    </select>
+                                    <span class="text-danger">{{ $errors->first('gender') }}</span>
+                                </div>
+                            </div>
+
+                            <div class="row mb-6">
+                                <label class="col-sm-2 col-form-label" for="date_of_birth">Date of Birth</label>
+                                <div class="col-sm-10">
+                                    <input type="date" class="form-control" id="date_of_birth" name="date_of_birth"
+                                        value="{{ old('date_of_birth', $staff->date_of_birth?->format('Y-m-d')) }}" />
+                                    <span class="text-danger">{{ $errors->first('date_of_birth') }}</span>
+                                </div>
+                            </div>
+
+                            <div class="row mb-6">
+                                <label class="col-sm-2 col-form-label" for="date_of_joining">Date of Joining</label>
+                                <div class="col-sm-10">
+                                    <input type="date" class="form-control" id="date_of_joining" name="date_of_joining"
+                                        value="{{ old('date_of_joining', $staff->date_of_joining?->format('Y-m-d')) }}" />
+                                    <span class="text-danger">{{ $errors->first('date_of_joining') }}</span>
+                                </div>
+                            </div>
+
+                            <div class="row mb-6">
+                                <label class="col-sm-2 col-form-label" for="designation">Designation</label>
+                                <div class="col-sm-10">
+                                    <input type="text" class="form-control" id="designation" name="designation"
+                                        placeholder="e.g. Sales Executive, Manager"
+                                        value="{{ old('designation', $staff->designation) }}" />
+                                    <span class="text-danger">{{ $errors->first('designation') }}</span>
+                                </div>
+                            </div>
+
+                            <div class="row mb-6">
+                                <label class="col-sm-2 col-form-label" for="base_salary">Base Salary (₹)</label>
+                                <div class="col-sm-10">
+                                    <input type="number" step="0.01" min="0" class="form-control" id="base_salary" name="base_salary"
+                                        placeholder="e.g. 10000"
+                                        value="{{ old('base_salary', $staff->base_salary) }}" />
+                                    <span class="text-danger">{{ $errors->first('base_salary') }}</span>
+                                </div>
+                            </div>
+
+                            <div class="row mb-6">
+                                <label class="col-sm-2 col-form-label" for="available_leave_count">Available Leave Count</label>
+                                <div class="col-sm-10">
+                                    <input type="number" step="0.5" min="0" class="form-control" id="available_leave_count" name="available_leave_count"
+                                        placeholder="e.g. 1"
+                                        value="{{ old('available_leave_count', $staff->available_leave_count) }}" />
+                                    <span class="text-danger">{{ $errors->first('available_leave_count') }}</span>
+                                </div>
+                            </div>
+
+                            <div class="row mb-6">
+                                <label class="col-sm-2 col-form-label" for="check_in_time">Assigned Check-In Time</label>
+                                <div class="col-sm-10">
+                                    <input type="time" class="form-control" id="check_in_time" name="check_in_time"
+                                        value="{{ old('check_in_time', $staff->check_in_time ? \Carbon\Carbon::parse($staff->check_in_time)->format('H:i') : '') }}" />
+                                    <span class="text-danger">{{ $errors->first('check_in_time') }}</span>
+                                </div>
+                            </div>
+
+                            <div class="row mb-6">
+                                <label class="col-sm-2 col-form-label" for="check_out_time">Assigned Check-Out Time</label>
+                                <div class="col-sm-10">
+                                    <input type="time" class="form-control" id="check_out_time" name="check_out_time"
+                                        value="{{ old('check_out_time', $staff->check_out_time ? \Carbon\Carbon::parse($staff->check_out_time)->format('H:i') : '') }}" />
+                                    <span class="text-danger">{{ $errors->first('check_out_time') }}</span>
+                                </div>
+                            </div>
+
+                            <div class="row mb-6">
                                 <label class="col-sm-2 col-form-label" for="address">
                                     Address <span class="text-danger"></span>
                                 </label>

@@ -18,6 +18,7 @@ use App\Http\Controllers\LeadDocumentController;
 use App\Http\Controllers\TemplateController;
 use App\Http\Controllers\CallRecordingController;
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\LeaveController;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -266,6 +267,8 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
         ->middleware('permission:attendance.edit');
     Route::delete('attendance/delete/{id}', [AttendanceController::class, 'destroy'])
         ->middleware('permission:attendance.delete');
+    Route::post('attendance/mark-self', [AttendanceController::class, 'markSelfAttendance'])
+        ->name('attendance.mark-self');
 
     // Attendance Report routes
     Route::get('attendance/report', [AttendanceController::class, 'report'])
@@ -273,4 +276,21 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
         ->name('attendance.report');
     Route::get('attendance/report/data', [AttendanceController::class, 'reportData'])
         ->middleware('permission:attendance-reports.view');
+
+    // Leave Management routes
+    Route::get('leaves', [LeaveController::class, 'index'])
+        ->middleware('permission:leaves.view')
+        ->name('leaves.index');
+    Route::get('leaves/data', [LeaveController::class, 'listData'])
+        ->middleware('permission:leaves.view');
+    Route::post('leaves/store', [LeaveController::class, 'store'])
+        ->middleware('permission:leaves.create');
+    Route::post('leaves/approve/{id}', [LeaveController::class, 'approve'])
+        ->middleware('permission:leaves.approve');
+    Route::post('leaves/reject/{id}', [LeaveController::class, 'reject'])
+        ->middleware('permission:leaves.approve');
+    Route::delete('leaves/delete/{id}', [LeaveController::class, 'destroy'])
+        ->middleware('permission:leaves.delete');
+    Route::get('leaves/salary-report', [LeaveController::class, 'salaryReportData'])
+        ->middleware('permission:salary.view');
 });

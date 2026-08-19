@@ -16,32 +16,51 @@ class AttendanceController extends Controller
         }
 
         $data['staffs'] = User::orderBy('name')->get();
+        $data['myTodayAttendance'] = Attendance::where('user_id', auth()->id())
+            ->whereDate('date', date('Y-m-d'))
+            ->first();
 
         return view('attendance.view', $data);
     }
 
     public function listData()
     {
-        $attendance = Attendance::with('user:id,name,email')
-            ->orderBy('attendance_id', 'DESC')
-            ->get();
+        $user = auth()->user();
+        $canManageAll = $user->can('leaves.approve') || $user->hasRole(['Super Admin', 'Admin', 'super admin', 'super-admin']);
+
+        $query = Attendance::with('user:id,name,email,check_in_time,check_out_time');
+
+        // Non-admin staff can only see their own attendance records
+        if (!$canManageAll) {
+            $query->where('user_id', $user->id);
+        }
+
+        $attendance = $query->orderBy('attendance_id', 'DESC')->get();
 
         return response()->json([
-            'status' => true,
-            'data'   => $attendance
+            'status'         => true,
+            'can_manage_all' => $canManageAll,
+            'data'           => $attendance
         ]);
     }
 
     public function store(Request $request)
     {
+        $user = auth()->user();
+        if (!$user->can('leaves.approve') && !$user->hasRole(['Super Admin', 'Admin', 'super admin', 'super-admin'])) {
+            return response()->json(['status' => false, 'message' => 'Unauthorized action. Admin privileges required to add attendance for staff.'], 403);
+        }
+
         $validated = $request->validate([
             'user_id'   => ['required', 'exists:users,id'],
             'date'      => ['required', 'date'],
             'check_in'  => ['required'],
             'check_out' => ['nullable'],
-            'status'    => ['required', 'in:Present,Late,Half Day,Absent,On Leave'],
+            'status'    => ['nullable', 'in:Auto,Present,Late,Half Day,Absent,On Leave'],
         ]);
 
+        $targetUser = User::find($validated['user_id']);
+        $status = $this->determineAttendanceStatus($targetUser, $validated['check_in'], $validated['status'] ?? 'Auto');
         $workingHours = $this->calculateWorkingHours($validated['check_in'], $validated['check_out'] ?? null);
 
         $attendance = Attendance::create([
@@ -50,7 +69,7 @@ class AttendanceController extends Controller
             'check_in'      => $validated['check_in'],
             'check_out'     => $validated['check_out'] ?? null,
             'working_hours' => $workingHours,
-            'status'        => $validated['status'],
+            'status'        => $status,
         ]);
 
         return response()->json([
@@ -62,7 +81,7 @@ class AttendanceController extends Controller
 
     public function edit($id)
     {
-        $attendance = Attendance::with('user:id,name')->find($id);
+        $attendance = Attendance::with('user:id,name,email,check_in_time,check_out_time')->find($id);
         if (!$attendance) {
             return response()->json([
                 'status'  => false,
@@ -91,9 +110,11 @@ class AttendanceController extends Controller
             'date'      => ['required', 'date'],
             'check_in'  => ['required'],
             'check_out' => ['nullable'],
-            'status'    => ['required', 'in:Present,Late,Half Day,Absent,On Leave'],
+            'status'    => ['nullable', 'in:Auto,Present,Late,Half Day,Absent,On Leave'],
         ]);
 
+        $user = User::find($validated['user_id']);
+        $status = $this->determineAttendanceStatus($user, $validated['check_in'], $validated['status'] ?? 'Auto');
         $workingHours = $this->calculateWorkingHours($validated['check_in'], $validated['check_out'] ?? null);
 
         $attendance->update([
@@ -102,7 +123,7 @@ class AttendanceController extends Controller
             'check_in'      => $validated['check_in'],
             'check_out'     => $validated['check_out'] ?? null,
             'working_hours' => $workingHours,
-            'status'        => $validated['status'],
+            'status'        => $status,
         ]);
 
         return response()->json([
@@ -110,6 +131,96 @@ class AttendanceController extends Controller
             'message' => 'Attendance updated successfully.',
             'data'    => $attendance
         ]);
+    }
+
+    /**
+     * Mark self attendance (Check In / Check Out) for logged-in user
+     */
+    public function markSelfAttendance(Request $request)
+    {
+        $user = auth()->user();
+        $type = $request->input('type'); // 'check_in' or 'check_out'
+        $today = Carbon::now()->toDateString();
+        $nowTime = Carbon::now()->format('H:i:s');
+
+        $attendance = Attendance::where('user_id', $user->id)
+            ->whereDate('date', $today)
+            ->first();
+
+        if ($type === 'check_in') {
+            if ($attendance) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'You have already checked in today at ' . $attendance->check_in
+                ], 422);
+            }
+
+            $status = $this->determineAttendanceStatus($user, $nowTime, 'Auto');
+
+            $attendance = Attendance::create([
+                'user_id'       => $user->id,
+                'date'          => $today,
+                'check_in'      => $nowTime,
+                'check_out'     => null,
+                'working_hours' => null,
+                'status'        => $status,
+            ]);
+
+            return response()->json([
+                'status'  => true,
+                'message' => "Checked in successfully at {$nowTime}. Status: {$status}",
+                'data'    => $attendance
+            ]);
+        } elseif ($type === 'check_out') {
+            if (!$attendance) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'You need to check in before checking out.'
+                ], 422);
+            }
+
+            $workingHours = $this->calculateWorkingHours($attendance->check_in, $nowTime);
+
+            $attendance->update([
+                'check_out'     => $nowTime,
+                'working_hours' => $workingHours,
+            ]);
+
+            return response()->json([
+                'status'  => true,
+                'message' => "Checked out successfully at {$nowTime}.",
+                'data'    => $attendance
+            ]);
+        }
+
+        return response()->json(['status' => false, 'message' => 'Invalid action.'], 400);
+    }
+
+    /**
+     * Compare actual check-in time against staff reference check_in_time
+     */
+    private function determineAttendanceStatus($user, $actualCheckIn, $requestedStatus = 'Auto')
+    {
+        if ($requestedStatus && !in_array($requestedStatus, ['Auto', ''])) {
+            return $requestedStatus;
+        }
+
+        if (!$user || !$user->check_in_time) {
+            return 'Present';
+        }
+
+        try {
+            $assignedIn = Carbon::parse($user->check_in_time)->format('H:i:s');
+            $actualIn = Carbon::parse($actualCheckIn)->format('H:i:s');
+
+            if ($actualIn > $assignedIn) {
+                return 'Late';
+            }
+
+            return 'Present';
+        } catch (\Exception $e) {
+            return 'Present';
+        }
     }
 
     public function destroy($id)

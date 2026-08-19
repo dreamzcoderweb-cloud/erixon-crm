@@ -25,9 +25,9 @@
             </a>
         </li>
 
-        @canany(['roles.view', 'staff.view', 'attendance.view'])
+        @canany(['roles.view', 'staff.view', 'attendance.view', 'leaves.view'])
             <li
-                class="menu-item {{ request()->is('admin/roles_with_filter') || request()->is('admin/add_role') || request()->is('admin/edit_role/*') || request()->is('admin/staff*') || request()->is('admin/attendance*') ? 'active open' : '' }}">
+                class="menu-item {{ request()->is('admin/roles_with_filter') || request()->is('admin/add_role') || request()->is('admin/edit_role/*') || request()->is('admin/staff*') || request()->is('admin/attendance*') || request()->is('admin/leaves*') ? 'active open' : '' }}">
                 <a href="javascript:void(0);" class="menu-link menu-toggle">
                     <i class="menu-icon tf-icons bx bx-lock-alt"></i>
                     <div class="text-truncate">Access Control</div>
@@ -63,6 +63,14 @@
                             class="menu-item {{ request()->is('admin/attendance/report*') ? 'active' : '' }}">
                             <a href="{{ route('admin.attendance.report') }}" class="menu-link">
                                 <div class="text-truncate">Attendance Report</div>
+                            </a>
+                        </li>
+                    @endcan
+                    @can('leaves.view')
+                        <li
+                            class="menu-item {{ request()->is('admin/leaves*') ? 'active' : '' }}">
+                            <a href="{{ route('admin.leaves.index') }}" class="menu-link">
+                                <div class="text-truncate">Leave & Salary</div>
                             </a>
                         </li>
                     @endcan

@@ -7,10 +7,15 @@ $(document).ready(function () {
         }
     });
 
+    let canManageAll = false;
+
     let attendanceTable = $('#attendance-table').DataTable({
         ajax: {
             url: APP_URL + '/admin/attendance/data',
-            dataSrc: 'data'
+            dataSrc: function (json) {
+                canManageAll = json.can_manage_all || false;
+                return json.data || [];
+            }
         },
         columns: [
             {
@@ -77,14 +82,17 @@ $(document).ready(function () {
                 data: null,
                 orderable: false,
                 render: function (data, type, row) {
-                    return `
-                        <button class="btn btn-sm btn-outline-primary btn-edit-attendance me-1" data-id="${row.attendance_id}">
-                            <i class="bx bx-edit-alt"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger btn-delete-attendance" data-id="${row.attendance_id}">
-                            <i class="bx bx-trash"></i>
-                        </button>
-                    `;
+                    if (canManageAll) {
+                        return `
+                            <button class="btn btn-sm btn-outline-primary btn-edit-attendance me-1" data-id="${row.attendance_id}">
+                                <i class="bx bx-edit-alt"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger btn-delete-attendance" data-id="${row.attendance_id}">
+                                <i class="bx bx-trash"></i>
+                            </button>
+                        `;
+                    }
+                    return `<span class="text-muted fs-7">-</span>`;
                 }
             }
         ],
@@ -137,6 +145,52 @@ $(document).ready(function () {
         if (form.length) {
             clearValidationErrors(form);
         }
+    });
+    // Dynamic Staff Selection Reference Timing Handler
+    $('#add_attendance_user_id').on('change', function () {
+        let option = $(this).find('option:selected');
+        let checkIn = option.data('check-in');
+        let checkOut = option.data('check-out');
+
+        if (checkIn) {
+            $('#add_attendance_check_in').val(checkIn);
+            $('#add_ref_check_in_label').text('Assigned Shift Check-In: ' + checkIn);
+        } else {
+            $('#add_ref_check_in_label').text('Assigned Shift Check-In: Not Set');
+        }
+
+        if (checkOut) {
+            $('#add_attendance_check_out').val(checkOut);
+            $('#add_ref_check_out_label').text('Assigned Shift Check-Out: ' + checkOut);
+        } else {
+            $('#add_ref_check_out_label').text('Assigned Shift Check-Out: Not Set');
+        }
+    });
+
+    // Self Attendance Quick Check In / Check Out
+    $(document).on('click', '.btn-mark-self-attendance', function () {
+        let btn = $(this);
+        let type = btn.data('type');
+        btn.prop('disabled', true);
+
+        $.ajax({
+            url: APP_URL + '/admin/attendance/mark-self',
+            type: 'POST',
+            data: { type: type },
+            success: function (response) {
+                if (response.status) {
+                    showAlert('success', response.message);
+                    setTimeout(function () {
+                        location.reload();
+                    }, 800);
+                }
+            },
+            error: function (xhr) {
+                let msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Failed to record attendance.';
+                showAlert('danger', msg);
+                btn.prop('disabled', false);
+            }
+        });
     });
 
     // Add Attendance Submit

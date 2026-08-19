@@ -289,6 +289,7 @@
     <script src="{{ asset('assets/js/custom-js/call_recording.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/attendance.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/attendance_report.js') }}"></script>
+    <script src="{{ asset('assets/js/custom-js/leaves.js') }}"></script>
 
     <!-- Vendors JS -->
     <script src="{{ asset('assets/vendor/libs/apex-charts/apexcharts.js') }}"></script>

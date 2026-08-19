@@ -90,6 +90,12 @@ class PermissionSeeder extends Seeder
             'attendance.edit',
             'attendance.delete',
             'attendance-reports.view',
+
+            'leaves.view',
+            'leaves.create',
+            'leaves.approve',
+            'leaves.delete',
+            'salary.view',
         ];
 
         foreach ($permissions as $name) {

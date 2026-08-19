@@ -28,6 +28,14 @@ class User extends Authenticatable
         'mobile_number',
         'address',
         'is_on_leave',
+        'gender',
+        'date_of_birth',
+        'date_of_joining',
+        'designation',
+        'base_salary',
+        'available_leave_count',
+        'check_in_time',
+        'check_out_time',
     ];
 
     /**
@@ -50,7 +58,10 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'is_on_leave' => 'boolean',
-            // 'password' => 'hashed',
+            'date_of_birth' => 'date',
+            'date_of_joining' => 'date',
+            'base_salary' => 'decimal:2',
+            'available_leave_count' => 'float',
         ];
     }
 
@@ -60,6 +71,14 @@ class User extends Authenticatable
     public function scopeAvailableForAssignment($query)
     {
         return $query->where('is_on_leave', false);
+    }
+
+    /**
+     * Get leave requests for user
+     */
+    public function leaveRequests()
+    {
+        return $this->hasMany(LeaveRequest::class, 'user_id', 'id');
     }
 
     /**

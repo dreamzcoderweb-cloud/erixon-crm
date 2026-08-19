@@ -288,37 +288,35 @@ class FollowupController extends Controller
      */
     public function getTodayReminders(Request $request)
     {
-        $user   = Auth::user();
-        $userId = Auth::id();
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['status' => false, 'count' => 0, 'data' => []]);
+        }
+
+        $userId = $user->id;
         $today  = \Carbon\Carbon::today()->toDateString();
 
-        $isSuperAdmin = $user && (
-            $user->hasRole('Super Admin') ||
-            $user->hasRole('super admin') ||
-            $user->hasRole('Super-Admin') ||
-            $user->id == 1
-        );
-
-        $query = Followup::with([
-            'lead:lead_id,lead_title,customer_id',
+        // The Today Reminder popup must be strictly user-specific for the logged-in user
+        $followups = Followup::with([
+            'lead:lead_id,lead_title,customer_id,assigned_to',
             'lead.customer:customer_id,name,mobile,email',
             'forwardToUser:id,name',
             'creator:id,name'
         ])
         ->where('followup_status', 'Pending')
-        ->whereDate('next_followup_date', '=', $today);
-
-        if (!$isSuperAdmin && !$user->can('followups.reassign')) {
-            $query->where(function ($q) use ($userId) {
-                $q->where('forward_to', $userId)
+        ->whereDate('next_followup_date', '=', $today)
+        ->where(function ($query) use ($userId) {
+            $query->where('forward_to', $userId)
                   ->orWhere(function ($q2) use ($userId) {
                       $q2->whereNull('forward_to')
                          ->where('created_by', $userId);
+                  })
+                  ->orWhereHas('lead', function ($q3) use ($userId) {
+                      $q3->where('assigned_to', $userId);
                   });
-            });
-        }
-
-        $followups = $query->orderBy('next_followup_date', 'ASC')->get();
+        })
+        ->orderBy('next_followup_date', 'ASC')
+        ->get();
 
         return response()->json([
             'status' => true,

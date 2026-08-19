@@ -4,6 +4,36 @@
     <div class="container-xxl flex-grow-1 container-p-y">
         <div id="alert-container"></div>
 
+        <!-- Quick Attendance Widget for Logged In User -->
+        <div class="card mb-4 bg-label-primary border-0 shadow-sm">
+            <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div>
+                    <h5 class="mb-1 text-primary"><i class="bx bx-time-five me-1"></i> Today's Attendance Quick Action</h5>
+                    <small class="text-muted">
+                        Assigned Reference Shift: 
+                        <strong>
+                            {{ auth()->user()->check_in_time ? \Carbon\Carbon::parse(auth()->user()->check_in_time)->format('h:i A') : '09:00 AM' }} - 
+                            {{ auth()->user()->check_out_time ? \Carbon\Carbon::parse(auth()->user()->check_out_time)->format('h:i A') : '06:00 PM' }}
+                        </strong>
+                    </small>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    @if(empty($myTodayAttendance))
+                        <button class="btn btn-success btn-mark-self-attendance" data-type="check_in">
+                            <i class="bx bx-log-in me-1"></i> Check In Now
+                        </button>
+                    @elseif(empty($myTodayAttendance->check_out))
+                        <span class="badge bg-success fs-6 me-2">Checked In: {{ \Carbon\Carbon::parse($myTodayAttendance->check_in)->format('h:i A') }} ({{ $myTodayAttendance->status }})</span>
+                        <button class="btn btn-danger btn-mark-self-attendance" data-type="check_out">
+                            <i class="bx bx-log-out me-1"></i> Check Out Now
+                        </button>
+                    @else
+                        <span class="badge bg-primary fs-6"><i class="bx bx-check-circle me-1"></i> Completed Today ({{ $myTodayAttendance->check_in }} - {{ $myTodayAttendance->check_out }})</span>
+                    @endif
+                </div>
+            </div>
+        </div>
+
         <div class="card">
             <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
                 <h5 class="card-header p-0 m-0"><i class="bx bx-calendar-check me-2"></i>Attendance Management</h5>
@@ -49,10 +79,14 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label">Select Staff <span class="text-danger">*</span></label>
-                                <select name="user_id" class="form-select" required>
+                                <select name="user_id" id="add_attendance_user_id" class="form-select" required>
                                     <option value="">-- Select Staff Member --</option>
                                     @foreach ($staffs as $staff)
-                                        <option value="{{ $staff->id }}">{{ $staff->name }} ({{ $staff->email }})</option>
+                                        <option value="{{ $staff->id }}"
+                                            data-check-in="{{ $staff->check_in_time ? \Carbon\Carbon::parse($staff->check_in_time)->format('H:i') : '' }}"
+                                            data-check-out="{{ $staff->check_out_time ? \Carbon\Carbon::parse($staff->check_out_time)->format('H:i') : '' }}">
+                                            {{ $staff->name }} (Shift: {{ $staff->check_in_time ? \Carbon\Carbon::parse($staff->check_in_time)->format('h:i A') : '09:00 AM' }})
+                                        </option>
                                     @endforeach
                                 </select>
                                 <div class="invalid-feedback"></div>
@@ -64,17 +98,20 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Check-In Time <span class="text-danger">*</span></label>
-                                <input type="time" name="check_in" class="form-control" value="09:00" required>
+                                <input type="time" name="check_in" id="add_attendance_check_in" class="form-control" required>
+                                <small class="text-muted" id="add_ref_check_in_label">Assigned Shift Check-In: --:--</small>
                                 <div class="invalid-feedback"></div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Check-Out Time</label>
-                                <input type="time" name="check_out" class="form-control" value="17:30">
+                                <input type="time" name="check_out" id="add_attendance_check_out" class="form-control">
+                                <small class="text-muted" id="add_ref_check_out_label">Assigned Shift Check-Out: --:--</small>
                                 <div class="invalid-feedback"></div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Attendance Status <span class="text-danger">*</span></label>
                                 <select name="status" class="form-select" required>
+                                    <option value="Auto">Auto (Compare with Assigned Reference Timings)</option>
                                     <option value="Present">Present</option>
                                     <option value="Late">Late</option>
                                     <option value="Half Day">Half Day</option>

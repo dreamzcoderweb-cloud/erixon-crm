@@ -37,6 +37,14 @@ class StaffController extends Controller
                 'role_id' => ['required', 'integer', 'exists:roles,id'],
                 'mobile_number' => ['nullable', 'string', 'max:20'],
                 'address' => ['nullable', 'string', 'max:255'],
+                'gender' => ['nullable', 'string', 'in:Male,Female,Other'],
+                'date_of_birth' => ['nullable', 'date'],
+                'date_of_joining' => ['nullable', 'date'],
+                'designation' => ['nullable', 'string', 'max:100'],
+                'base_salary' => ['nullable', 'numeric', 'min:0'],
+                'available_leave_count' => ['nullable', 'numeric', 'min:0'],
+                'check_in_time' => ['nullable'],
+                'check_out_time' => ['nullable'],
             ]
         );
 
@@ -45,6 +53,14 @@ class StaffController extends Controller
         $user->email = $validated['email'];
         $user->mobile_number = $validated['mobile_number'] ?? null;
         $user->address = $validated['address'] ?? null;
+        $user->gender = $validated['gender'] ?? null;
+        $user->date_of_birth = $validated['date_of_birth'] ?? null;
+        $user->date_of_joining = $validated['date_of_joining'] ?? null;
+        $user->designation = $validated['designation'] ?? null;
+        $user->base_salary = $validated['base_salary'] ?? 0.00;
+        $user->available_leave_count = $validated['available_leave_count'] ?? 0.00;
+        $user->check_in_time = $validated['check_in_time'] ?? null;
+        $user->check_out_time = $validated['check_out_time'] ?? null;
         $user->is_on_leave = false;
         $user->password = Hash::make($validated['password']);
         $user->save();
@@ -85,6 +101,14 @@ class StaffController extends Controller
                 'role_id' => ['required', 'integer', 'exists:roles,id'],
                 'mobile_number' => ['nullable', 'string', 'max:20'],
                 'address' => ['nullable', 'string', 'max:255'],
+                'gender' => ['nullable', 'string', 'in:Male,Female,Other'],
+                'date_of_birth' => ['nullable', 'date'],
+                'date_of_joining' => ['nullable', 'date'],
+                'designation' => ['nullable', 'string', 'max:100'],
+                'base_salary' => ['nullable', 'numeric', 'min:0'],
+                'available_leave_count' => ['nullable', 'numeric', 'min:0'],
+                'check_in_time' => ['nullable'],
+                'check_out_time' => ['nullable'],
             ]
         );
 
@@ -92,6 +116,14 @@ class StaffController extends Controller
         $user->email = $validated['email'];
         $user->mobile_number = $validated['mobile_number'] ?? null;
         $user->address = $validated['address'] ?? null;
+        $user->gender = $validated['gender'] ?? null;
+        $user->date_of_birth = $validated['date_of_birth'] ?? null;
+        $user->date_of_joining = $validated['date_of_joining'] ?? null;
+        $user->designation = $validated['designation'] ?? null;
+        $user->base_salary = $validated['base_salary'] ?? 0.00;
+        $user->available_leave_count = $validated['available_leave_count'] ?? 0.00;
+        $user->check_in_time = $validated['check_in_time'] ?? null;
+        $user->check_out_time = $validated['check_out_time'] ?? null;
         if (!empty($validated['password'])) {
             $user->password = Hash::make($validated['password']);
         }

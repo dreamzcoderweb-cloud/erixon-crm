@@ -31,11 +31,11 @@
                 <table id="staff-table" class="table table-hover align-middle w-100">
                     <thead class="table-light">
                         <tr>
-                            <th>Name</th>
-                            <th>Email</th>
-                            <th>Role</th>
+                            <th>Staff Info</th>
+                            <th>Designation & Role</th>
+                            <th>Assigned Timings</th>
+                            <th>Base Salary & Leaves</th>
                             <th>Leave Status</th>
-                            <th>Created</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -44,19 +44,36 @@
                             <tr id="staff-row-{{ $staff->id }}">
                                 <td>
                                     <strong>{{ $staff->name }}</strong>
+                                    <br><small class="text-muted"><i class="bx bx-envelope me-1"></i>{{ $staff->email }}</small>
                                     @if(!empty($staff->mobile_number))
                                         <br><small class="text-muted"><i class="bx bx-phone me-1"></i>{{ $staff->mobile_number }}</small>
                                     @endif
                                 </td>
-                                <td>{{ $staff->email }}</td>
-                                <td><span class="badge bg-label-info">{{ $staff->roles->first()?->name ?? '-' }}</span></td>
+                                <td>
+                                    <strong>{{ $staff->designation ?? 'N/A' }}</strong>
+                                    <br><span class="badge bg-label-info">{{ $staff->roles->first()?->name ?? '-' }}</span>
+                                </td>
+                                <td>
+                                    @if($staff->check_in_time || $staff->check_out_time)
+                                        <span class="badge bg-label-primary">
+                                            <i class="bx bx-time me-1"></i>
+                                            {{ $staff->check_in_time ? \Carbon\Carbon::parse($staff->check_in_time)->format('h:i A') : '--:--' }} - 
+                                            {{ $staff->check_out_time ? \Carbon\Carbon::parse($staff->check_out_time)->format('h:i A') : '--:--' }}
+                                        </span>
+                                    @else
+                                        <span class="text-muted">Not Set</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    <div><strong>₹{{ number_format($staff->base_salary ?? 0, 2) }}</strong></div>
+                                    <small class="text-muted">Leaves: <strong>{{ $staff->available_leave_count ?? 0 }} day(s)</strong></small>
+                                </td>
                                 <td>
                                     <span class="badge leave-status-badge {{ $staff->is_on_leave ? 'bg-label-danger' : 'bg-label-success' }}">
                                         <i class="bx {{ $staff->is_on_leave ? 'bx-user-x' : 'bx-user-check' }} me-1"></i>
                                         {{ $staff->is_on_leave ? 'On Leave Today' : 'Active (Available)' }}
                                     </span>
                                 </td>
-                                <td>{{ $staff->created_at?->format('d-m-Y') }}</td>
                                 <td>
                                     <div class="d-flex align-items-center gap-1">
                                         @can('staff.edit')
