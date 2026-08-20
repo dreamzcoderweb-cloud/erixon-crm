@@ -13,9 +13,7 @@ class StaffController extends Controller
     public function index()
     {
         $data['staffs'] = User::with('roles')
-            ->whereDoesntHave('roles', function ($q) {
-                $q->whereIn('name', ['Super Admin', 'super admin', 'super-admin', 'Super-Admin']);
-            })
+            ->staffOnly()
             ->orderBy('id', 'DESC')
             ->get();
 

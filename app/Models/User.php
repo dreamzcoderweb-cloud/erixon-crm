@@ -74,6 +74,16 @@ class User extends Authenticatable
     }
 
     /**
+     * Scope to exclude Super Admin users and return staff members only
+     */
+    public function scopeStaffOnly($query)
+    {
+        return $query->whereDoesntHave('roles', function ($q) {
+            $q->whereIn('name', ['Super Admin', 'super admin', 'super-admin', 'Super-Admin']);
+        });
+    }
+
+    /**
      * Get leave requests for user
      */
     public function leaveRequests()

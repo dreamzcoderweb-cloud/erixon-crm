@@ -87,8 +87,8 @@
             </li>
         @endcan
 
-        @canany(['lead-sources.view', 'lead-stages.view', 'lead-requirements.view', 'lost-reasons.view', 'followups.view', 'leads.view', 'lead-documents.view', 'call-recordings.view'])
-            <li class="menu-item {{ request()->is('admin/lead-sources*') || request()->is('admin/lead-stages*') || request()->is('admin/lead-requirements*') || request()->is('admin/lost-reasons*') || request()->is('admin/followups*') || request()->is('admin/leads*') || request()->is('admin/lead-documents*') || request()->is('admin/call-recordings*') ? 'active open' : '' }}">
+        @canany(['lead-sources.view', 'lead-stages.view', 'lead-requirements.view', 'lost-reasons.view', 'followups.view', 'leads.view', 'lead-documents.view', 'call-recordings.view', 'call-logs.view', 'call-log-reports.view'])
+            <li class="menu-item {{ request()->is('admin/lead-sources*') || request()->is('admin/lead-stages*') || request()->is('admin/lead-requirements*') || request()->is('admin/lost-reasons*') || request()->is('admin/followups*') || request()->is('admin/leads*') || request()->is('admin/lead-documents*') || request()->is('admin/call-recordings*') || request()->is('admin/call-logs*') ? 'active open' : '' }}">
                 <a href="javascript:void(0);" class="menu-link menu-toggle">
                     <i class="menu-icon tf-icons bx bx-target-lock"></i>
                     <div class="text-truncate">Leads Management</div>
@@ -119,6 +119,20 @@
                         <li class="menu-item {{ request()->is('admin/call-recordings*') ? 'active' : '' }}">
                             <a href="{{ route('admin.call-recordings.index') }}" class="menu-link">
                                 <div class="text-truncate">Call Recordings</div>
+                            </a>
+                        </li>
+                    @endcan
+                    @can('call-logs.view')
+                        <li class="menu-item {{ request()->is('admin/call-logs') ? 'active' : '' }}">
+                            <a href="{{ route('admin.call-logs.index') }}" class="menu-link">
+                                <div class="text-truncate">Call Logs</div>
+                            </a>
+                        </li>
+                    @endcan
+                    @can('call-log-reports.view')
+                        <li class="menu-item {{ request()->is('admin/call-logs/report*') ? 'active' : '' }}">
+                            <a href="{{ route('admin.call-logs.report') }}" class="menu-link">
+                                <div class="text-truncate">Call Log Report</div>
                             </a>
                         </li>
                     @endcan

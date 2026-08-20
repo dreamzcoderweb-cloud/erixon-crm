@@ -17,6 +17,7 @@ use App\Http\Controllers\ReferralSettingController;
 use App\Http\Controllers\LeadDocumentController;
 use App\Http\Controllers\TemplateController;
 use App\Http\Controllers\CallRecordingController;
+use App\Http\Controllers\CallLogController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\LeaveController;
 
@@ -252,6 +253,28 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
         ->middleware('permission:call-recordings.edit');
     Route::delete('call-recordings/delete/{id}', [CallRecordingController::class, 'destroy'])
         ->middleware('permission:call-recordings.delete');
+
+    // Call Logs routes
+    Route::get('call-logs', [CallLogController::class, 'index'])
+        ->middleware('permission:call-logs.view')
+        ->name('call-logs.index');
+    Route::get('call-logs/data', [CallLogController::class, 'listData'])
+        ->middleware('permission:call-logs.view');
+    Route::post('call-logs/store', [CallLogController::class, 'store'])
+        ->middleware('permission:call-logs.create');
+    Route::get('call-logs/edit/{id}', [CallLogController::class, 'edit'])
+        ->middleware('permission:call-logs.edit');
+    Route::post('call-logs/update/{id}', [CallLogController::class, 'update'])
+        ->middleware('permission:call-logs.edit');
+    Route::delete('call-logs/delete/{id}', [CallLogController::class, 'destroy'])
+        ->middleware('permission:call-logs.delete');
+
+    // Call Log Report routes
+    Route::get('call-logs/report', [CallLogController::class, 'report'])
+        ->middleware('permission:call-log-reports.view')
+        ->name('call-logs.report');
+    Route::get('call-logs/report/data', [CallLogController::class, 'reportData'])
+        ->middleware('permission:call-log-reports.view');
 
     // Attendance routes
     Route::get('attendance', [AttendanceController::class, 'index'])

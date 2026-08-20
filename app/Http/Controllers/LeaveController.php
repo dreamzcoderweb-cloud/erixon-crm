@@ -16,7 +16,7 @@ class LeaveController extends Controller
             return $this->listData($request);
         }
 
-        $data['staffs'] = User::orderBy('name')->get();
+        $data['staffs'] = User::staffOnly()->orderBy('name')->get();
         return view('leaves.index', $data);
     }
 
@@ -189,9 +189,7 @@ class LeaveController extends Controller
         $workingDaysInMonth = max(1, $totalDays - $sundays);
 
         // Fetch staff members excluding Super Admin role
-        $staffs = User::whereDoesntHave('roles', function ($q) {
-            $q->whereIn('name', ['Super Admin', 'super admin', 'super-admin', 'Super-Admin']);
-        })->orderBy('name')->get();
+        $staffs = User::staffOnly()->orderBy('name')->get();
 
         $reportData = [];
 

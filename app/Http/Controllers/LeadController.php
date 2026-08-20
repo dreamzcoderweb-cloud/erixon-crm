@@ -25,7 +25,7 @@ class LeadController extends Controller
         $data['leadStages']       = LeadStage::where('status', 1)->orderBy('sort_order', 'ASC')->get();
         $data['leadRequirements'] = LeadRequirement::where('status', 1)->orderBy('name')->get();
         $data['lostReasons']      = LostReason::where('status', 1)->orderBy('reason')->get();
-        $data['staffs']           = User::orderBy('name')->get();
+        $data['staffs']           = User::staffOnly()->orderBy('name')->get();
 
         return view('leads.view', $data);
     }

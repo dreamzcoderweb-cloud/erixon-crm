@@ -15,7 +15,7 @@ class AttendanceController extends Controller
             return $this->listData();
         }
 
-        $data['staffs'] = User::orderBy('name')->get();
+        $data['staffs'] = User::staffOnly()->orderBy('name')->get();
         $data['myTodayAttendance'] = Attendance::where('user_id', auth()->id())
             ->whereDate('date', date('Y-m-d'))
             ->first();
@@ -250,7 +250,7 @@ class AttendanceController extends Controller
             return $this->reportData($request);
         }
 
-        $data['staffs'] = User::orderBy('name')->get();
+        $data['staffs'] = User::staffOnly()->orderBy('name')->get();
 
         return view('attendance.report', $data);
     }

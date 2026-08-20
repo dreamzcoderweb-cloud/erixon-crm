@@ -41,6 +41,10 @@ class Lead extends Model
             foreach ($lead->callRecordings as $rec) {
                 $rec->delete();
             }
+
+            foreach ($lead->callLogs as $log) {
+                $log->delete();
+            }
         });
     }
 
@@ -92,5 +96,10 @@ class Lead extends Model
     public function callRecordings()
     {
         return $this->hasMany(CallRecording::class, 'lead_id', 'lead_id');
+    }
+
+    public function callLogs()
+    {
+        return $this->hasMany(CallLog::class, 'lead_id', 'lead_id');
     }
 }

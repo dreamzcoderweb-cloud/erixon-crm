@@ -19,8 +19,8 @@ class FollowupController extends Controller
         }
 
         $data['leads']           = Lead::with('customer')->orderBy('lead_id', 'DESC')->get();
-        $data['staffs']          = User::orderBy('name')->get();
-        $data['availableStaffs'] = User::availableForAssignment()->orderBy('name')->get();
+        $data['staffs']          = User::staffOnly()->orderBy('name')->get();
+        $data['availableStaffs'] = User::staffOnly()->availableForAssignment()->orderBy('name')->get();
 
         return view('followups.view', $data);
     }

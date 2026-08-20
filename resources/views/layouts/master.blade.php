@@ -287,6 +287,7 @@
     <script src="{{ asset('assets/js/custom-js/lead_document.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/template.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/call_recording.js') }}"></script>
+    <script src="{{ asset('assets/js/custom-js/call_log.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/attendance.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/attendance_report.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/leaves.js') }}"></script>

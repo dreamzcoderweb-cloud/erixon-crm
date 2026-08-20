@@ -85,6 +85,12 @@ class PermissionSeeder extends Seeder
             'call-recordings.edit',
             'call-recordings.delete',
 
+            'call-logs.view',
+            'call-logs.create',
+            'call-logs.edit',
+            'call-logs.delete',
+            'call-log-reports.view',
+
             'attendance.view',
             'attendance.create',
             'attendance.edit',
