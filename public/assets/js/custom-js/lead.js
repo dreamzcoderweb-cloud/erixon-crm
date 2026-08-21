@@ -71,7 +71,7 @@ $(document).ready(function () {
                 data: 'next_followup_date',
                 render: function (data, type) {
                     if (type !== 'display') return data || '-';
-                    return data ? `<span class="text-nowrap"><i class="bx bx-calendar me-1"></i>${data}</span>` : '<span class="text-muted">-</span>';
+                    return data ? `<span class="text-nowrap"><i class="bx bx-calendar me-1"></i>${formatDate(data)}</span>` : '<span class="text-muted">-</span>';
                 }
             },
             {
@@ -96,12 +96,19 @@ $(document).ready(function () {
                 orderable: false,
                 render: function (data, type, row) {
                     return `
-                        <button class="btn btn-sm btn-outline-primary btn-edit-lead me-1" data-id="${row.lead_id}">
-                            <i class="bx bx-edit-alt"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger btn-delete-lead" data-id="${row.lead_id}" data-title="${row.lead_title}">
-                            <i class="bx bx-trash"></i>
-                        </button>
+                        <div class="dropdown">
+                            <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                <i class="bx bx-dots-vertical-rounded"></i>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end">
+                                <a class="dropdown-item btn-edit-lead" href="javascript:void(0);" data-id="${row.lead_id}">
+                                    <i class="bx bx-edit-alt me-1"></i> Edit
+                                </a>
+                                <a class="dropdown-item text-danger btn-delete-lead" href="javascript:void(0);" data-id="${row.lead_id}" data-title="${row.lead_title}">
+                                    <i class="bx bx-trash me-1"></i> Delete
+                                </a>
+                            </div>
+                        </div>
                     `;
                 }
             }

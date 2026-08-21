@@ -38,7 +38,7 @@ $(document).ready(function () {
                 render: function (data, type) {
                     if (!data) return '-';
                     if (type !== 'display') return data;
-                    let formatted = new Date(data).toLocaleDateString();
+                    let formatted = formatDate(data);
                     return `<span class="badge bg-label-dark"><i class="bx bx-calendar me-1"></i>${formatted}</span>`;
                 }
             },
@@ -84,12 +84,19 @@ $(document).ready(function () {
                 render: function (data, type, row) {
                     if (canManageAll) {
                         return `
-                            <button class="btn btn-sm btn-outline-primary btn-edit-attendance me-1" data-id="${row.attendance_id}">
-                                <i class="bx bx-edit-alt"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger btn-delete-attendance" data-id="${row.attendance_id}">
-                                <i class="bx bx-trash"></i>
-                            </button>
+                            <div class="dropdown">
+                                <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                    <i class="bx bx-dots-vertical-rounded"></i>
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-end">
+                                    <a class="dropdown-item btn-edit-attendance" href="javascript:void(0);" data-id="${row.attendance_id}">
+                                        <i class="bx bx-edit-alt me-1"></i> Edit
+                                    </a>
+                                    <a class="dropdown-item text-danger btn-delete-attendance" href="javascript:void(0);" data-id="${row.attendance_id}">
+                                        <i class="bx bx-trash me-1"></i> Delete
+                                    </a>
+                                </div>
+                            </div>
                         `;
                     }
                     return `<span class="text-muted fs-7">-</span>`;

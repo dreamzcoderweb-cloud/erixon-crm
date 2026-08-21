@@ -55,7 +55,7 @@ $(document).ready(function () {
                     render: function (data, type) {
                         if (!data) return '-';
                         if (type !== 'display') return data;
-                        let formatted = new Date(data).toLocaleDateString();
+                        let formatted = formatDate(data);
                         return `<span class="badge bg-label-dark"><i class="bx bx-calendar me-1"></i>${formatted}</span>`;
                     }
                 },

@@ -99,8 +99,8 @@ $(document).ready(function () {
                 {
                     data: null,
                     render: function (data, type, row) {
-                        let f = row.from_date ? new Date(row.from_date).toLocaleDateString() : '';
-                        let t = row.to_date ? new Date(row.to_date).toLocaleDateString() : '';
+                        let f = row.from_date ? formatDate(row.from_date) : '';
+                        let t = row.to_date ? formatDate(row.to_date) : '';
                         if (type !== 'display') return f + ' - ' + t;
                         return `<span class="badge bg-label-dark"><i class="bx bx-calendar me-1"></i>${f} to ${t}</span>`;
                     }
@@ -132,46 +132,45 @@ $(document).ready(function () {
                     data: null,
                     orderable: false,
                     render: function (data, type, row) {
-                        let actionsHtml = '<div class="d-flex align-items-center gap-1">';
-                        let hasAction = false;
+                        let dropdownItemsHtml = '';
 
-                        // Admin Approve / Reject actions (only if user has leaves.approve permission)
+                        // Admin Approve / Reject actions
                         if (userCanApprove) {
                             if (row.status === 'Pending') {
-                                actionsHtml += `
-                                    <button class="btn btn-sm btn-outline-success btn-action-leave me-1" data-id="${row.id}" data-action="approve" title="Approve Leave">
+                                dropdownItemsHtml += `
+                                    <a class="dropdown-item text-success btn-action-leave" href="javascript:void(0);" data-id="${row.id}" data-action="approve">
                                         <i class="bx bx-check me-1"></i> Approve
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-danger btn-action-leave me-1" data-id="${row.id}" data-action="reject" title="Reject Leave">
+                                    </a>
+                                    <a class="dropdown-item text-danger btn-action-leave" href="javascript:void(0);" data-id="${row.id}" data-action="reject">
                                         <i class="bx bx-x me-1"></i> Reject
-                                    </button>
+                                    </a>
                                 `;
-                                hasAction = true;
-                            } else {
-                                actionsHtml += `<small class="text-muted me-2">By: ${row.approver ? row.approver.name : 'Admin'}</small>`;
-                                hasAction = true;
                             }
-                        } else if (row.status !== 'Pending') {
-                            actionsHtml += `<small class="text-muted me-2">By: ${row.approver ? row.approver.name : 'Admin'}</small>`;
-                            hasAction = true;
                         }
 
-                        // Delete button (only if user has leaves.delete permission)
+                        // Delete button
                         if (userCanDelete) {
-                            actionsHtml += `
-                                <button class="btn btn-sm btn-outline-secondary btn-delete-leave" data-id="${row.id}" title="Delete Record">
-                                    <i class="bx bx-trash"></i>
-                                </button>
+                            dropdownItemsHtml += `
+                                <a class="dropdown-item text-danger btn-delete-leave" href="javascript:void(0);" data-id="${row.id}">
+                                    <i class="bx bx-trash me-1"></i> Delete
+                                </a>
                             `;
-                            hasAction = true;
                         }
 
-                        if (!hasAction) {
-                            actionsHtml += `<span class="text-muted fs-7">-</span>`;
+                        if (!dropdownItemsHtml) {
+                            return `<span class="text-muted fs-7">-</span>`;
                         }
 
-                        actionsHtml += '</div>';
-                        return actionsHtml;
+                        return `
+                            <div class="dropdown">
+                                <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                    <i class="bx bx-dots-vertical-rounded"></i>
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-end">
+                                    ${dropdownItemsHtml}
+                                </div>
+                            </div>
+                        `;
                     }
                 }
             ],

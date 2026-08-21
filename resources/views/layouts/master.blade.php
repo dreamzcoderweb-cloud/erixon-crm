@@ -57,7 +57,37 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/buttons/3.2.0/css/buttons.bootstrap5.css">
 
     <script>
-        var APP_URL = {!! json_encode(url('/')) !!}
+        var APP_URL = {!! json_encode(url('/')) !!};
+
+        function formatDate(dateStr) {
+            if (!dateStr || dateStr === 'N/A' || dateStr === '-') return '-';
+            if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr.trim())) {
+                let parts = dateStr.trim().split('-');
+                return parts[2] + '-' + parts[1] + '-' + parts[0];
+            }
+            let d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr;
+            let day = String(d.getDate()).padStart(2, '0');
+            let month = String(d.getMonth() + 1).padStart(2, '0');
+            let year = d.getFullYear();
+            return day + '-' + month + '-' + year;
+        }
+
+        function formatDateTime(dateStr) {
+            if (!dateStr || dateStr === 'N/A' || dateStr === '-') return '-';
+            let d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr;
+            let day = String(d.getDate()).padStart(2, '0');
+            let month = String(d.getMonth() + 1).padStart(2, '0');
+            let year = d.getFullYear();
+            let hours = d.getHours();
+            let minutes = String(d.getMinutes()).padStart(2, '0');
+            let ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12;
+            let hoursStr = String(hours).padStart(2, '0');
+            return day + '-' + month + '-' + year + ', ' + hoursStr + ':' + minutes + ' ' + ampm;
+        }
     </script>
 
     @php
@@ -161,6 +191,19 @@
         }
         .is-invalid ~ .invalid-feedback {
             display: block !important;
+        }
+
+        /* Ensure table-responsive allows action dropdown menus to display without clipping */
+        .table-responsive {
+            overflow: visible !important;
+        }
+        @media (max-width: 991.98px) {
+            .table-responsive {
+                overflow-x: auto !important;
+            }
+        }
+        .table-responsive .dropdown-menu {
+            z-index: 1050 !important;
         }
     </style>
 </head>
@@ -275,6 +318,7 @@
     <script src="{{ asset('assets/vendor/js/menu.js') }}"></script>
 
     <!-- Custom JS -->
+    <script src="{{ asset('assets/js/custom-js/date_formatter.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/customer.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/lead_source.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/lead_stage.js') }}"></script>

@@ -145,7 +145,7 @@ $(document).ready(function () {
                     render: function (data, type) {
                         if (!data) return type === 'display' ? '<span class="text-muted">N/A</span>' : '';
                         if (type !== 'display') return data;
-                        let formatted = new Date(data).toLocaleString();
+                        let formatted = formatDateTime(data);
                         return `<span class="badge bg-label-dark"><i class="bx bx-calendar me-1"></i>${formatted}</span>`;
                     }
                 },
@@ -194,20 +194,25 @@ $(document).ready(function () {
                         let reassignBtn = '';
                         if (row.followup_status === 'Pending') {
                             reassignBtn = `
-                                <button class="btn btn-sm btn-outline-warning btn-reassign-followup me-1" data-id="${row.followups_id}" data-staff="${row.forward_to_user ? row.forward_to_user.name : 'Unassigned'}" title="Reassign Staff">
-                                    <i class="bx bx-user-voice"></i>
-                                </button>
+                                <a class="dropdown-item btn-reassign-followup" href="javascript:void(0);" data-id="${row.followups_id}" data-staff="${row.forward_to_user ? row.forward_to_user.name : 'Unassigned'}">
+                                    <i class="bx bx-user-voice me-1"></i> Reassign Staff
+                                </a>
                             `;
                         }
                         return `
-                            <div class="d-flex gap-1">
-                                ${reassignBtn}
-                                <button class="btn btn-sm btn-outline-primary btn-edit-followup" data-id="${row.followups_id}" title="Edit">
-                                    <i class="bx bx-edit-alt"></i>
+                            <div class="dropdown">
+                                <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                    <i class="bx bx-dots-vertical-rounded"></i>
                                 </button>
-                                <button class="btn btn-sm btn-outline-danger btn-delete-followup" data-id="${row.followups_id}" title="Delete">
-                                    <i class="bx bx-trash"></i>
-                                </button>
+                                <div class="dropdown-menu dropdown-menu-end">
+                                    ${reassignBtn}
+                                    <a class="dropdown-item btn-edit-followup" href="javascript:void(0);" data-id="${row.followups_id}">
+                                        <i class="bx bx-edit-alt me-1"></i> Edit
+                                    </a>
+                                    <a class="dropdown-item text-danger btn-delete-followup" href="javascript:void(0);" data-id="${row.followups_id}">
+                                        <i class="bx bx-trash me-1"></i> Delete
+                                    </a>
+                                </div>
                             </div>
                         `;
                     }
@@ -428,7 +433,7 @@ $(document).ready(function () {
                         let prevStaff = item.previous_staff ? item.previous_staff.name : 'Unassigned';
                         let newStaff = item.new_staff ? item.new_staff.name : 'N/A';
                         let reassignedBy = item.reassigned_by ? item.reassigned_by.name : 'System';
-                        let dt = new Date(item.created_at).toLocaleString();
+                        let dt = formatDateTime(item.created_at);
 
                         rowsHtml += `
                             <tr>
@@ -495,9 +500,9 @@ $(document).ready(function () {
                     $.each(response.data, function (index, row) {
                         let clientName = (row.lead && row.lead.customer) ? row.lead.customer.name : (row.lead ? row.lead.lead_title : 'N/A');
                         let contactMobile = (row.lead && row.lead.customer && row.lead.customer.mobile) ? row.lead.customer.mobile : 'N/A';
-                        let dt = row.next_followup_date ? new Date(row.next_followup_date) : null;
-                        let dateStr = dt ? dt.toLocaleDateString() : 'Today';
-                        let timeStr = dt ? dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A';
+                        let dateStr = row.next_followup_date ? formatDate(row.next_followup_date) : 'Today';
+                        let formattedDt = row.next_followup_date ? formatDateTime(row.next_followup_date) : '';
+                        let timeStr = formattedDt.includes(', ') ? formattedDt.split(', ')[1] : 'N/A';
                         let typeText = row.followup_type;
                         if (row.followup_type === 'Call' && row.duration) {
                             typeText += ` (${row.duration})`;

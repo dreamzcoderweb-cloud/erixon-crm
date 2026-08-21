@@ -77,12 +77,19 @@ $(document).ready(function () {
                 orderable: false,
                 render: function (data, type, row) {
                     return `
-                        <button class="btn btn-sm btn-outline-primary btn-edit-customer me-1" data-id="${row.customer_id}">
-                            <i class="bx bx-edit-alt"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger btn-delete-customer" data-id="${row.customer_id}" data-name="${row.name}">
-                            <i class="bx bx-trash"></i>
-                        </button>
+                        <div class="dropdown">
+                            <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                <i class="bx bx-dots-vertical-rounded"></i>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end">
+                                <a class="dropdown-item btn-edit-customer" href="javascript:void(0);" data-id="${row.customer_id}">
+                                    <i class="bx bx-edit-alt me-1"></i> Edit
+                                </a>
+                                <a class="dropdown-item text-danger btn-delete-customer" href="javascript:void(0);" data-id="${row.customer_id}" data-name="${row.name}">
+                                    <i class="bx bx-trash me-1"></i> Delete
+                                </a>
+                            </div>
+                        </div>
                     `;
                 }
             }

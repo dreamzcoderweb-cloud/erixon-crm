@@ -55,12 +55,19 @@ $(document).ready(function () {
                 orderable: false,
                 render: function (data, type, row) {
                     return `
-                        <button class="btn btn-sm btn-outline-primary btn-edit-stage me-1" data-id="${row.lead_stage_id}">
-                            <i class="bx bx-edit-alt"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger btn-delete-stage" data-id="${row.lead_stage_id}" data-name="${row.name}">
-                            <i class="bx bx-trash"></i>
-                        </button>
+                        <div class="dropdown">
+                            <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                <i class="bx bx-dots-vertical-rounded"></i>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end">
+                                <a class="dropdown-item btn-edit-stage" href="javascript:void(0);" data-id="${row.lead_stage_id}">
+                                    <i class="bx bx-edit-alt me-1"></i> Edit
+                                </a>
+                                <a class="dropdown-item text-danger btn-delete-stage" href="javascript:void(0);" data-id="${row.lead_stage_id}" data-name="${row.name}">
+                                    <i class="bx bx-trash me-1"></i> Delete
+                                </a>
+                            </div>
+                        </div>
                     `;
                 }
             }

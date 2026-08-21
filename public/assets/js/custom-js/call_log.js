@@ -56,7 +56,7 @@ $(document).ready(function () {
     function formattedDate(data, type) {
         if (!data) return '-';
         if (type !== 'display') return data;
-        return `<small class="text-muted"><i class="bx bx-calendar me-1"></i>${new Date(data).toLocaleString()}</small>`;
+        return `<small class="text-muted"><i class="bx bx-calendar me-1"></i>${formatDateTime(data)}</small>`;
     }
 
     function columns(includeActions) {
@@ -120,13 +120,18 @@ $(document).ready(function () {
                 orderable: false,
                 render: function (data, type, row) {
                     return `
-                        <div class="d-flex gap-1">
-                            <button class="btn btn-sm btn-outline-primary btn-edit-call-log" data-id="${row.call_id}" title="Edit">
-                                <i class="bx bx-edit-alt"></i>
+                        <div class="dropdown">
+                            <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                <i class="bx bx-dots-vertical-rounded"></i>
                             </button>
-                            <button class="btn btn-sm btn-outline-danger btn-delete-call-log" data-id="${row.call_id}" title="Delete">
-                                <i class="bx bx-trash"></i>
-                            </button>
+                            <div class="dropdown-menu dropdown-menu-end">
+                                <a class="dropdown-item btn-edit-call-log" href="javascript:void(0);" data-id="${row.call_id}">
+                                    <i class="bx bx-edit-alt me-1"></i> Edit
+                                </a>
+                                <a class="dropdown-item text-danger btn-delete-call-log" href="javascript:void(0);" data-id="${row.call_id}">
+                                    <i class="bx bx-trash me-1"></i> Delete
+                                </a>
+                            </div>
                         </div>
                     `;
                 }

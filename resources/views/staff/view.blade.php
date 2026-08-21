@@ -75,37 +75,33 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <div class="d-flex align-items-center gap-1">
-                                        @can('staff.edit')
-                                            <button class="btn btn-sm {{ $staff->is_on_leave ? 'btn-outline-success' : 'btn-outline-warning' }} btn-toggle-leave"
-                                                data-id="{{ $staff->id }}"
-                                                title="{{ $staff->is_on_leave ? 'Mark as Active' : 'Mark as On Leave' }}">
-                                                <i class="bx {{ $staff->is_on_leave ? 'bx-user-check' : 'bx-user-minus' }}"></i>
-                                                {{ $staff->is_on_leave ? 'Mark Active' : 'Mark On Leave' }}
-                                            </button>
-                                        @endcan
-
-                                        @if($staff->is_on_leave)
-                                            <button class="btn btn-sm btn-outline-primary btn-view-leave-followups"
-                                                data-id="{{ $staff->id }}" data-name="{{ $staff->name }}"
-                                                title="View & Reassign Today's Follow-ups">
-                                                <i class="bx bx-calendar-event me-1"></i> Reassign Follow-ups
-                                            </button>
-                                        @endif
-
-                                        @can('staff.edit')
-                                            <a class="btn btn-sm btn-outline-primary btn-edit"
-                                                href="{{ url('admin/edit_staff/' . $staff->id) }}" title="Edit Staff">
-                                                <i class="bx bx-edit-alt"></i>
-                                            </a>
-                                        @endcan
-                                        @can('staff.delete')
-                                            <a href="#" class="btn btn-sm btn-outline-danger btn-delete" data-bs-toggle="modal"
-                                                data-bs-target="#deleteModal" data-id="{{ $staff->id }}"
-                                                data-name="admin/delete_staff" title="Delete Staff">
-                                                <i class="bx bx-trash"></i>
-                                            </a>
-                                        @endcan
+                                    <div class="dropdown">
+                                        <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                            <i class="bx bx-dots-vertical-rounded"></i>
+                                        </button>
+                                        <div class="dropdown-menu dropdown-menu-end">
+                                            @can('staff.edit')
+                                                <a class="dropdown-item btn-toggle-leave" href="javascript:void(0);" data-id="{{ $staff->id }}">
+                                                    <i class="bx {{ $staff->is_on_leave ? 'bx-user-check' : 'bx-user-minus' }} me-1"></i>
+                                                    {{ $staff->is_on_leave ? 'Mark Active' : 'Mark On Leave' }}
+                                                </a>
+                                            @endcan
+                                            @if($staff->is_on_leave)
+                                                <a class="dropdown-item btn-view-leave-followups" href="javascript:void(0);" data-id="{{ $staff->id }}" data-name="{{ $staff->name }}">
+                                                    <i class="bx bx-calendar-event me-1"></i> Reassign Follow-ups
+                                                </a>
+                                            @endif
+                                            @can('staff.edit')
+                                                <a class="dropdown-item btn-edit" href="{{ url('admin/edit_staff/' . $staff->id) }}">
+                                                    <i class="bx bx-edit-alt me-1"></i> Edit
+                                                </a>
+                                            @endcan
+                                            @can('staff.delete')
+                                                <a class="dropdown-item text-danger btn-delete" href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#deleteModal" data-id="{{ $staff->id }}" data-name="admin/delete_staff">
+                                                    <i class="bx bx-trash me-1"></i> Delete
+                                                </a>
+                                            @endcan
+                                        </div>
                                     </div>
                                 </td>
                             </tr>

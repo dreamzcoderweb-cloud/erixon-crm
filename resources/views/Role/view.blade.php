@@ -37,15 +37,17 @@
                                 <td>{{ $role->created_at?->format('d-m-Y') }}</td>
                                 <td>
                                     <div class="dropdown">
-                                        <a class="btn btn-outline-primary btn-edit"
-                                            href="{{ url('admin/edit_role/' . $role->id) }}">
-                                            <i class="bx bx-edit-alt me-1"></i>
-                                        </a>
-                                        <a href="#" class="btn btn-outline-danger btn-delete" data-bs-toggle="modal"
-                                            data-bs-target="#deleteModal" data-id="{{ $role->id }}"
-                                            data-name="admin/delete_role">
-                                            <i class="bx bx-trash me-1"></i>
-                                        </a>
+                                        <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                            <i class="bx bx-dots-vertical-rounded"></i>
+                                        </button>
+                                        <div class="dropdown-menu dropdown-menu-end">
+                                            <a class="dropdown-item btn-edit" href="{{ url('admin/edit_role/' . $role->id) }}">
+                                                <i class="bx bx-edit-alt me-1"></i> Edit
+                                            </a>
+                                            <a class="dropdown-item text-danger btn-delete" href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#deleteModal" data-id="{{ $role->id }}" data-name="admin/delete_role">
+                                                <i class="bx bx-trash me-1"></i> Delete
+                                            </a>
+                                        </div>
                                     </div>
                                 </td>
                             </tr>

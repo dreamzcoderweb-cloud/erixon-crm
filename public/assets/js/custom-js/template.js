@@ -63,7 +63,7 @@ $(document).ready(function () {
                 render: function (data, type) {
                     if (!data) return '-';
                     if (type !== 'display') return data;
-                    let formatted = new Date(data).toLocaleDateString();
+                    let formatted = formatDateTime(data);
                     return `<small class="text-muted"><i class="bx bx-calendar me-1"></i>${formatted}</small>`;
                 }
             },
@@ -72,12 +72,19 @@ $(document).ready(function () {
                 orderable: false,
                 render: function (data, type, row) {
                     return `
-                        <button class="btn btn-sm btn-outline-primary btn-edit-template me-1" data-id="${row.template_id}">
-                            <i class="bx bx-edit-alt"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger btn-delete-template" data-id="${row.template_id}">
-                            <i class="bx bx-trash"></i>
-                        </button>
+                        <div class="dropdown">
+                            <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                <i class="bx bx-dots-vertical-rounded"></i>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end">
+                                <a class="dropdown-item btn-edit-template" href="javascript:void(0);" data-id="${row.template_id}">
+                                    <i class="bx bx-edit-alt me-1"></i> Edit
+                                </a>
+                                <a class="dropdown-item text-danger btn-delete-template" href="javascript:void(0);" data-id="${row.template_id}">
+                                    <i class="bx bx-trash me-1"></i> Delete
+                                </a>
+                            </div>
+                        </div>
                     `;
                 }
             }

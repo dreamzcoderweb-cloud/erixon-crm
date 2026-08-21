@@ -105,7 +105,7 @@ $(document).ready(function () {
                     $.each(followups, function (index, row) {
                         let clientName = (row.lead && row.lead.customer) ? row.lead.customer.name : (row.lead ? row.lead.lead_title : 'N/A');
                         let contactMobile = (row.lead && row.lead.customer && row.lead.customer.mobile) ? row.lead.customer.mobile : 'N/A';
-                        let dt = row.next_followup_date ? new Date(row.next_followup_date).toLocaleString() : 'Today';
+                        let dt = row.next_followup_date ? formatDateTime(row.next_followup_date) : 'Today';
                         let typeText = row.followup_type;
                         if (row.followup_type === 'Call' && row.duration) {
                             typeText += ` (${row.duration})`;

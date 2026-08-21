@@ -65,7 +65,7 @@ $(document).ready(function () {
                 render: function (data, type) {
                     if (!data) return '-';
                     if (type !== 'display') return data;
-                    let formatted = new Date(data).toLocaleDateString();
+                    let formatted = formatDateTime(data);
                     return `<small class="text-muted"><i class="bx bx-calendar me-1"></i>${formatted}</small>`;
                 }
             },
@@ -74,16 +74,21 @@ $(document).ready(function () {
                 orderable: false,
                 render: function (data, type, row) {
                     return `
-                        <div class="d-flex gap-1">
-                            <a href="${APP_URL}/admin/lead-documents/download/${row.lead_documents_id}" class="btn btn-sm btn-outline-success" title="Download">
-                                <i class="bx bx-download"></i>
-                            </a>
-                            <button class="btn btn-sm btn-outline-primary btn-edit-document" data-id="${row.lead_documents_id}" title="Edit">
-                                <i class="bx bx-edit-alt"></i>
+                        <div class="dropdown">
+                            <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                <i class="bx bx-dots-vertical-rounded"></i>
                             </button>
-                            <button class="btn btn-sm btn-outline-danger btn-delete-document" data-id="${row.lead_documents_id}" title="Delete">
-                                <i class="bx bx-trash"></i>
-                            </button>
+                            <div class="dropdown-menu dropdown-menu-end">
+                                <a class="dropdown-item" href="${APP_URL}/admin/lead-documents/download/${row.lead_documents_id}">
+                                    <i class="bx bx-download me-1"></i> Download
+                                </a>
+                                <a class="dropdown-item btn-edit-document" href="javascript:void(0);" data-id="${row.lead_documents_id}">
+                                    <i class="bx bx-edit-alt me-1"></i> Edit
+                                </a>
+                                <a class="dropdown-item text-danger btn-delete-document" href="javascript:void(0);" data-id="${row.lead_documents_id}">
+                                    <i class="bx bx-trash me-1"></i> Delete
+                                </a>
+                            </div>
                         </div>
                     `;
                 }
