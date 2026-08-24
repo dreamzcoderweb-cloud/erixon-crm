@@ -16,7 +16,13 @@ class LeaveController extends Controller
             return $this->listData($request);
         }
 
-        $data['staffs'] = User::staffOnly()->orderBy('name')->get();
+        $user = Auth::user();
+        if ($user->isSuperAdmin()) {
+            $data['staffs'] = User::staffOnly()->orderBy('name')->get();
+        } else {
+            $data['staffs'] = User::where('id', $user->id)->get();
+        }
+
         return view('leaves.index', $data);
     }
 
@@ -25,16 +31,18 @@ class LeaveController extends Controller
         $user = Auth::user();
         $query = LeaveRequest::with(['user:id,name,email', 'approver:id,name']);
 
-        $canApprove = $user->can('leaves.approve') || $user->hasRole(['Super Admin', 'Admin']);
-        $canDelete  = $user->can('leaves.delete') || $user->hasRole(['Super Admin', 'Admin']);
+        $isSuperAdmin = $user->isSuperAdmin();
+        $canApprove   = $user->can('leaves.approve') || $isSuperAdmin;
+        $canDelete    = $user->can('leaves.delete') || $isSuperAdmin;
 
-        // Non-admin staff can only see their own leave requests
-        if (!$canApprove) {
+        // Only Super Admin can view all staff list details.
+        // Non-Super Admin staff (e.g. Tharik) can only see their own leave requests.
+        if (!$isSuperAdmin) {
             $query->where('user_id', $user->id);
-        }
-
-        if ($request->filled('user_id')) {
-            $query->where('user_id', $request->input('user_id'));
+        } else {
+            if ($request->filled('user_id')) {
+                $query->where('user_id', $request->input('user_id'));
+            }
         }
 
         if ($request->filled('status')) {
@@ -63,7 +71,7 @@ class LeaveController extends Controller
         ]);
 
         $targetUserId = Auth::id();
-        if (Auth::user()->can('leaves.approve') && !empty($validated['user_id'])) {
+        if (Auth::user()->isSuperAdmin() && !empty($validated['user_id'])) {
             $targetUserId = $validated['user_id'];
         }
 
@@ -171,7 +179,7 @@ class LeaveController extends Controller
     public function salaryReportData(Request $request)
     {
         $user = Auth::user();
-        $isAdmin = $user->hasRole(['Super Admin', 'Admin', 'super admin', 'super-admin']);
+        $isSuperAdmin = $user->isSuperAdmin();
 
         $monthStr = $request->input('month', date('Y-m'));
         if (empty($monthStr)) {
@@ -194,8 +202,8 @@ class LeaveController extends Controller
         }
         $workingDaysInMonth = max(1, $totalDays - $sundays);
 
-        // Requirement 3: monthly salary staff details - only user
-        if ($isAdmin) {
+        // Requirement 3: monthly salary staff details - only Super Admin sees all staff
+        if ($isSuperAdmin) {
             $staffs = User::staffOnly()->orderBy('name')->get();
         } else {
             $staffs = User::where('id', $user->id)->get();
@@ -274,11 +282,11 @@ class LeaveController extends Controller
     public function listPermissions(Request $request)
     {
         $user = Auth::user();
-        $isAdmin = $user->hasRole(['Super Admin', 'Admin', 'super admin', 'super-admin']) || $user->can('permissions.approve');
+        $isSuperAdmin = $user->isSuperAdmin();
 
         $query = \App\Models\PermissionRequest::with(['user:id,name,email', 'approver:id,name']);
 
-        if (!$isAdmin) {
+        if (!$isSuperAdmin) {
             $query->where('user_id', $user->id);
         }
 
@@ -286,7 +294,7 @@ class LeaveController extends Controller
 
         return response()->json([
             'status'      => true,
-            'can_approve' => $isAdmin,
+            'can_approve' => $isSuperAdmin,
             'data'        => $permissions
         ]);
     }
@@ -303,7 +311,7 @@ class LeaveController extends Controller
         ]);
 
         $targetUserId = Auth::id();
-        if (Auth::user()->can('permissions.approve') && !empty($validated['user_id'])) {
+        if (Auth::user()->isSuperAdmin() && !empty($validated['user_id'])) {
             $targetUserId = $validated['user_id'];
         }
 

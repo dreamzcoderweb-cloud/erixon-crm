@@ -105,17 +105,18 @@
                         <div class="card-header border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
                             <h5 class="card-title m-0"><i class="bx bx-history me-1"></i> Leave Applications</h5>
                             <div class="d-flex gap-2">
-                                @can('leaves.approve')
+                                @if(auth()->user()->isSuperAdmin())
                                     <select id="filter_leave_user_id" class="form-select form-select-sm" style="width: 200px;">
                                         <option value="">-- Select Staff Member --</option>
-
-                                        @if(auth()->user()->staff)
-                                            <option value="{{ auth()->user()->staff->id }}">
-                                                {{ auth()->user()->staff->name }}
-                                            </option>
-                                        @endif
+                                        @foreach ($staffs as $staff)
+                                            <option value="{{ $staff->id }}">{{ $staff->name }}</option>
+                                        @endforeach
                                     </select>
-                                @endcan
+                                @else
+                                    <select id="filter_leave_user_id" class="form-select form-select-sm" style="width: 200px;">
+                                        <option value="{{ auth()->user()->id }}">{{ auth()->user()->name }}</option>
+                                    </select>
+                                @endif
                                 <select id="filter_leave_status" class="form-select form-select-sm" style="width: 150px;">
                                     <option value="">-- All Status --</option>
                                     <option value="Pending">Pending</option>
@@ -248,7 +249,7 @@
                     </div>
                     <div class="modal-body">
                         <div class="row g-3">
-                            @can('leaves.approve')
+                            @if(auth()->user()->isSuperAdmin())
                                 <div class="col-md-12">
                                     <label class="form-label">Select Staff Member <span class="text-danger">*</span></label>
                                     <select name="user_id" class="form-select">
@@ -259,7 +260,7 @@
                                     </select>
                                     <div class="invalid-feedback"></div>
                                 </div>
-                            @endcan
+                            @endif
 
                             <div class="col-md-6">
                                 <label class="form-label">From Date <span class="text-danger">*</span></label>
