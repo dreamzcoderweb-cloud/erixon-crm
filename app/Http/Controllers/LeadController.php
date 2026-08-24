@@ -20,19 +20,29 @@ class LeadController extends Controller
             return $this->listData();
         }
 
-        $data['customers']        = Customer::where('status', 1)->orderBy('name')->get();
+        $user = Auth::user();
+        $isAdmin = $user->isAdmin();
+
+        $data['customers']        = Customer::forUser($user)->where('status', 1)->orderBy('name')->get();
         $data['leadSources']      = LeadSource::where('status', 1)->orderBy('name')->get();
         $data['leadStages']       = LeadStage::where('status', 1)->orderBy('sort_order', 'ASC')->get();
         $data['leadRequirements'] = LeadRequirement::where('status', 1)->orderBy('name')->get();
         $data['lostReasons']      = LostReason::where('status', 1)->orderBy('reason')->get();
-        $data['staffs']           = User::staffOnly()->orderBy('name')->get();
+
+        if ($isAdmin) {
+            $data['staffs'] = User::staffOnly()->orderBy('name')->get();
+        } else {
+            $data['staffs'] = User::where('id', $user->id)->get();
+        }
 
         return view('leads.view', $data);
     }
 
     public function listData()
     {
-        $leads = Lead::with([
+        $user = Auth::user();
+
+        $leads = Lead::forUser($user)->with([
             'customer:customer_id,name,mobile,email',
             'leadSource:lead_sources_id,name',
             'leadStage:lead_stage_id,name',
@@ -40,9 +50,7 @@ class LeadController extends Controller
             'lostReason:lost_reason_id,reason',
             'assignedUser:id,name',
             'creator:id,name'
-        ])
-        ->orderBy('lead_id', 'DESC')
-        ->get();
+        ])->orderBy('lead_id', 'DESC')->get();
 
         return response()->json([
             'status' => true,
@@ -52,6 +60,9 @@ class LeadController extends Controller
 
     public function store(Request $request)
     {
+        $user = Auth::user();
+        $isAdmin = $user->isAdmin();
+
         $validated = $request->validate([
             'customer_id'         => ['required', 'exists:customers,customer_id'],
             'lead_title'          => ['required', 'string', 'max:255'],
@@ -67,9 +78,16 @@ class LeadController extends Controller
             'lost_reason_id'      => ['nullable', 'exists:lost_reasons,lost_reason_id'],
         ]);
 
-        $validated['created_by'] = Auth::id();
+        if (!$isAdmin && empty($validated['assigned_to'])) {
+            $validated['assigned_to'] = $user->id;
+        }
+
+        $validated['created_by'] = $user->id;
 
         $lead = Lead::create($validated);
+
+        // Requirement 9: sales closed - credit request trigger
+        $this->checkAndCreateSalesClosedCreditRequest($lead);
 
         return response()->json([
             'status'  => true,
@@ -80,7 +98,7 @@ class LeadController extends Controller
 
     public function edit($id)
     {
-        $lead = Lead::with(['customer', 'leadSource', 'leadStage', 'leadRequirement', 'lostReason', 'assignedUser'])->find($id);
+        $lead = Lead::forUser(Auth::user())->with(['customer', 'leadSource', 'leadStage', 'leadRequirement', 'lostReason', 'assignedUser'])->find($id);
         if (!$lead) {
             return response()->json([
                 'status'  => false,
@@ -96,7 +114,7 @@ class LeadController extends Controller
 
     public function update(Request $request, $id)
     {
-        $lead = Lead::find($id);
+        $lead = Lead::forUser(Auth::user())->find($id);
         if (!$lead) {
             return response()->json([
                 'status'  => false,
@@ -121,6 +139,9 @@ class LeadController extends Controller
 
         $lead->update($validated);
 
+        // Requirement 9: sales closed - credit request trigger
+        $this->checkAndCreateSalesClosedCreditRequest($lead);
+
         return response()->json([
             'status'  => true,
             'message' => 'Lead updated successfully.',
@@ -128,9 +149,39 @@ class LeadController extends Controller
         ]);
     }
 
+    /**
+     * Requirement 9: When lead stage is Sales Closed, create a credit request
+     */
+    private function checkAndCreateSalesClosedCreditRequest(Lead $lead)
+    {
+        if (!$lead->lead_stage_id) {
+            return;
+        }
+
+        $stage = LeadStage::find($lead->lead_stage_id);
+        if ($stage && (str_contains(strtolower($stage->name), 'closed') || str_contains(strtolower($stage->name), 'won') || str_contains(strtolower($stage->name), 'sale'))) {
+            // Check if credit request already exists for this lead
+            $exists = \App\Models\CreditRequest::where('lead_id', $lead->lead_id)->first();
+            if (!$exists) {
+                $customer = Customer::find($lead->customer_id);
+                \App\Models\CreditRequest::create([
+                    'lead_id'       => $lead->lead_id,
+                    'customer_id'   => $lead->customer_id,
+                    'username'      => $customer->name ?? null,
+                    'phone'         => $customer->mobile ?? null,
+                    'email'         => $customer->email ?? null,
+                    'credit_amount' => $lead->expected_amount ?? 0.00,
+                    'is_estimate'   => false,
+                    'status'        => 'Pending Admin Approval',
+                    'requested_by'  => Auth::id(),
+                ]);
+            }
+        }
+    }
+
     public function destroy($id)
     {
-        $lead = Lead::find($id);
+        $lead = Lead::forUser(Auth::user())->find($id);
         if (!$lead) {
             return response()->json([
                 'status'  => false,
@@ -148,7 +199,7 @@ class LeadController extends Controller
 
     public function changeStatus(Request $request, $id)
     {
-        $lead = Lead::find($id);
+        $lead = Lead::forUser(Auth::user())->find($id);
         if (!$lead) {
             return response()->json([
                 'status'  => false,

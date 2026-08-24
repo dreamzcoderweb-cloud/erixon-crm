@@ -38,4 +38,28 @@ class CallRecording extends Model
     {
         return $this->belongsTo(User::class, 'created_by', 'id');
     }
+
+    /**
+     * Scope call recordings accessible by a specific user (staff-wise data access).
+     */
+    public function scopeForUser($query, $user)
+    {
+        if (!$user) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if ($user->isAdmin()) {
+            return $query;
+        }
+
+        $userId = $user->id;
+
+        return $query->where(function ($q) use ($userId) {
+            $q->where('created_by', $userId)
+              ->orWhereHas('lead', function ($lq) use ($userId) {
+                  $lq->where('assigned_to', $userId)
+                    ->orWhere('created_by', $userId);
+              });
+        });
+    }
 }

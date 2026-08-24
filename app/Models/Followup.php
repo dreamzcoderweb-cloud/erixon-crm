@@ -43,4 +43,33 @@ class Followup extends Model
     {
         return $this->hasMany(FollowupReassignment::class, 'followup_id', 'followups_id');
     }
+
+    /**
+     * Scope follow-ups accessible by a specific user (staff-wise data access).
+     */
+    public function scopeForUser($query, $user)
+    {
+        if (!$user) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if ($user->isAdmin()) {
+            return $query;
+        }
+
+        $userId = $user->id;
+
+        return $query->where(function ($q) use ($userId) {
+            $q->where('forward_to', $userId)
+              ->orWhere(function ($q2) use ($userId) {
+                  $q2->whereNull('forward_to')
+                     ->where('created_by', $userId);
+              })
+              ->orWhere('created_by', $userId)
+              ->orWhereHas('lead', function ($lq) use ($userId) {
+                  $lq->where('assigned_to', $userId)
+                    ->orWhere('created_by', $userId);
+              });
+        });
+    }
 }

@@ -299,7 +299,6 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
         ->name('attendance.report');
     Route::get('attendance/report/data', [AttendanceController::class, 'reportData'])
         ->middleware('permission:attendance-reports.view');
-
     // Leave Management routes
     Route::get('leaves', [LeaveController::class, 'index'])
         ->middleware('permission:leaves.view')
@@ -316,4 +315,63 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
         ->middleware('permission:leaves.delete');
     Route::get('leaves/salary-report', [LeaveController::class, 'salaryReportData'])
         ->middleware('permission:salary.view');
+
+    // Customer additional routes (Search & Import)
+    Route::get('customers/search', [CustomerController::class, 'search'])
+        ->middleware('permission:customers.view')
+        ->name('customers.search');
+    Route::post('customers/import', [CustomerController::class, 'import'])
+        ->middleware('permission:customers.create')
+        ->name('customers.import');
+    Route::get('customers/download-sample-csv', [CustomerController::class, 'downloadSampleCsv'])
+        ->middleware('permission:customers.view')
+        ->name('customers.sample-csv');
+
+    // Credit Requests routes
+    Route::get('credit-requests', [\App\Http\Controllers\CreditRequestController::class, 'index'])
+        ->middleware('permission:credit-requests.view')
+        ->name('credit-requests.index');
+    Route::post('credit-requests', [\App\Http\Controllers\CreditRequestController::class, 'store'])
+        ->middleware('permission:credit-requests.create');
+    Route::get('credit-requests/data', [\App\Http\Controllers\CreditRequestController::class, 'listData'])
+        ->middleware('permission:credit-requests.view');
+    Route::post('credit-requests/store', [\App\Http\Controllers\CreditRequestController::class, 'store'])
+        ->middleware('permission:credit-requests.create');
+    Route::get('credit-requests/edit/{id}', [\App\Http\Controllers\CreditRequestController::class, 'edit'])
+        ->middleware('permission:credit-requests.view');
+    Route::post('credit-requests/update/{id}', [\App\Http\Controllers\CreditRequestController::class, 'update'])
+        ->middleware('permission:credit-requests.create');
+    Route::post('credit-requests/approve-admin/{id}', [\App\Http\Controllers\CreditRequestController::class, 'approveAdmin'])
+        ->middleware('permission:credit-requests.approve_admin');
+    Route::post('credit-requests/approve-support/{id}', [\App\Http\Controllers\CreditRequestController::class, 'approveSupport'])
+        ->middleware('permission:credit-requests.approve_support');
+    Route::post('credit-requests/reject/{id}', [\App\Http\Controllers\CreditRequestController::class, 'reject'])
+        ->middleware('permission:credit-requests.approve_admin');
+    Route::delete('credit-requests/delete/{id}', [\App\Http\Controllers\CreditRequestController::class, 'destroy'])
+        ->middleware('permission:credit-requests.delete');
+
+    // Payments routes
+    Route::get('payments', [\App\Http\Controllers\PaymentController::class, 'index'])
+        ->middleware('permission:payments.view')
+        ->name('payments.index');
+    Route::get('payments/data', [\App\Http\Controllers\PaymentController::class, 'listData'])
+        ->middleware('permission:payments.view');
+    Route::post('payments/store', [\App\Http\Controllers\PaymentController::class, 'store'])
+        ->middleware('permission:payments.create');
+    Route::get('payments/edit/{id}', [\App\Http\Controllers\PaymentController::class, 'edit'])
+        ->middleware('permission:payments.edit');
+    Route::post('payments/update/{id}', [\App\Http\Controllers\PaymentController::class, 'update'])
+        ->middleware('permission:payments.edit');
+    Route::delete('payments/delete/{id}', [\App\Http\Controllers\PaymentController::class, 'destroy'])
+        ->middleware('permission:payments.delete');
+
+    // Staff Permission Request routes
+    Route::get('permissions/data', [LeaveController::class, 'listPermissions'])
+        ->middleware('permission:permissions.view');
+    Route::post('permissions/store', [LeaveController::class, 'storePermission'])
+        ->middleware('permission:permissions.create');
+    Route::post('permissions/approve/{id}', [LeaveController::class, 'approvePermission'])
+        ->middleware('permission:permissions.approve');
+    Route::post('permissions/reject/{id}', [LeaveController::class, 'rejectPermission'])
+        ->middleware('permission:permissions.approve');
 });

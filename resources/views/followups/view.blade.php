@@ -53,12 +53,14 @@
 
                     <div class="d-flex align-items-center gap-2">
                         <input type="hidden" id="filter_type_input" value="all">
-                        <select id="filter_staff_id" class="form-select form-select-sm" style="width: 200px;">
-                            <option value="">-- All Staff Members --</option>
-                            @foreach ($staffs as $staff)
-                                <option value="{{ $staff->id }}">{{ $staff->name }}</option>
-                            @endforeach
-                        </select>
+                        @if (Auth::user() && Auth::user()->isAdmin())
+                            <select id="filter_staff_id" class="form-select form-select-sm" style="width: 200px;">
+                                <option value="">-- All Staff Members --</option>
+                                @foreach ($staffs as $staff)
+                                    <option value="{{ $staff->id }}">{{ $staff->name }}</option>
+                                @endforeach
+                            </select>
+                        @endif
                         <input type="date" id="filter_custom_date" class="form-control form-control-sm" style="width: 160px;" title="Filter by Specific Follow-up Date">
                         <button type="button" class="btn btn-sm btn-outline-secondary" id="resetFollowupFiltersBtn" title="Reset Filters">
                             <i class="bx bx-refresh"></i>

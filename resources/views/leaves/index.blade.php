@@ -1,6 +1,70 @@
 @extends('layouts.master')
 @section('title', 'Leave & Salary Management - CRM')
 @section('content')
+    <style>
+        /* Force salary report table container to allow horizontal scrolling without overflowing card */
+        .salary-report-responsive {
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch;
+            max-width: 100% !important;
+            width: 100% !important;
+            display: block;
+        }
+
+        #salary-report-table {
+            width: 100% !important;
+            min-width: 1100px; /* Ensure 9 columns have generous width without overlapping */
+            margin: 0 !important;
+            border-collapse: collapse !important;
+        }
+
+        #salary-report-table th, 
+        #salary-report-table td {
+            vertical-align: middle !important;
+            white-space: nowrap !important;
+            padding: 0.75rem 0.85rem !important;
+        }
+
+        #salary-report-table th {
+            background-color: #f8f9fa !important;
+            color: #566a7f;
+            font-weight: 600;
+            font-size: 0.825rem;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        #salary-report-table_wrapper .dt-layout-row {
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        #salary-report-table_wrapper .dt-search input {
+            border: 1px solid #d9dee3;
+            border-radius: 0.375rem;
+            padding: 0.375rem 0.75rem;
+            margin-left: 0.5rem;
+            outline: none;
+        }
+
+        #salary-report-table_wrapper .dt-search input:focus {
+            border-color: var(--bs-primary);
+            box-shadow: 0 0 0 0.2rem rgba(105, 108, 255, 0.15);
+        }
+
+        #salary-report-table_wrapper .dt-layout-start {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        #salary-report-table_wrapper .dt-layout-end {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+        }
+    </style>
     <div class="container-xxl flex-grow-1 container-p-y">
         <div id="alert-container"></div>
 
@@ -145,19 +209,19 @@
                             <div class="card-header border-bottom">
                                 <h5 class="card-title m-0"><i class="bx bx-detail me-1"></i> Staff Salary & Excess Leave Deduction</h5>
                             </div>
-                            <div class="table-responsive text-nowrap p-3">
-                                <table id="salary-report-table" class="table table-bordered table-hover align-middle w-100">
+                            <div class="salary-report-responsive p-3">
+                                <table id="salary-report-table" class="table table-bordered table-striped table-hover align-middle w-100">
                                     <thead class="table-light">
                                         <tr>
-                                            <th>Staff Name</th>
-                                            <th>Designation</th>
-                                            <th>Base Salary</th>
-                                            <th>Allowed Leaves</th>
-                                            <th>Approved Leaves Taken</th>
-                                            <th>Excess Leave Days</th>
-                                            <th>Per-Day Salary Rate</th>
-                                            <th>Salary Deduction</th>
-                                            <th>Net Salary</th>
+                                            <th class="text-start align-middle text-nowrap" style="min-width: 200px;">Staff Name</th>
+                                            <th class="text-center align-middle text-nowrap" style="min-width: 130px;">Designation</th>
+                                            <th class="text-center align-middle text-nowrap" style="min-width: 130px;">Base Salary</th>
+                                            <th class="text-center align-middle text-nowrap" style="min-width: 140px;">Allowed Leaves</th>
+                                            <th class="text-center align-middle text-nowrap" style="min-width: 170px;">Approved Leaves Taken</th>
+                                            <th class="text-center align-middle text-nowrap" style="min-width: 160px;">Excess Leave Days</th>
+                                            <th class="text-center align-middle text-nowrap" style="min-width: 160px;">Per-Day Salary Rate</th>
+                                            <th class="text-center align-middle text-nowrap" style="min-width: 150px;">Salary Deduction</th>
+                                            <th class="text-center align-middle text-nowrap" style="min-width: 140px;">Net Salary</th>
                                         </tr>
                                     </thead>
                                     <tbody id="salaryReportTbody">

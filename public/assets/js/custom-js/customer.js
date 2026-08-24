@@ -331,4 +331,35 @@ $(document).ready(function () {
             }
         });
     });
+
+    // Import Customer Form Submit
+    $(document).on('submit', '#importCustomerForm', function (e) {
+        e.preventDefault();
+        let form = $(this);
+        let formData = new FormData(this);
+        let btn = $('#importCustomerBtn');
+
+        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Importing...');
+
+        $.ajax({
+            url: APP_URL + '/admin/customers/import',
+            type: 'POST',
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function (res) {
+                btn.prop('disabled', false).text('Upload & Import');
+                if (res.status) {
+                    $('#importCustomerModal').modal('hide');
+                    form[0].reset();
+                    customerTable.ajax.reload(null, false);
+                    showAlert('success', res.message);
+                }
+            },
+            error: function (xhr) {
+                btn.prop('disabled', false).text('Upload & Import');
+                showAlert('danger', xhr.responseJSON?.message || 'CSV Import failed. Please check file format.');
+            }
+        });
+    });
 });

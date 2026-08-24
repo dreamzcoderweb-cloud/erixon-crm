@@ -345,13 +345,18 @@ $(document).ready(function () {
             columns: [
                 {
                     data: 'staff_name',
+                    className: 'text-start align-middle',
                     render: function (data, type, row) {
                         if (type !== 'display') return data;
-                        return `<div><strong>${data}</strong><br><small class="text-muted">${row.email}</small></div>`;
+                        return `<div class="d-flex flex-column text-start">
+                                    <strong class="text-dark">${data}</strong>
+                                    <small class="text-muted">${row.email || ''}</small>
+                                </div>`;
                     }
                 },
                 {
                     data: 'designation',
+                    className: 'text-center align-middle',
                     render: function (data, type) {
                         if (type !== 'display') return data || 'Staff';
                         return `<span class="badge bg-label-info">${data || 'Staff'}</span>`;
@@ -359,6 +364,7 @@ $(document).ready(function () {
                 },
                 {
                     data: 'base_salary',
+                    className: 'text-center align-middle',
                     render: function (data, type) {
                         let val = parseFloat(data || 0);
                         if (type !== 'display') return val;
@@ -367,55 +373,61 @@ $(document).ready(function () {
                 },
                 {
                     data: 'available_leave_count',
+                    className: 'text-center align-middle',
                     render: function (data, type) {
                         if (type !== 'display') return data;
-                        return `${data} day(s)`;
+                        return `<span class="badge bg-label-secondary">${data} day(s)</span>`;
                     }
                 },
                 {
                     data: 'approved_leave_days',
-                    render: function (data, type) {
+                    className: 'text-center align-middle',
+                    render: function (data, type, row) {
                         if (type !== 'display') return data;
-                        return `<span class="badge bg-label-primary">${data} day(s)</span>`;
+                        let badgeClass = parseFloat(data) > parseFloat(row.available_leave_count || 0) ? 'bg-label-danger' : 'bg-label-primary';
+                        return `<span class="badge ${badgeClass}">${data} day(s)</span>`;
                     }
                 },
                 {
                     data: 'excess_leave_days',
+                    className: 'text-center align-middle',
                     render: function (data, type) {
                         if (type !== 'display') return data;
-                        let badgeClass = data > 0 ? 'bg-label-danger' : 'bg-label-success';
+                        let badgeClass = parseFloat(data) > 0 ? 'bg-label-danger' : 'bg-label-success';
                         return `<span class="badge ${badgeClass}">${data} day(s)</span>`;
                     }
                 },
                 {
                     data: 'per_day_salary',
+                    className: 'text-center align-middle',
                     render: function (data, type) {
                         let val = parseFloat(data || 0);
                         if (type !== 'display') return val;
-                        return `₹${val.toFixed(2)} / day`;
+                        return `<span class="text-dark fw-semibold">₹${val.toFixed(2)} / day</span>`;
                     }
                 },
                 {
                     data: 'salary_deduction',
+                    className: 'text-center align-middle',
                     render: function (data, type) {
                         let val = parseFloat(data || 0);
                         if (type !== 'display') return val;
-                        return val > 0 ? `<span class="text-danger fw-bold">-₹${val.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>` : '<span class="text-muted">₹0.00</span>';
+                        return val > 0 ? `<span class="badge bg-label-danger fw-bold">-₹${val.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>` : '<span class="text-muted">₹0.00</span>';
                     }
                 },
                 {
                     data: 'net_salary',
+                    className: 'text-center align-middle',
                     render: function (data, type) {
                         let val = parseFloat(data || 0);
                         if (type !== 'display') return val;
-                        return `<strong class="text-success fs-6">₹${val.toLocaleString('en-IN', {minimumFractionDigits: 2})}</strong>`;
+                        return `<span class="badge bg-label-success fs-6 fw-bold">₹${val.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>`;
                     }
                 }
             ],
             layout: {
-                topStart: 'pageLength',
-                topEnd: [
-                    'search',
+                topStart: [
+                    'pageLength',
                     {
                         buttons: [
                             { extend: 'copy', className: 'btn btn-secondary btn-sm me-1' },
@@ -426,13 +438,15 @@ $(document).ready(function () {
                         ]
                     }
                 ],
+                topEnd: 'search',
                 bottomStart: 'info',
                 bottomEnd: 'paging'
             },
             lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
             pageLength: 10,
-            ordering: true,
-            responsive: true
+            ordering: false,
+            autoWidth: false,
+            responsive: false
         });
     }
 

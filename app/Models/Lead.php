@@ -102,4 +102,29 @@ class Lead extends Model
     {
         return $this->hasMany(CallLog::class, 'lead_id', 'lead_id');
     }
+
+    /**
+     * Scope leads accessible by a specific user (staff-wise data access).
+     */
+    public function scopeForUser($query, $user)
+    {
+        if (!$user) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if ($user->isAdmin()) {
+            return $query;
+        }
+
+        $userId = $user->id;
+
+        return $query->where(function ($q) use ($userId) {
+            $q->where('assigned_to', $userId)
+              ->orWhere('created_by', $userId)
+              ->orWhereHas('followups', function ($fq) use ($userId) {
+                  $fq->where('forward_to', $userId)
+                    ->orWhere('created_by', $userId);
+              });
+        });
+    }
 }

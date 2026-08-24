@@ -43,4 +43,28 @@ class CallLog extends Model
     {
         return $this->belongsTo(CallRecording::class, 'recording_id', 'call_id');
     }
+
+    /**
+     * Scope call logs accessible by a specific user (staff-wise data access).
+     */
+    public function scopeForUser($query, $user)
+    {
+        if (!$user) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if ($user->isAdmin()) {
+            return $query;
+        }
+
+        $userId = $user->id;
+
+        return $query->where(function ($q) use ($userId) {
+            $q->where('user_id', $userId)
+              ->orWhereHas('lead', function ($lq) use ($userId) {
+                  $lq->where('assigned_to', $userId)
+                    ->orWhere('created_by', $userId);
+              });
+        });
+    }
 }

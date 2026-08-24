@@ -168,6 +168,24 @@
             </li>
         @endcanany
 
+        @can('credit-requests.view')
+            <li class="menu-item {{ request()->is('admin/credit-requests*') ? 'active' : '' }}">
+                <a href="{{ route('admin.credit-requests.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-credit-card"></i>
+                    <div class="text-truncate">Credit Requests</div>
+                </a>
+            </li>
+        @endcan
+
+        @can('payments.view')
+            <li class="menu-item {{ request()->is('admin/payments*') ? 'active' : '' }}">
+                <a href="{{ route('admin.payments.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-receipt"></i>
+                    <div class="text-truncate">Payments</div>
+                </a>
+            </li>
+        @endcan
+
         @can('templates.view')
             <li class="menu-item {{ request()->is('admin/templates*') ? 'active' : '' }}">
                 <a href="{{ route('admin.templates.index') }}" class="menu-link">

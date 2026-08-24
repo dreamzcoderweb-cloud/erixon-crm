@@ -9,6 +9,8 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
+use Illuminate\Support\Facades\Auth;
+
 class CallLogController extends Controller
 {
     public function index(Request $request)
@@ -22,7 +24,8 @@ class CallLogController extends Controller
 
     public function listData()
     {
-        $logs = CallLog::with($this->relations())
+        $logs = CallLog::forUser(Auth::user())
+            ->with($this->relations())
             ->orderBy('call_id', 'DESC')
             ->get();
 
@@ -36,6 +39,10 @@ class CallLogController extends Controller
     {
         $validated = $this->validateCallLog($request);
 
+        if (empty($validated['user_id'])) {
+            $validated['user_id'] = Auth::id();
+        }
+
         $log = CallLog::create($validated);
 
         return response()->json([
@@ -47,7 +54,7 @@ class CallLogController extends Controller
 
     public function edit($id)
     {
-        $log = CallLog::with($this->relations())->find($id);
+        $log = CallLog::forUser(Auth::user())->with($this->relations())->find($id);
 
         if (!$log) {
             return response()->json([
@@ -64,7 +71,7 @@ class CallLogController extends Controller
 
     public function update(Request $request, $id)
     {
-        $log = CallLog::find($id);
+        $log = CallLog::forUser(Auth::user())->find($id);
 
         if (!$log) {
             return response()->json([
@@ -84,7 +91,7 @@ class CallLogController extends Controller
 
     public function destroy($id)
     {
-        $log = CallLog::find($id);
+        $log = CallLog::forUser(Auth::user())->find($id);
 
         if (!$log) {
             return response()->json([
@@ -126,10 +133,13 @@ class CallLogController extends Controller
 
     private function formData(): array
     {
+        $user    = Auth::user();
+        $isAdmin = $user && $user->isAdmin();
+
         return [
-            'leads'      => Lead::with('customer')->orderBy('lead_id', 'DESC')->get(),
-            'staffs'     => User::staffOnly()->orderBy('name')->get(),
-            'recordings' => CallRecording::with('lead.customer')->orderBy('call_id', 'DESC')->get(),
+            'leads'      => Lead::forUser($user)->with('customer')->orderBy('lead_id', 'DESC')->get(),
+            'staffs'     => $isAdmin ? User::staffOnly()->orderBy('name')->get() : User::where('id', $user->id)->get(),
+            'recordings' => CallRecording::forUser($user)->with('lead.customer')->orderBy('call_id', 'DESC')->get(),
         ];
     }
 
@@ -159,13 +169,14 @@ class CallLogController extends Controller
 
     private function filteredReportQuery(Request $request)
     {
+        $user       = Auth::user();
         $filterType = $request->input('filter_type', 'daily');
         $date       = $request->input('date', date('Y-m-d'));
         $month      = $request->input('month', date('Y-m'));
         $startDate  = $request->input('start_date');
         $endDate    = $request->input('end_date');
 
-        $query = CallLog::query();
+        $query = CallLog::forUser($user);
 
         if ($request->filled('user_id')) {
             $query->where('user_id', $request->input('user_id'));

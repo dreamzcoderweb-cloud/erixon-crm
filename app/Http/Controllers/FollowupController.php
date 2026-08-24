@@ -15,12 +15,21 @@ class FollowupController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax() || $request->wantsJson()) {
-            return $this->listData();
+            return $this->listData($request);
         }
 
-        $data['leads']           = Lead::with('customer')->orderBy('lead_id', 'DESC')->get();
-        $data['staffs']          = User::staffOnly()->orderBy('name')->get();
-        $data['availableStaffs'] = User::staffOnly()->availableForAssignment()->orderBy('name')->get();
+        $user    = Auth::user();
+        $isAdmin = $user && $user->isAdmin();
+
+        $data['leads'] = Lead::forUser($user)->with('customer')->orderBy('lead_id', 'DESC')->get();
+
+        if ($isAdmin) {
+            $data['staffs']          = User::staffOnly()->orderBy('name')->get();
+            $data['availableStaffs'] = User::staffOnly()->availableForAssignment()->orderBy('name')->get();
+        } else {
+            $data['staffs']          = User::where('id', $user->id)->get();
+            $data['availableStaffs'] = User::where('id', $user->id)->get();
+        }
 
         return view('followups.view', $data);
     }
@@ -28,40 +37,27 @@ class FollowupController extends Controller
     public function listData(Request $request)
     {
         $user   = Auth::user();
-        $userId = Auth::id();
         $today  = \Carbon\Carbon::today()->toDateString();
-
-        $isSuperAdmin = $user && (
-            $user->hasRole('Super Admin') ||
-            $user->hasRole('super admin') ||
-            $user->hasRole('Super-Admin') ||
-            $user->id == 1
-        );
 
         $filterType = $request->input('filter_type', 'all');
         $staffId    = $request->input('staff_id');
         $customDate = $request->input('date');
 
-        $query = Followup::with([
+        $query = Followup::forUser($user)->with([
             'lead:lead_id,lead_title,customer_id',
             'lead.customer:customer_id,name,mobile',
             'forwardToUser:id,name,is_on_leave',
             'creator:id,name'
         ]);
 
-        // User scoping: Non-admin staff members only see follow-ups assigned to or created by them
-        if (!$isSuperAdmin && !$user->can('followups.reassign')) {
-            $query->where(function ($q) use ($userId) {
-                $q->where('forward_to', $userId)
-                  ->orWhere(function ($q2) use ($userId) {
-                      $q2->whereNull('forward_to')
-                         ->where('created_by', $userId);
-                  });
-            });
-        } elseif (!empty($staffId)) {
+        if ($user->isAdmin() && !empty($staffId)) {
             $query->where(function ($q) use ($staffId) {
                 $q->where('forward_to', $staffId)
-                  ->orWhere('created_by', $staffId);
+                  ->orWhere('created_by', $staffId)
+                  ->orWhereHas('lead', function ($lq) use ($staffId) {
+                      $lq->where('assigned_to', $staffId)
+                        ->orWhere('created_by', $staffId);
+                  });
             });
         }
 
@@ -80,19 +76,15 @@ class FollowupController extends Controller
         $followups = $query->orderBy('next_followup_date', 'ASC')->get();
 
         // Calculate counts for tab badges
-        $baseCountQuery = Followup::query();
-        if (!$isSuperAdmin && !$user->can('followups.reassign')) {
-            $baseCountQuery->where(function ($q) use ($userId) {
-                $q->where('forward_to', $userId)
-                  ->orWhere(function ($q2) use ($userId) {
-                      $q2->whereNull('forward_to')
-                         ->where('created_by', $userId);
-                  });
-            });
-        } elseif (!empty($staffId)) {
+        $baseCountQuery = Followup::query()->forUser($user);
+        if ($user->isAdmin() && !empty($staffId)) {
             $baseCountQuery->where(function ($q) use ($staffId) {
                 $q->where('forward_to', $staffId)
-                  ->orWhere('created_by', $staffId);
+                  ->orWhere('created_by', $staffId)
+                  ->orWhereHas('lead', function ($lq) use ($staffId) {
+                      $lq->where('assigned_to', $staffId)
+                        ->orWhere('created_by', $staffId);
+                  });
             });
         }
 
@@ -166,7 +158,7 @@ class FollowupController extends Controller
 
     public function edit($id)
     {
-        $followup = Followup::with(['lead.customer', 'forwardToUser', 'creator'])->find($id);
+        $followup = Followup::forUser(Auth::user())->with(['lead.customer', 'forwardToUser', 'creator'])->find($id);
         if (!$followup) {
             return response()->json([
                 'status'  => false,
@@ -182,7 +174,7 @@ class FollowupController extends Controller
 
     public function update(Request $request, $id)
     {
-        $followup = Followup::find($id);
+        $followup = Followup::forUser(Auth::user())->find($id);
         if (!$followup) {
             return response()->json([
                 'status'  => false,
@@ -242,7 +234,7 @@ class FollowupController extends Controller
 
     public function destroy($id)
     {
-        $followup = Followup::find($id);
+        $followup = Followup::forUser(Auth::user())->find($id);
         if (!$followup) {
             return response()->json([
                 'status'  => false,
@@ -260,7 +252,7 @@ class FollowupController extends Controller
 
     public function changeStatus(Request $request, $id)
     {
-        $followup = Followup::find($id);
+        $followup = Followup::forUser(Auth::user())->find($id);
         if (!$followup) {
             return response()->json([
                 'status'  => false,

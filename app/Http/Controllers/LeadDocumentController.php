@@ -16,14 +16,14 @@ class LeadDocumentController extends Controller
             return $this->listData();
         }
 
-        $data['leads'] = Lead::with('customer')->orderBy('lead_id', 'DESC')->get();
+        $data['leads'] = Lead::forUser(Auth::user())->with('customer')->orderBy('lead_id', 'DESC')->get();
 
         return view('lead_documents.view', $data);
     }
 
     public function listData()
     {
-        $documents = LeadDocument::with([
+        $documents = LeadDocument::forUser(Auth::user())->with([
             'lead:lead_id,lead_title,customer_id',
             'lead.customer:customer_id,name',
             'uploader:id,name'
@@ -81,7 +81,7 @@ class LeadDocumentController extends Controller
 
     public function edit($id)
     {
-        $document = LeadDocument::with(['lead.customer', 'uploader'])->find($id);
+        $document = LeadDocument::forUser(Auth::user())->with(['lead.customer', 'uploader'])->find($id);
         if (!$document) {
             return response()->json([
                 'status'  => false,
@@ -97,7 +97,7 @@ class LeadDocumentController extends Controller
 
     public function update(Request $request, $id)
     {
-        $document = LeadDocument::find($id);
+        $document = LeadDocument::forUser(Auth::user())->find($id);
         if (!$document) {
             return response()->json([
                 'status'  => false,
@@ -145,7 +145,7 @@ class LeadDocumentController extends Controller
 
     public function destroy($id)
     {
-        $document = LeadDocument::find($id);
+        $document = LeadDocument::forUser(Auth::user())->find($id);
         if (!$document) {
             return response()->json([
                 'status'  => false,
@@ -166,7 +166,7 @@ class LeadDocumentController extends Controller
 
     public function download($id)
     {
-        $document = LeadDocument::find($id);
+        $document = LeadDocument::forUser(Auth::user())->find($id);
         if (!$document || empty($document->file_path) || !file_exists(public_path($document->file_path))) {
             abort(404, 'Document file not found.');
         }

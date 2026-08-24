@@ -20,7 +20,8 @@ class CustomerController extends Controller
 
     public function listData()
     {
-        $customers = Customer::with('creator:id,name')
+        $customers = Customer::forUser(Auth::user())
+            ->with('creator:id,name')
             ->orderBy('customer_id', 'DESC')
             ->get();
 
@@ -60,7 +61,7 @@ class CustomerController extends Controller
 
     public function edit($id)
     {
-        $customer = Customer::find($id);
+        $customer = Customer::forUser(Auth::user())->find($id);
         if (!$customer) {
             return response()->json([
                 'status'  => false,
@@ -76,7 +77,7 @@ class CustomerController extends Controller
 
     public function update(Request $request, $id)
     {
-        $customer = Customer::find($id);
+        $customer = Customer::forUser(Auth::user())->find($id);
         if (!$customer) {
             return response()->json([
                 'status'  => false,
@@ -110,7 +111,7 @@ class CustomerController extends Controller
 
     public function destroy($id)
     {
-        $customer = Customer::find($id);
+        $customer = Customer::forUser(Auth::user())->find($id);
         if (!$customer) {
             return response()->json([
                 'status'  => false,
@@ -128,7 +129,7 @@ class CustomerController extends Controller
 
     public function changeStatus(Request $request, $id)
     {
-        $customer = Customer::find($id);
+        $customer = Customer::forUser(Auth::user())->find($id);
         if (!$customer) {
             return response()->json([
                 'status'  => false,
@@ -143,6 +144,141 @@ class CustomerController extends Controller
             'status'  => true,
             'message' => 'Customer status updated successfully.',
             'new_status' => $customer->status
+        ]);
+    }
+
+    /**
+     * Requirement 11: Find customer by Phone number, Mail ID, or Name
+     */
+    public function search(Request $request)
+    {
+        $term = trim($request->input('term', $request->input('q', '')));
+
+        $query = Customer::forUser(Auth::user())->where('status', 1);
+
+        if (!empty($term)) {
+            $query->where(function ($q) use ($term) {
+                $q->where('name', 'LIKE', "%{$term}%")
+                  ->orWhere('mobile', 'LIKE', "%{$term}%")
+                  ->orWhere('email', 'LIKE', "%{$term}%")
+                  ->orWhere('company_name', 'LIKE', "%{$term}%");
+            });
+        }
+
+        $customers = $query->orderBy('name', 'ASC')->limit(20)->get();
+
+        return response()->json([
+            'status' => true,
+            'data'   => $customers
+        ]);
+    }
+
+    /**
+     * Requirement 14: Import Customer Data Option (CSV file)
+     */
+    public function import(Request $request)
+    {
+        $request->validate([
+            'csv_file' => ['required', 'file', 'mimes:csv,txt,xlsx', 'max:10240'],
+        ]);
+
+        $file = $request->file('csv_file');
+        $handle = fopen($file->getRealPath(), 'r');
+
+        if ($handle === false) {
+            return response()->json(['status' => false, 'message' => 'Unable to read the uploaded CSV file.'], 422);
+        }
+
+        $header = fgetcsv($handle, 1000, ',');
+        if (!$header) {
+            fclose($handle);
+            return response()->json(['status' => false, 'message' => 'Uploaded CSV file is empty.'], 422);
+        }
+
+        // Normalize header keys
+        $headerMap = [];
+        foreach ($header as $index => $colName) {
+            $normalized = strtolower(trim(str_replace([' ', '_', '-'], '', $colName)));
+            $headerMap[$normalized] = $index;
+        }
+
+        $importedCount = 0;
+        $skippedCount  = 0;
+        $errors        = [];
+        $rowNum        = 1;
+
+        while (($row = fgetcsv($handle, 1000, ',')) !== false) {
+            $rowNum++;
+
+            $name           = isset($headerMap['name']) ? trim($row[$headerMap['name']] ?? '') : ($row[0] ?? '');
+            $mobile         = isset($headerMap['mobile']) ? trim($row[$headerMap['mobile']] ?? '') : ($row[1] ?? '');
+            $email          = isset($headerMap['email']) ? trim($row[$headerMap['email']] ?? '') : ($row[2] ?? '');
+            $companyName    = isset($headerMap['companyname']) ? trim($row[$headerMap['companyname']] ?? '') : ($row[3] ?? '');
+            $customerType   = isset($headerMap['customertype']) ? strtolower(trim($row[$headerMap['customertype']] ?? 'user')) : 'user';
+            $alternateMobile = isset($headerMap['alternatemobile']) ? trim($row[$headerMap['alternatemobile']] ?? '') : '';
+            $address        = isset($headerMap['address']) ? trim($row[$headerMap['address']] ?? '') : '';
+            $city           = isset($headerMap['city']) ? trim($row[$headerMap['city']] ?? '') : '';
+            $state          = isset($headerMap['state']) ? trim($row[$headerMap['state']] ?? '') : '';
+            $country        = isset($headerMap['country']) ? trim($row[$headerMap['country']] ?? '') : '';
+            $pincode        = isset($headerMap['pincode']) ? trim($row[$headerMap['pincode']] ?? '') : '';
+
+            if (empty($name) || empty($mobile)) {
+                $skippedCount++;
+                $errors[] = "Row {$rowNum}: Missing name or mobile number.";
+                continue;
+            }
+
+            // Check duplicate by mobile
+            $existing = Customer::where('mobile', $mobile)->withTrashed()->first();
+            if ($existing) {
+                $skippedCount++;
+                $errors[] = "Row {$rowNum}: Customer with mobile '{$mobile}' already exists.";
+                continue;
+            }
+
+            if (!in_array($customerType, ['user', 'reseller'])) {
+                $customerType = 'user';
+            }
+
+            Customer::create([
+                'customer_type'    => $customerType,
+                'name'             => $name,
+                'mobile'           => $mobile,
+                'email'            => !empty($email) ? $email : null,
+                'company_name'     => !empty($companyName) ? $companyName : null,
+                'alternate_mobile' => !empty($alternateMobile) ? $alternateMobile : null,
+                'address'          => !empty($address) ? $address : null,
+                'city'             => !empty($city) ? $city : null,
+                'state'            => !empty($state) ? $state : null,
+                'country'          => !empty($country) ? $country : null,
+                'pincode'          => !empty($pincode) ? $pincode : null,
+                'status'           => 1,
+                'created_by'       => Auth::id(),
+            ]);
+
+            $importedCount++;
+        }
+
+        fclose($handle);
+
+        return response()->json([
+            'status'         => true,
+            'message'        => "Customer import complete. Imported: {$importedCount}, Skipped: {$skippedCount}.",
+            'imported_count' => $importedCount,
+            'skipped_count'  => $skippedCount,
+            'errors'         => $errors,
+        ]);
+    }
+
+    public function downloadSampleCsv()
+    {
+        $csvContent = "Name,Mobile,Email,Company Name,Customer Type,Alternate Mobile,Address,City,State,Country,Pincode\n";
+        $csvContent .= "John Doe,9876543210,john@example.com,Acme Corp,user,9876543211,123 Main St,Chennai,Tamil Nadu,India,600001\n";
+        $csvContent .= "Jane Smith,9123456789,jane@example.com,Global Resellers,reseller,,456 Tech Park,Bangalore,Karnataka,India,560001\n";
+
+        return response($csvContent, 200, [
+            'Content-Type'        => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="customer_import_sample.csv"',
         ]);
     }
 }

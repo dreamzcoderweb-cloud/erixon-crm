@@ -32,8 +32,13 @@ class Customer extends Authenticatable
         'pincode',
         'created_by',
         'status',
+        'credit_balance',
         'password',
         'reference_code',
+    ];
+
+    protected $casts = [
+        'credit_balance' => 'decimal:2',
     ];
 
     /**
@@ -52,5 +57,43 @@ class Customer extends Authenticatable
     public function leads()
     {
         return $this->hasMany(Lead::class, 'customer_id', 'customer_id');
+    }
+
+    public function creditRequests()
+    {
+        return $this->hasMany(CreditRequest::class, 'customer_id', 'customer_id');
+    }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class, 'customer_id', 'customer_id');
+    }
+
+    /**
+     * Scope customers accessible by a specific user (staff-wise data access).
+     */
+    public function scopeForUser($query, $user)
+    {
+        if (!$user) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if ($user->isAdmin()) {
+            return $query;
+        }
+
+        $userId = $user->id;
+
+        return $query->where(function ($q) use ($userId) {
+            $q->where('created_by', $userId)
+              ->orWhereHas('leads', function ($lq) use ($userId) {
+                  $lq->where('assigned_to', $userId)
+                    ->orWhere('created_by', $userId)
+                    ->orWhereHas('followups', function ($fq) use ($userId) {
+                        $fq->where('forward_to', $userId)
+                          ->orWhere('created_by', $userId);
+                    });
+              });
+        });
     }
 }

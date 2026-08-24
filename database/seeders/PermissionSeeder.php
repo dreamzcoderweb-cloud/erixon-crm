@@ -102,6 +102,22 @@ class PermissionSeeder extends Seeder
             'leaves.approve',
             'leaves.delete',
             'salary.view',
+
+            'credit-requests.view',
+            'credit-requests.create',
+            'credit-requests.approve_admin',
+            'credit-requests.approve_support',
+            'credit-requests.delete',
+
+            'payments.view',
+            'payments.create',
+            'payments.edit',
+            'payments.delete',
+
+            'permissions.view',
+            'permissions.create',
+            'permissions.approve',
+            'permissions.delete',
         ];
 
         foreach ($permissions as $name) {

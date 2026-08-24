@@ -9,20 +9,21 @@ use Illuminate\Support\Facades\Auth;
 
 class CallRecordingController extends Controller
 {
+    
     public function index(Request $request)
     {
         if ($request->ajax() || $request->wantsJson()) {
             return $this->listData();
         }
 
-        $data['leads'] = Lead::with('customer')->orderBy('lead_id', 'DESC')->get();
+        $data['leads'] = Lead::forUser(Auth::user())->with('customer')->orderBy('lead_id', 'DESC')->get();
 
         return view('call_recordings.view', $data);
     }
 
     public function listData()
     {
-        $recordings = CallRecording::with([
+        $recordings = CallRecording::forUser(Auth::user())->with([
             'lead:lead_id,lead_title,customer_id',
             'lead.customer:customer_id,name',
             'creator:id,name'
@@ -78,7 +79,7 @@ class CallRecordingController extends Controller
 
     public function edit($id)
     {
-        $recording = CallRecording::with(['lead.customer', 'creator'])->find($id);
+        $recording = CallRecording::forUser(Auth::user())->with(['lead.customer', 'creator'])->find($id);
         if (!$recording) {
             return response()->json([
                 'status'  => false,
@@ -94,7 +95,7 @@ class CallRecordingController extends Controller
 
     public function update(Request $request, $id)
     {
-        $recording = CallRecording::find($id);
+        $recording = CallRecording::forUser(Auth::user())->find($id);
         if (!$recording) {
             return response()->json([
                 'status'  => false,
@@ -140,7 +141,7 @@ class CallRecordingController extends Controller
 
     public function destroy($id)
     {
-        $recording = CallRecording::find($id);
+        $recording = CallRecording::forUser(Auth::user())->find($id);
         if (!$recording) {
             return response()->json([
                 'status'  => false,

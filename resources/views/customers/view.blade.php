@@ -7,11 +7,16 @@
         <div class="card">
             <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
                 <h5 class="card-header p-0 m-0"><i class="bx bx-user me-2"></i>Customers Management</h5>
-                @can('customers.create')
-                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCustomerModal">
-                        <i class="bx bx-plus me-1"></i> Add Customer
-                    </button>
-                @endcan
+                <div class="d-flex gap-2">
+                    @can('customers.create')
+                        <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#importCustomerModal">
+                            <i class="bx bx-upload me-1"></i> Import Customers
+                        </button>
+                        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addCustomerModal">
+                            <i class="bx bx-plus me-1"></i> Add Customer
+                        </button>
+                    @endcan
+                </div>
             </div>
             <div class="table-responsive text-nowrap p-3">
                 <table id="customers-table" class="table table-hover align-middle w-100">
@@ -230,11 +235,73 @@
                 <div class="modal-body">
                     <p>Are you sure you want to delete customer <strong id="delete_customer_name"></strong>?</p>
                 </div>
-                <div class="modal-footer gap-2">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-danger" id="confirmDeleteCustomerBtn">Delete</button>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Import Customer Modal (Requirement 14) -->
+    <div class="modal fade" id="importCustomerModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <form id="importCustomerForm" action="{{ route('admin.customers.import') }}" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bx bx-upload me-1"></i> Import Customer Data</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3 text-end">
+                            <a href="{{ route('admin.customers.sample-csv') }}" class="btn btn-sm btn-outline-info">
+                                <i class="bx bx-download me-1"></i> Download Sample CSV
+                            </a>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Select CSV File <span class="text-danger">*</span></label>
+                            <input type="file" name="csv_file" class="form-control" accept=".csv,text/csv" required>
+                            <small class="text-muted">Upload a standard CSV file with headers: Name, Mobile, Email, Company Name, Customer Type, Address, City, State, Country, Pincode.</small>
+                        </div>
+                        <div id="import-results" class="d-none mt-2 alert alert-info"></div>
+                    </div>
+                    <div class="modal-footer gap-2">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary" id="importCustomerBtn">Upload & Import</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    @push('scripts')
+    <script>
+        $(document).ready(function() {
+            $('#importCustomerForm').on('submit', function(e) {
+                e.preventDefault();
+                let formData = new FormData(this);
+                $('#importCustomerBtn').prop('disabled', true).text('Importing...');
+                $.ajax({
+                    url: "{{ route('admin.customers.import') }}",
+                    type: "POST",
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function(res) {
+                        $('#importCustomerBtn').prop('disabled', false).text('Upload & Import');
+                        if (res.status) {
+                            $('#import-results').removeClass('d-none').html(`<strong>Import Success!</strong><br>${res.message}`);
+                            setTimeout(function() {
+                                $('#importCustomerModal').modal('hide');
+                                location.reload();
+                            }, 2000);
+                        }
+                    },
+                    error: function(xhr) {
+                        $('#importCustomerBtn').prop('disabled', false).text('Upload & Import');
+                        alert(xhr.responseJSON?.message || 'CSV Import failed.');
+                    }
+                });
+            });
+        });
+    </script>
+    @endpush
 @endsection

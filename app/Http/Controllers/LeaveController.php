@@ -165,8 +165,14 @@ class LeaveController extends Controller
     /**
      * Month-wise Salary and Excess Leave Deduction Summary Report
      */
+    /**
+     * Requirement 3: Month-wise Salary and Excess Leave Deduction Summary Report - only user for non-admin staff
+     */
     public function salaryReportData(Request $request)
     {
+        $user = Auth::user();
+        $isAdmin = $user->hasRole(['Super Admin', 'Admin', 'super admin', 'super-admin']);
+
         $monthStr = $request->input('month', date('Y-m'));
         if (empty($monthStr)) {
             $monthStr = date('Y-m');
@@ -178,7 +184,7 @@ class LeaveController extends Controller
         $endOfMonth   = $carbonMonth->copy()->endOfMonth()->endOfDay();
         $totalDays    = $carbonMonth->daysInMonth;
 
-        // Calculate working days in month (excluding Sundays)
+        // Requirement 8: Calculate working days in month (excluding Sundays)
         $sundays = 0;
         for ($d = 1; $d <= $totalDays; $d++) {
             $dt = Carbon::createFromDate($carbonMonth->year, $carbonMonth->month, $d);
@@ -188,8 +194,12 @@ class LeaveController extends Controller
         }
         $workingDaysInMonth = max(1, $totalDays - $sundays);
 
-        // Fetch staff members excluding Super Admin role
-        $staffs = User::staffOnly()->orderBy('name')->get();
+        // Requirement 3: monthly salary staff details - only user
+        if ($isAdmin) {
+            $staffs = User::staffOnly()->orderBy('name')->get();
+        } else {
+            $staffs = User::where('id', $user->id)->get();
+        }
 
         $reportData = [];
 
@@ -255,6 +265,110 @@ class LeaveController extends Controller
             'sundays'            => $sundays,
             'working_days'       => $workingDaysInMonth,
             'data'               => $reportData
+        ]);
+    }
+
+    /**
+     * Requirement 8: Permission Approval & Timing (Short Permission / Timing)
+     */
+    public function listPermissions(Request $request)
+    {
+        $user = Auth::user();
+        $isAdmin = $user->hasRole(['Super Admin', 'Admin', 'super admin', 'super-admin']) || $user->can('permissions.approve');
+
+        $query = \App\Models\PermissionRequest::with(['user:id,name,email', 'approver:id,name']);
+
+        if (!$isAdmin) {
+            $query->where('user_id', $user->id);
+        }
+
+        $permissions = $query->orderBy('id', 'DESC')->get();
+
+        return response()->json([
+            'status'      => true,
+            'can_approve' => $isAdmin,
+            'data'        => $permissions
+        ]);
+    }
+
+    public function storePermission(Request $request)
+    {
+        $validated = $request->validate([
+            'user_id'         => ['nullable', 'exists:users,id'],
+            'date'            => ['required', 'date'],
+            'start_time'      => ['required'],
+            'end_time'        => ['required'],
+            'permission_type' => ['required', 'string', 'max:100'],
+            'reason'          => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $targetUserId = Auth::id();
+        if (Auth::user()->can('permissions.approve') && !empty($validated['user_id'])) {
+            $targetUserId = $validated['user_id'];
+        }
+
+        $permission = \App\Models\PermissionRequest::create([
+            'user_id'         => $targetUserId,
+            'date'            => $validated['date'],
+            'start_time'      => $validated['start_time'],
+            'end_time'        => $validated['end_time'],
+            'permission_type' => $validated['permission_type'],
+            'reason'          => $validated['reason'] ?? null,
+            'status'          => 'Pending',
+        ]);
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Permission request submitted successfully (Pending Approval).',
+            'data'    => $permission
+        ]);
+    }
+
+    public function approvePermission(Request $request, $id)
+    {
+        $user = Auth::user();
+        if (!$user->can('permissions.approve') && !$user->hasRole(['Super Admin', 'Admin', 'super admin', 'super-admin'])) {
+            return response()->json(['status' => false, 'message' => 'Unauthorized action.'], 403);
+        }
+
+        $permission = \App\Models\PermissionRequest::find($id);
+        if (!$permission) {
+            return response()->json(['status' => false, 'message' => 'Permission request not found.'], 404);
+        }
+
+        $permission->status        = 'Approved';
+        $permission->approved_by   = Auth::id();
+        $permission->admin_remarks = $request->input('admin_remarks');
+        $permission->save();
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Permission request approved successfully.',
+            'data'    => $permission
+        ]);
+    }
+
+    public function rejectPermission(Request $request, $id)
+    {
+        $user = Auth::user();
+        if (!$user->can('permissions.approve') && !$user->hasRole(['Super Admin', 'Admin', 'super admin', 'super-admin'])) {
+            return response()->json(['status' => false, 'message' => 'Unauthorized action.'], 403);
+        }
+
+        $permission = \App\Models\PermissionRequest::find($id);
+        if (!$permission) {
+            return response()->json(['status' => false, 'message' => 'Permission request not found.'], 404);
+        }
+
+        $permission->status        = 'Rejected';
+        $permission->approved_by   = Auth::id();
+        $permission->admin_remarks = $request->input('admin_remarks');
+        $permission->save();
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Permission request rejected.',
+            'data'    => $permission
         ]);
     }
 }

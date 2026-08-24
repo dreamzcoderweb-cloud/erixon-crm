@@ -335,6 +335,8 @@
     <script src="{{ asset('assets/js/custom-js/attendance.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/attendance_report.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/leaves.js') }}"></script>
+    <script src="{{ asset('assets/js/custom-js/credit_request.js') }}"></script>
+    <script src="{{ asset('assets/js/custom-js/payment.js') }}"></script>
 
     <!-- Vendors JS -->
     <script src="{{ asset('assets/vendor/libs/apex-charts/apexcharts.js') }}"></script>
@@ -346,6 +348,8 @@
     <script src="{{ asset('assets/js/dashboards-analytics.js') }}"></script>
 
     <script async defer src="https://buttons.github.io/buttons.js"></script>
+
+    @stack('scripts')
 </body>
 
 </html>
