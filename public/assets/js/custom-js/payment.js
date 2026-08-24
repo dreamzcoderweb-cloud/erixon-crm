@@ -65,7 +65,20 @@ $(document).ready(function () {
                 }
             },
             { data: 'payment_method' },
-            { data: 'payment_date' },
+            {
+                data: 'payment_date',
+                render: function (data, type) {
+                    if (!data) {
+                        return type === 'display'
+                            ? '<span class="text-muted">N/A</span>'
+                            : '';
+                    }
+
+                    if (type !== 'display') return data;
+
+                    return formatDate(data);
+                }
+            },
             {
                 data: 'payment_screenshot',
                 render: function (src, type) {
