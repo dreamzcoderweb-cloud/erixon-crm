@@ -39,27 +39,142 @@
         </div>
         @endif
 
+        <!-- Analytics KPI Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="card shadow-sm border-start border-primary border-4 kpi-card-clickable" id="kpi_card_total_attendance" style="cursor: pointer;" title="Click to reset filters">
+                    <div class="card-body p-3 text-center">
+                        <small class="text-muted text-uppercase fw-semibold d-block">Attendance Count</small>
+                        <h3 class="mb-0 text-primary fw-bold mt-1" id="kpi_total_attendance">0</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="card shadow-sm border-start border-success border-4 kpi-card-clickable" id="kpi_card_present_count" style="cursor: pointer;" title="Click to view present attendance">
+                    <div class="card-body p-3 text-center">
+                        <small class="text-muted text-uppercase fw-semibold d-block">Present Count</small>
+                        <h3 class="mb-0 text-success fw-bold mt-1" id="kpi_present_count">0</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="card shadow-sm border-start border-warning border-4 kpi-card-clickable" id="kpi_card_staff_count" style="cursor: pointer;" title="Click to view staff count">
+                    <div class="card-body p-3 text-center">
+                        <small class="text-muted text-uppercase fw-semibold d-block">Staff Count</small>
+                        <h3 class="mb-0 text-warning fw-bold mt-1" id="kpi_staff_count">0</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="card">
             <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
                 <h5 class="card-header p-0 m-0"><i class="bx bx-calendar-check me-2"></i>Attendance Management</h5>
                 @can('attendance.create')
-                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAttendanceModal">
+                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addAttendanceModal">
                         <i class="bx bx-plus me-1"></i> Add Attendance
                     </button>
                 @endcan
             </div>
+
+            <!-- Attendance Filter Bar -->
+            <div class="p-3 bg-light border-bottom">
+                <form id="attendanceFilterForm">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-12">
+                            <label class="form-label fw-semibold d-block">Date Period</label>
+                            <div class="btn-group btn-group-sm" role="group" id="attendancePeriodBtnGroup">
+                                <button type="button" class="btn btn-outline-primary btn-attendance-period active" data-period="all">All Time</button>
+                                <button type="button" class="btn btn-outline-primary btn-attendance-period" data-period="daily">Daily</button>
+                                <button type="button" class="btn btn-outline-primary btn-attendance-period" data-period="weekly">Weekly</button>
+                                <button type="button" class="btn btn-outline-primary btn-attendance-period" data-period="monthly">Monthly</button>
+                                <button type="button" class="btn btn-outline-primary btn-attendance-period" data-period="custom">Custom</button>
+                            </div>
+                            <input type="hidden" name="filter_type" id="attendance_filter_period" value="all">
+                        </div>
+
+                        <div class="col-md-3 attendance-filter-date-group d-none" id="attendance_group_daily">
+                            <label class="form-label fw-semibold">Date</label>
+                            <input type="date" name="date" id="attendance_filter_date" class="form-control form-control-sm" value="{{ date('Y-m-d') }}">
+                        </div>
+
+                        <div class="col-md-3 attendance-filter-date-group d-none" id="attendance_group_monthly">
+                            <label class="form-label fw-semibold">Month</label>
+                            <input type="month" name="month" id="attendance_filter_month" class="form-control form-control-sm" value="{{ date('Y-m') }}">
+                        </div>
+
+                        <div class="col-md-3 attendance-filter-date-group d-none" id="attendance_group_custom_start">
+                            <label class="form-label fw-semibold">Start Date</label>
+                            <input type="date" name="start_date" id="attendance_filter_start_date" class="form-control form-control-sm" value="{{ date('Y-m-01') }}">
+                        </div>
+
+                        <div class="col-md-3 attendance-filter-date-group d-none" id="attendance_group_custom_end">
+                            <label class="form-label fw-semibold">End Date</label>
+                            <input type="date" name="end_date" id="attendance_filter_end_date" class="form-control form-control-sm" value="{{ date('Y-m-d') }}">
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Staff</label>
+                            <select name="user_id" id="attendance_filter_user_id" class="form-select form-select-sm">
+                                <option value="">-- All Staff --</option>
+                                @if(isset($staffs) && count($staffs) > 0)
+                                    @foreach ($staffs as $stf)
+                                        <option value="{{ $stf->id }}">{{ $stf->name }} ({{ $stf->email }})</option>
+                                    @endforeach
+                                @endif
+                            </select>
+                        </div>
+
+                        
+
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Status</label>
+                            <select name="status" id="attendance_filter_status" class="form-select form-select-sm">
+                                <option value="">-- All Statuses --</option>
+                                <option value="Present">Present</option>
+                                <option value="Late">Late</option>
+                                <option value="Half Day">Half Day</option>
+                                <option value="Absent">Absent</option>
+                                <option value="On Leave">On Leave</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Check-In Time</label>
+                            <input type="time" name="check_in_time" id="attendance_filter_check_in_time" class="form-control form-control-sm" title="Filter by Check-In Time">
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Check-Out Time</label>
+                            <input type="time" name="check_out_time" id="attendance_filter_check_out_time" class="form-control form-control-sm" title="Filter by Check-Out Time">
+                        </div>
+
+                        <div class="col-md-3">
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
+                                    <i class="bx bx-filter-alt me-1"></i> Apply Filter
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" id="resetAttendanceFilterBtn" title="Reset Filters">
+                                    <i class="bx bx-refresh me-1"></i> Reset
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
             <div class="table-responsive text-nowrap p-3">
                 <table id="attendance-table" class="table table-hover align-middle w-100">
                     <thead class="table-light">
                         <tr>
-                            <th>#</th>
+                            <th class="text-center">#</th>
                             <th>Staff Name</th>
-                            <th>Date</th>
-                            <th>Check-In</th>
-                            <th>Check-Out</th>
-                            <th>Working Hours</th>
-                            <th>Status</th>
-                            <th>Actions</th>
+                            <th class="text-center">Date</th>
+                            <th class="text-center">Check-In</th>
+                            <th class="text-center">Check-Out</th>
+                            <th class="text-center">Working Hours</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody>

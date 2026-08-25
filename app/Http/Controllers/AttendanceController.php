@@ -12,7 +12,7 @@ class AttendanceController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax() || $request->wantsJson()) {
-            return $this->listData();
+            return $this->listData($request);
         }
 
         $data['staffs'] = User::staffOnly()->orderBy('name')->get();
@@ -23,8 +23,9 @@ class AttendanceController extends Controller
         return view('attendance.view', $data);
     }
 
-    public function listData()
+    public function listData(Request $request = null)
     {
+        $request = $request ?? request();
         $user = auth()->user();
         $canManageAll = $user->can('leaves.approve') || $user->hasRole(['Super Admin', 'Admin', 'super admin', 'super-admin']);
 
@@ -35,12 +36,137 @@ class AttendanceController extends Controller
             $query->where('user_id', $user->id);
         }
 
-        $attendance = $query->orderBy('attendance_id', 'DESC')->get();
+        if ($request->filled('user_id')) {
+            $query->where('user_id', $request->input('user_id'));
+        }
+
+        if ($request->filled('status') && $request->input('status') !== '') {
+            $query->where('status', $request->input('status'));
+        }
+
+        if ($request->filled('checkin_checkout')) {
+            $cc = $request->input('checkin_checkout');
+            if ($cc === 'checked_in') {
+                $query->whereNotNull('check_in');
+            } elseif ($cc === 'checked_out') {
+                $query->whereNotNull('check_out');
+            } elseif ($cc === 'not_checked_out') {
+                $query->whereNotNull('check_in')->whereNull('check_out');
+            }
+        }
+
+        if ($request->filled('check_in_time')) {
+            $inTime = $request->input('check_in_time');
+            $query->where(function ($q) use ($inTime) {
+                $q->where('check_in', 'LIKE', "%{$inTime}%")
+                  ->orWhereRaw("TIME_FORMAT(check_in, '%H:%i') = ?", [$inTime]);
+            });
+        }
+
+        if ($request->filled('check_out_time')) {
+            $outTime = $request->input('check_out_time');
+            $query->where(function ($q) use ($outTime) {
+                $q->where('check_out', 'LIKE', "%{$outTime}%")
+                  ->orWhereRaw("TIME_FORMAT(check_out, '%H:%i') = ?", [$outTime]);
+            });
+        }
+
+        $filterType = $request->input('filter_type');
+        $date       = $request->input('date');
+        $month      = $request->input('month');
+        $startDate  = $request->input('start_date');
+        $endDate    = $request->input('end_date');
+
+        if ($filterType === 'daily' && !empty($date)) {
+            $query->whereDate('date', $date);
+        } elseif ($filterType === 'weekly') {
+            $refDate = !empty($startDate) ? Carbon::parse($startDate) : Carbon::today();
+            $query->whereBetween('date', [
+                $refDate->copy()->startOfWeek(),
+                $refDate->copy()->endOfWeek(),
+            ]);
+        } elseif ($filterType === 'monthly' && !empty($month)) {
+            [$year, $selectedMonth] = array_pad(explode('-', $month), 2, null);
+            $query->whereYear('date', $year ?: date('Y'))
+                ->whereMonth('date', $selectedMonth ?: date('m'));
+        } elseif ($filterType === 'custom') {
+            if (!empty($startDate)) {
+                $query->whereDate('date', '>=', $startDate);
+            }
+            if (!empty($endDate)) {
+                $query->whereDate('date', '<=', $endDate);
+            }
+        }
+
+        $attendance = (clone $query)->orderBy('attendance_id', 'DESC')->get();
+
+        $baseCountQuery = Attendance::query();
+        if (!$canManageAll) {
+            $baseCountQuery->where('user_id', $user->id);
+        }
+        if ($request->filled('user_id')) {
+            $baseCountQuery->where('user_id', $request->input('user_id'));
+        }
+        if ($request->filled('status') && $request->input('status') !== '') {
+            $baseCountQuery->where('status', $request->input('status'));
+        }
+        if ($request->filled('checkin_checkout')) {
+            $cc = $request->input('checkin_checkout');
+            if ($cc === 'checked_in') {
+                $baseCountQuery->whereNotNull('check_in');
+            } elseif ($cc === 'checked_out') {
+                $baseCountQuery->whereNotNull('check_out');
+            } elseif ($cc === 'not_checked_out') {
+                $baseCountQuery->whereNotNull('check_in')->whereNull('check_out');
+            }
+        }
+        if ($request->filled('check_in_time')) {
+            $inTime = $request->input('check_in_time');
+            $baseCountQuery->where(function ($q) use ($inTime) {
+                $q->where('check_in', 'LIKE', "%{$inTime}%")
+                  ->orWhereRaw("TIME_FORMAT(check_in, '%H:%i') = ?", [$inTime]);
+            });
+        }
+        if ($request->filled('check_out_time')) {
+            $outTime = $request->input('check_out_time');
+            $baseCountQuery->where(function ($q) use ($outTime) {
+                $q->where('check_out', 'LIKE', "%{$outTime}%")
+                  ->orWhereRaw("TIME_FORMAT(check_out, '%H:%i') = ?", [$outTime]);
+            });
+        }
+
+        if ($filterType === 'daily' && !empty($date)) {
+            $baseCountQuery->whereDate('date', $date);
+        } elseif ($filterType === 'weekly') {
+            $refDate = !empty($startDate) ? Carbon::parse($startDate) : Carbon::today();
+            $baseCountQuery->whereBetween('date', [
+                $refDate->copy()->startOfWeek(),
+                $refDate->copy()->endOfWeek(),
+            ]);
+        } elseif ($filterType === 'monthly' && !empty($month)) {
+            [$year, $selectedMonth] = array_pad(explode('-', $month), 2, null);
+            $baseCountQuery->whereYear('date', $year ?: date('Y'))
+                ->whereMonth('date', $selectedMonth ?: date('m'));
+        } elseif ($filterType === 'custom') {
+            if (!empty($startDate)) {
+                $baseCountQuery->whereDate('date', '>=', $startDate);
+            }
+            if (!empty($endDate)) {
+                $baseCountQuery->whereDate('date', '<=', $endDate);
+            }
+        }
+
+        $totalAttendance = (clone $baseCountQuery)->count();
+        $presentCount    = (clone $baseCountQuery)->whereIn('status', ['Present', 'Auto'])->count();
+        $staffCount      = (clone $baseCountQuery)->distinct('user_id')->count('user_id');
 
         return response()->json([
-            'status'         => true,
-            'can_manage_all' => $canManageAll,
-            'data'           => $attendance
+            'status'           => true,
+            'can_manage_all'   => $canManageAll,
+            'total_attendance' => $totalAttendance,
+            'present_count'    => $presentCount,
+            'staff_count'      => $staffCount,
+            'data'             => $attendance
         ]);
     }
 

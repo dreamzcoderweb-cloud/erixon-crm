@@ -12,14 +12,36 @@ $(document).ready(function () {
     let attendanceTable = $('#attendance-table').DataTable({
         ajax: {
             url: APP_URL + '/admin/attendance/data',
+            data: function (d) {
+                d.filter_type = $('#attendance_filter_period').val();
+                d.date = $('#attendance_filter_date').val();
+                d.month = $('#attendance_filter_month').val();
+                d.start_date = $('#attendance_filter_start_date').val();
+                d.end_date = $('#attendance_filter_end_date').val();
+                d.user_id = $('#attendance_filter_user_id').val();
+                d.checkin_checkout = $('#attendance_filter_checkin_checkout').val();
+                d.status = $('#attendance_filter_status').val();
+                d.check_in_time = $('#attendance_filter_check_in_time').val();
+                d.check_out_time = $('#attendance_filter_check_out_time').val();
+            },
             dataSrc: function (json) {
                 canManageAll = json.can_manage_all || false;
+                if (json.total_attendance !== undefined) {
+                    $('#kpi_total_attendance').text(json.total_attendance);
+                }
+                if (json.present_count !== undefined) {
+                    $('#kpi_present_count').text(json.present_count);
+                }
+                if (json.staff_count !== undefined) {
+                    $('#kpi_staff_count').text(json.staff_count);
+                }
                 return json.data || [];
             }
         },
         columns: [
             {
                 data: null,
+                className: 'text-center',
                 render: function (data, type, row, meta) {
                     return meta.row + 1;
                 }
@@ -35,6 +57,7 @@ $(document).ready(function () {
             },
             {
                 data: 'date',
+                className: 'text-center',
                 render: function (data, type) {
                     if (!data) return '-';
                     if (type !== 'display') return data;
@@ -44,6 +67,7 @@ $(document).ready(function () {
             },
             {
                 data: 'check_in',
+                className: 'text-center',
                 render: function (data, type) {
                     if (!data) return '-';
                     if (type !== 'display') return data;
@@ -52,6 +76,7 @@ $(document).ready(function () {
             },
             {
                 data: 'check_out',
+                className: 'text-center',
                 render: function (data, type) {
                     if (!data) return '<span class="text-muted">Not Checked Out</span>';
                     if (type !== 'display') return data;
@@ -60,6 +85,7 @@ $(document).ready(function () {
             },
             {
                 data: 'working_hours',
+                className: 'text-center',
                 render: function (data, type) {
                     if (!data) return '<span class="text-muted">-</span>';
                     if (type !== 'display') return data;
@@ -68,6 +94,7 @@ $(document).ready(function () {
             },
             {
                 data: 'status',
+                className: 'text-center',
                 render: function (data, type) {
                     if (type !== 'display') return data || 'Present';
                     let badgeClass = 'bg-label-success';
@@ -81,6 +108,7 @@ $(document).ready(function () {
             {
                 data: null,
                 orderable: false,
+                className: 'text-center',
                 render: function (data, type, row) {
                     if (canManageAll) {
                         return `
@@ -104,11 +132,29 @@ $(document).ready(function () {
             }
         ],
         layout: {
-            topStart: ['pageLength', { buttons: ['copy', 'csv', 'excel', 'pdf', 'print'] }],
+            topStart: [
+                'pageLength',
+                {
+                    buttons: [
+                        {
+                            extend: 'colvis',
+                            text: '<i class="bx bx-columns me-1"></i> Column Visibility',
+                            className: 'btn btn-secondary btn-sm me-1',
+                            columns: ':not(:first-child):not(:last-child)'
+                        },
+                        { extend: 'copy', className: 'btn btn-secondary btn-sm me-1', exportOptions: { columns: ':not(:last-child)' } },
+                        { extend: 'csv', className: 'btn btn-secondary btn-sm me-1', exportOptions: { columns: ':not(:last-child)' } },
+                        { extend: 'excel', className: 'btn btn-secondary btn-sm me-1', exportOptions: { columns: ':not(:last-child)' } },
+                        { extend: 'pdf', className: 'btn btn-secondary btn-sm me-1', exportOptions: { columns: ':not(:last-child)' } },
+                        { extend: 'print', className: 'btn btn-secondary btn-sm', exportOptions: { columns: ':not(:last-child)' } }
+                    ]
+                }
+            ],
             topEnd: 'search',
             bottomStart: 'info',
             bottomEnd: 'paging'
         },
+        lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
         pageLength: 10,
         ordering: false
     });
@@ -333,5 +379,54 @@ $(document).ready(function () {
                 deleteAttendanceId = null;
             }
         });
+    });
+
+    // Date Period Buttons Toggle
+    $('.btn-attendance-period').on('click', function () {
+        $('.btn-attendance-period').removeClass('active');
+        $(this).addClass('active');
+
+        let period = $(this).data('period');
+        $('#attendance_filter_period').val(period);
+        $('.attendance-filter-date-group').addClass('d-none');
+
+        if (period === 'daily') {
+            $('#attendance_group_daily').removeClass('d-none');
+        } else if (period === 'weekly') {
+            $('#attendance_group_custom_start').removeClass('d-none');
+        } else if (period === 'monthly') {
+            $('#attendance_group_monthly').removeClass('d-none');
+        } else if (period === 'custom') {
+            $('#attendance_group_custom_start').removeClass('d-none');
+            $('#attendance_group_custom_end').removeClass('d-none');
+        }
+
+        attendanceTable.ajax.reload();
+    });
+
+    // Attendance Filter Form Submit
+    $('#attendanceFilterForm').on('submit', function (e) {
+        e.preventDefault();
+        attendanceTable.ajax.reload();
+    });
+
+    // Reset Attendance Filters
+    $('#resetAttendanceFilterBtn').on('click', function () {
+        $('#attendanceFilterForm')[0].reset();
+        $('.btn-attendance-period').removeClass('active');
+        $('.btn-attendance-period[data-period="all"]').addClass('active');
+        $('#attendance_filter_period').val('all');
+        $('#attendance_filter_user_id').val('');
+        $('#attendance_filter_checkin_checkout').val('');
+        $('#attendance_filter_status').val('');
+        $('#attendance_filter_check_in_time').val('');
+        $('#attendance_filter_check_out_time').val('');
+        $('.attendance-filter-date-group').addClass('d-none');
+        attendanceTable.ajax.reload();
+    });
+
+    // KPI Card Click Handlers
+    $('#kpi_card_total_attendance').on('click', function () {
+        $('#resetAttendanceFilterBtn').click();
     });
 });
