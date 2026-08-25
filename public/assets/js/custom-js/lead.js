@@ -8,11 +8,32 @@ $(document).ready(function () {
     let leadTable = $('#leads-table').DataTable({
         ajax: {
             url: APP_URL + '/admin/leads/data',
-            dataSrc: 'data'
+            data: function (d) {
+                d.filter_type = $('#lead_filter_period').val();
+                d.date = $('#lead_filter_date').val();
+                d.month = $('#lead_filter_month').val();
+                d.start_date = $('#lead_filter_start_date').val();
+                d.end_date = $('#lead_filter_end_date').val();
+                d.lead_title = $('#lead_filter_title').val();
+                d.customer_id = $('#lead_filter_customer_id').val();
+                d.lead_source_id = $('#lead_filter_source_id').val();
+                d.created_by = $('#lead_filter_created_by').val();
+                d.status = $('#lead_filter_status').val();
+            },
+            dataSrc: function (json) {
+                if (json.total_leads !== undefined) {
+                    $('#kpi_total_leads').text(json.total_leads);
+                }
+                if (json.staff_created_count !== undefined) {
+                    $('#kpi_staff_created_leads').text(json.staff_created_count);
+                }
+                return json.data || [];
+            }
         },
         columns: [
             {
                 data: null,
+                className: 'text-center',
                 render: function (data, type, row, meta) {
                     return meta.row + 1;
                 }
@@ -75,14 +96,32 @@ $(document).ready(function () {
                 }
             },
             {
+                data: 'created_at',
+                className: 'text-center',
+                render: function (data, type) {
+                    if (type !== 'display') return data || '-';
+                    return data ? `<span class="text-nowrap">${formatDate(data)}</span>` : '<span class="text-muted">-</span>';
+                }
+            },
+            {
+                data: 'creator',
+                className: 'text-center',
+                render: function (data, type, row) {
+                    let creatorName = data && data.name ? data.name : (row.created_by ? 'User #' + row.created_by : 'N/A');
+                    if (type !== 'display') return creatorName;
+                    return data && data.name ? `<span>${data.name}</span>` : (row.created_by ? `<span class="text-muted">User #${row.created_by}</span>` : '<span class="text-muted">N/A</span>');
+                }
+            },
+            {
                 data: 'status',
+                className: 'text-center',
                 render: function (data, type, row) {
                     let statusText = data == 1 ? 'Active' : 'Closed';
                     if (type !== 'display') return statusText;
                     let isChecked = data == 1 ? 'checked' : '';
                     let statusLabel = data == 1 ? '<span class="badge bg-label-success">Active</span>' : '<span class="badge bg-label-secondary">Closed</span>';
                     return `
-                        <div class="d-flex align-items-center gap-2">
+                        <div class="d-flex align-items-center justify-content-center gap-2">
                             ${statusLabel}
                             <div class="form-check form-switch mb-0">
                                 <input class="form-check-input btn-toggle-lead-status" type="checkbox" data-id="${row.lead_id}" ${isChecked}>
@@ -94,6 +133,7 @@ $(document).ready(function () {
             {
                 data: null,
                 orderable: false,
+                className: 'text-center',
                 render: function (data, type, row) {
                     return `
                         <div class="dropdown">
@@ -118,6 +158,12 @@ $(document).ready(function () {
                 'pageLength',
                 {
                     buttons: [
+                        {
+                            extend: 'colvis',
+                            text: '<i class="bx bx-columns me-1"></i> Column Visibility',
+                            className: 'btn btn-secondary btn-sm me-1',
+                            columns: ':not(:first-child):not(:last-child)'
+                        },
                         { extend: 'copy', className: 'btn btn-secondary btn-sm me-1', exportOptions: { columns: ':not(:last-child)' } },
                         { extend: 'csv', className: 'btn btn-secondary btn-sm me-1', exportOptions: { columns: ':not(:last-child)' } },
                         { extend: 'excel', className: 'btn btn-secondary btn-sm me-1', exportOptions: { columns: ':not(:last-child)' } },
@@ -133,8 +179,7 @@ $(document).ready(function () {
         lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
         pageLength: 10,
         responsive: true,
-        // Disable sorting completely
-            ordering: false
+        ordering: false
     });
 
     function showAlert(type, message) {
@@ -346,5 +391,54 @@ $(document).ready(function () {
                 showAlert('danger', 'Failed to update status.');
             }
         });
+    });
+
+    // Period Toggle Buttons
+    $('.btn-lead-period').on('click', function () {
+        $('.btn-lead-period').removeClass('active');
+        $(this).addClass('active');
+
+        let period = $(this).data('period');
+        $('#lead_filter_period').val(period);
+        $('.lead-filter-date-group').addClass('d-none');
+
+        if (period === 'daily') {
+            $('#lead_group_daily').removeClass('d-none');
+        } else if (period === 'weekly') {
+            $('#lead_group_custom_start').removeClass('d-none');
+        } else if (period === 'monthly') {
+            $('#lead_group_monthly').removeClass('d-none');
+        } else if (period === 'custom') {
+            $('#lead_group_custom_start').removeClass('d-none');
+            $('#lead_group_custom_end').removeClass('d-none');
+        }
+
+        leadTable.ajax.reload();
+    });
+
+    // Lead Filter Form Submit
+    $('#leadFilterForm').on('submit', function (e) {
+        e.preventDefault();
+        leadTable.ajax.reload();
+    });
+
+    // Reset Lead Filters
+    $('#resetLeadFilterBtn').on('click', function () {
+        $('#leadFilterForm')[0].reset();
+        $('.btn-lead-period').removeClass('active');
+        $('.btn-lead-period[data-period="all"]').addClass('active');
+        $('#lead_filter_period').val('all');
+        $('#lead_filter_title').val('');
+        $('#lead_filter_customer_id').val('');
+        $('#lead_filter_source_id').val('');
+        $('#lead_filter_created_by').val('');
+        $('#lead_filter_status').val('');
+        $('.lead-filter-date-group').addClass('d-none');
+        leadTable.ajax.reload();
+    });
+
+    // KPI Card Click Handlers
+    $('#kpi_card_total_leads').on('click', function () {
+        $('#resetLeadFilterBtn').click();
     });
 });

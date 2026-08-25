@@ -21,7 +21,10 @@ class FollowupController extends Controller
         $user    = Auth::user();
         $isAdmin = $user && $user->isAdmin();
 
-        $data['leads'] = Lead::forUser($user)->with('customer')->orderBy('lead_id', 'DESC')->get();
+        $data['leads']       = Lead::forUser($user)->with('customer')->orderBy('lead_id', 'DESC')->get();
+        $data['customers']   = \App\Models\Customer::forUser($user)->where('status', 1)->orderBy('name')->get();
+        $data['leadSources'] = \App\Models\LeadSource::where('status', 1)->orderBy('name')->get();
+        $data['allStaffs']   = User::orderBy('name')->get();
 
         if ($isAdmin) {
             $data['staffs']          = User::staffOnly()->orderBy('name')->get();
@@ -40,8 +43,11 @@ class FollowupController extends Controller
         $today  = \Carbon\Carbon::today()->toDateString();
 
         $filterType = $request->input('filter_type', 'all');
-        $staffId    = $request->input('staff_id');
+        $staffId    = $request->input('staff_id', $request->input('created_by'));
         $customDate = $request->input('date');
+        $month      = $request->input('month');
+        $startDate  = $request->input('start_date');
+        $endDate    = $request->input('end_date');
 
         $query = Followup::forUser($user)->with([
             'lead:lead_id,lead_title,customer_id',
@@ -50,7 +56,7 @@ class FollowupController extends Controller
             'creator:id,name'
         ]);
 
-        if ($user->isAdmin() && !empty($staffId)) {
+        if (!empty($staffId)) {
             $query->where(function ($q) use ($staffId) {
                 $q->where('forward_to', $staffId)
                   ->orWhere('created_by', $staffId)
@@ -61,6 +67,26 @@ class FollowupController extends Controller
             });
         }
 
+        if ($request->filled('lead_id')) {
+            $query->where('lead_id', $request->input('lead_id'));
+        }
+
+        if ($request->filled('customer_id')) {
+            $query->whereHas('lead', function ($lq) use ($request) {
+                $lq->where('customer_id', $request->input('customer_id'));
+            });
+        }
+
+        if ($request->filled('lead_source_id')) {
+            $query->whereHas('lead', function ($lq) use ($request) {
+                $lq->where('lead_source_id', $request->input('lead_source_id'));
+            });
+        }
+
+        if ($request->filled('status') && $request->input('status') !== '') {
+            $query->where('followup_status', $request->input('status'));
+        }
+
         // Apply date / period filtering
         if ($filterType === 'today') {
             $query->whereDate('next_followup_date', '=', $today);
@@ -69,15 +95,32 @@ class FollowupController extends Controller
         } elseif ($filterType === 'overdue') {
             $query->whereDate('next_followup_date', '<', $today)
                   ->where('followup_status', 'Pending');
-        } elseif (!empty($customDate)) {
+        } elseif ($filterType === 'daily' && !empty($customDate)) {
             $query->whereDate('next_followup_date', '=', $customDate);
+        } elseif ($filterType === 'weekly') {
+            $refDate = !empty($startDate) ? \Carbon\Carbon::parse($startDate) : \Carbon\Carbon::today();
+            $query->whereBetween('next_followup_date', [
+                $refDate->copy()->startOfWeek(),
+                $refDate->copy()->endOfWeek(),
+            ]);
+        } elseif ($filterType === 'monthly' && !empty($month)) {
+            [$year, $selectedMonth] = array_pad(explode('-', $month), 2, null);
+            $query->whereYear('next_followup_date', $year ?: date('Y'))
+                ->whereMonth('next_followup_date', $selectedMonth ?: date('m'));
+        } elseif ($filterType === 'custom') {
+            if (!empty($startDate)) {
+                $query->whereDate('next_followup_date', '>=', $startDate);
+            }
+            if (!empty($endDate)) {
+                $query->whereDate('next_followup_date', '<=', $endDate);
+            }
         }
 
         $followups = $query->orderBy('next_followup_date', 'ASC')->get();
 
-        // Calculate counts for tab badges
+        // Calculate counts for tab badges and KPI cards
         $baseCountQuery = Followup::query()->forUser($user);
-        if ($user->isAdmin() && !empty($staffId)) {
+        if (!empty($staffId)) {
             $baseCountQuery->where(function ($q) use ($staffId) {
                 $q->where('forward_to', $staffId)
                   ->orWhere('created_by', $staffId)
@@ -87,6 +130,22 @@ class FollowupController extends Controller
                   });
             });
         }
+        if ($request->filled('lead_id')) {
+            $baseCountQuery->where('lead_id', $request->input('lead_id'));
+        }
+        if ($request->filled('customer_id')) {
+            $baseCountQuery->whereHas('lead', function ($lq) use ($request) {
+                $lq->where('customer_id', $request->input('customer_id'));
+            });
+        }
+        if ($request->filled('lead_source_id')) {
+            $baseCountQuery->whereHas('lead', function ($lq) use ($request) {
+                $lq->where('lead_source_id', $request->input('lead_source_id'));
+            });
+        }
+        if ($request->filled('status') && $request->input('status') !== '') {
+            $baseCountQuery->where('followup_status', $request->input('status'));
+        }
 
         $counts = [
             'all'      => (clone $baseCountQuery)->count(),
@@ -95,10 +154,15 @@ class FollowupController extends Controller
             'overdue'  => (clone $baseCountQuery)->whereDate('next_followup_date', '<', $today)->where('followup_status', 'Pending')->count(),
         ];
 
+        $totalFollowups    = (clone $baseCountQuery)->count();
+        $staffCreatedCount = (clone $baseCountQuery)->whereNotNull('created_by')->count();
+
         return response()->json([
-            'status' => true,
-            'counts' => $counts,
-            'data'   => $followups
+            'status'              => true,
+            'counts'              => $counts,
+            'total_followups'     => $totalFollowups,
+            'staff_created_count' => $staffCreatedCount,
+            'data'                => $followups
         ]);
     }
 

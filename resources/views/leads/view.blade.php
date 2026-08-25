@@ -4,20 +4,147 @@
     <div class="container-xxl flex-grow-1 container-p-y">
         <div id="alert-container"></div>
 
+        <!-- Analytics KPI Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="card shadow-sm border-start border-primary border-4 kpi-card-clickable" id="kpi_card_total_leads" style="cursor: pointer;" title="Click to reset filters">
+                    <div class="card-body p-3 text-center">
+                        <small class="text-muted text-uppercase fw-semibold d-block">Lead Count</small>
+                        <h3 class="mb-0 text-primary fw-bold mt-1" id="kpi_total_leads">0</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="card shadow-sm border-start border-warning border-4 kpi-card-clickable" id="kpi_card_staff_leads" style="cursor: pointer;" title="Click to view staff created leads">
+                    <div class="card-body p-3 text-center">
+                        <small class="text-muted text-uppercase fw-semibold d-block">Staff Created Count</small>
+                        <h3 class="mb-0 text-warning fw-bold mt-1" id="kpi_staff_created_leads">0</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="card">
             <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
                 <h5 class="card-header p-0 m-0"><i class="bx bx-git-pull-request me-2"></i>Leads Management</h5>
                 @can('leads.create')
-                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addLeadModal">
+                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addLeadModal">
                         <i class="bx bx-plus me-1"></i> Add Lead
                     </button>
                 @endcan
+            </div>
+
+            <!-- Leads Filter Bar -->
+            <div class="p-3 bg-light border-bottom">
+                <form id="leadFilterForm">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-12">
+                            <label class="form-label fw-semibold d-block">Date Period</label>
+                            <div class="btn-group btn-group-sm" role="group" id="leadPeriodBtnGroup">
+                                <button type="button" class="btn btn-outline-primary btn-lead-period active" data-period="all">All Time</button>
+                                <button type="button" class="btn btn-outline-primary btn-lead-period" data-period="daily">Daily</button>
+                                <button type="button" class="btn btn-outline-primary btn-lead-period" data-period="weekly">Weekly</button>
+                                <button type="button" class="btn btn-outline-primary btn-lead-period" data-period="monthly">Monthly</button>
+                                <button type="button" class="btn btn-outline-primary btn-lead-period" data-period="custom">Custom</button>
+                            </div>
+                            <input type="hidden" name="filter_type" id="lead_filter_period" value="all">
+                        </div>
+
+                        <div class="col-md-3 lead-filter-date-group d-none" id="lead_group_daily">
+                            <label class="form-label fw-semibold">Date</label>
+                            <input type="date" name="date" id="lead_filter_date" class="form-control form-control-sm" value="{{ date('Y-m-d') }}">
+                        </div>
+
+                        <div class="col-md-3 lead-filter-date-group d-none" id="lead_group_monthly">
+                            <label class="form-label fw-semibold">Month</label>
+                            <input type="month" name="month" id="lead_filter_month" class="form-control form-control-sm" value="{{ date('Y-m') }}">
+                        </div>
+
+                        <div class="col-md-3 lead-filter-date-group d-none" id="lead_group_custom_start">
+                            <label class="form-label fw-semibold">Start Date</label>
+                            <input type="date" name="start_date" id="lead_filter_start_date" class="form-control form-control-sm" value="{{ date('Y-m-01') }}">
+                        </div>
+
+                        <div class="col-md-3 lead-filter-date-group d-none" id="lead_group_custom_end">
+                            <label class="form-label fw-semibold">End Date</label>
+                            <input type="date" name="end_date" id="lead_filter_end_date" class="form-control form-control-sm" value="{{ date('Y-m-d') }}">
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Lead Title</label>
+                            <select name="lead_title" id="lead_filter_title" class="form-select form-select-sm">
+                                <option value="">-- All Lead Titles --</option>
+                                @if(isset($leadTitles) && count($leadTitles) > 0)
+                                    @foreach ($leadTitles as $title)
+                                        <option value="{{ $title }}">{{ $title }}</option>
+                                    @endforeach
+                                @endif
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Customer</label>
+                            <select name="customer_id" id="lead_filter_customer_id" class="form-select form-select-sm">
+                                <option value="">-- All Customers --</option>
+                                @if(isset($customers) && count($customers) > 0)
+                                    @foreach ($customers as $cust)
+                                        <option value="{{ $cust->customer_id }}">{{ $cust->name }} ({{ $cust->mobile }})</option>
+                                    @endforeach
+                                @endif
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Source</label>
+                            <select name="lead_source_id" id="lead_filter_source_id" class="form-select form-select-sm">
+                                <option value="">-- All Sources --</option>
+                                @if(isset($leadSources) && count($leadSources) > 0)
+                                    @foreach ($leadSources as $src)
+                                        <option value="{{ $src->lead_sources_id }}">{{ $src->name }}</option>
+                                    @endforeach
+                                @endif
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Created By</label>
+                            <select name="created_by" id="lead_filter_created_by" class="form-select form-select-sm">
+                                <option value="">-- All Staff --</option>
+                                @if(isset($allStaffs) && count($allStaffs) > 0)
+                                    @foreach ($allStaffs as $stf)
+                                        <option value="{{ $stf->id }}">{{ $stf->name }} ({{ $stf->email }})</option>
+                                    @endforeach
+                                @endif
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Status</label>
+                            <select name="status" id="lead_filter_status" class="form-select form-select-sm">
+                                <option value="">-- All Statuses --</option>
+                                <option value="1">Active</option>
+                                <option value="0">Inactive</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
+                                    <i class="bx bx-filter-alt me-1"></i> Apply Filter
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" id="resetLeadFilterBtn" title="Reset Filters">
+                                    <i class="bx bx-refresh me-1"></i> Reset
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
             </div>
             <div class="table-responsive text-nowrap p-3">
                 <table id="leads-table" class="table table-hover align-middle w-100">
                     <thead class="table-light">
                         <tr>
-                            <th>#</th>
+                            <th class="text-center">#</th>
                             <th>Lead Title</th>
                             <th>Customer</th>
                             <th>Source</th>
@@ -25,8 +152,10 @@
                             <th>Expected Amount</th>
                             <th>Assigned To</th>
                             <th>Next Follow-up</th>
-                            <th>Status</th>
-                            <th>Actions</th>
+                            <th class="text-center">Created At</th>
+                            <th class="text-center">Created By</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody>

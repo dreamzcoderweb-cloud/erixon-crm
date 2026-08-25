@@ -193,14 +193,10 @@
             display: block !important;
         }
 
-        /* Ensure table-responsive allows action dropdown menus to display without clipping */
+        /* Ensure table-responsive allows clean horizontal scroll without overflowing card container */
         .table-responsive {
-            overflow: visible !important;
-        }
-        @media (max-width: 991.98px) {
-            .table-responsive {
-                overflow-x: auto !important;
-            }
+            overflow-x: auto !important;
+            min-height: 200px;
         }
         .table-responsive .dropdown-menu {
             z-index: 1050 !important;

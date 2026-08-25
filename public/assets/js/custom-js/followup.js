@@ -90,6 +90,14 @@ $(document).ready(function () {
                     d.filter_type = $('#filter_type_input').val();
                     d.staff_id    = $('#filter_staff_id').val();
                     d.date        = $('#filter_custom_date').val();
+                    d.month       = $('#followup_filter_month').val();
+                    d.start_date  = $('#followup_filter_start_date').val();
+                    d.end_date    = $('#followup_filter_end_date').val();
+                    d.lead_id     = $('#followup_filter_lead_id').val();
+                    d.customer_id = $('#followup_filter_customer_id').val();
+                    d.lead_source_id = $('#followup_filter_source_id').val();
+                    d.created_by  = $('#filter_staff_id').val();
+                    d.status      = $('#followup_filter_status').val();
                 },
                 dataSrc: function (json) {
                     if (json.counts) {
@@ -98,12 +106,19 @@ $(document).ready(function () {
                         $('#badge_count_upcoming').text(json.counts.upcoming || 0);
                         $('#badge_count_overdue').text(json.counts.overdue || 0);
                     }
+                    if (json.total_followups !== undefined) {
+                        $('#kpi_total_followups').text(json.total_followups);
+                    }
+                    if (json.staff_created_count !== undefined) {
+                        $('#kpi_staff_created_followups').text(json.staff_created_count);
+                    }
                     return json.data || [];
                 }
             },
             columns: [
                 {
                     data: null,
+                    className: 'text-center',
                     render: function (data, type, row, meta) {
                         return meta.row + 1;
                     }
@@ -132,6 +147,7 @@ $(document).ready(function () {
                 },
                 {
                     data: 'duration',
+                    className: 'text-center',
                     render: function (data, type, row) {
                         if (type !== 'display') return data || '-';
                         if (row.followup_type === 'Call' && data) {
@@ -151,6 +167,7 @@ $(document).ready(function () {
                 },
                 {
                     data: 'followup_status',
+                    className: 'text-center',
                     render: function (data, type) {
                         if (type !== 'display') return data || 'Pending';
                         let badgeClass = 'bg-label-warning';
@@ -190,6 +207,7 @@ $(document).ready(function () {
                 {
                     data: null,
                     orderable: false,
+                    className: 'text-center',
                     render: function (data, type, row) {
                         let reassignBtn = '';
                         if (row.followup_status === 'Pending') {
@@ -223,6 +241,12 @@ $(document).ready(function () {
                     'pageLength',
                     {
                         buttons: [
+                            {
+                                extend: 'colvis',
+                                text: '<i class="bx bx-columns me-1"></i> Column Visibility',
+                                className: 'btn btn-secondary btn-sm me-1',
+                                columns: ':not(:first-child):not(:last-child)'
+                            },
                             { extend: 'copy', className: 'btn btn-secondary btn-sm me-1', exportOptions: { columns: ':not(:last-child)' } },
                             { extend: 'csv', className: 'btn btn-secondary btn-sm me-1', exportOptions: { columns: ':not(:last-child)' } },
                             { extend: 'excel', className: 'btn btn-secondary btn-sm me-1', exportOptions: { columns: ':not(:last-child)' } },
@@ -549,7 +573,7 @@ $(document).ready(function () {
         sessionStorage.removeItem('today_reminder_dismissed');
     });
 
-    // Follow-up Period Filter Tab Click Handler
+    // Follow-up Status Nav Tab Click Handler
     $(document).on('click', '.btn-filter-tab', function () {
         $('.btn-filter-tab').removeClass('active');
         $(this).addClass('active');
@@ -558,28 +582,59 @@ $(document).ready(function () {
         $('#filter_type_input').val(filterType);
         $('#filter_custom_date').val(''); // Reset custom date when tab clicked
 
-        if (followupTable) {
-            followupTable.ajax.reload();
-        }
+        if (followupTable) followupTable.ajax.reload();
     });
 
-    // Staff & Custom Date Filter Change Listener
-    $(document).on('change', '#filter_staff_id, #filter_custom_date', function () {
-        if (followupTable) {
-            followupTable.ajax.reload();
+    // Date Period Buttons Toggle
+    $(document).on('click', '.btn-followup-period', function () {
+        $('.btn-followup-period').removeClass('active');
+        $(this).addClass('active');
+
+        let period = $(this).data('period');
+        $('#filter_type_input').val(period);
+        $('.followup-filter-date-group').addClass('d-none');
+
+        if (period === 'daily') {
+            $('#followup_group_daily').removeClass('d-none');
+        } else if (period === 'weekly') {
+            $('#followup_group_custom_start').removeClass('d-none');
+        } else if (period === 'monthly') {
+            $('#followup_group_monthly').removeClass('d-none');
+        } else if (period === 'custom') {
+            $('#followup_group_custom_start').removeClass('d-none');
+            $('#followup_group_custom_end').removeClass('d-none');
         }
+
+        if (followupTable) followupTable.ajax.reload();
+    });
+
+    // Filter Form Submit
+    $(document).on('submit', '#followupFilterForm', function (e) {
+        e.preventDefault();
+        if (followupTable) followupTable.ajax.reload();
     });
 
     // Reset Filters Listener
     $(document).on('click', '#resetFollowupFiltersBtn', function () {
+        $('#followupFilterForm')[0].reset();
         $('.btn-filter-tab').removeClass('active');
         $('.btn-filter-tab[data-filter="all"]').addClass('active');
+        $('.btn-followup-period').removeClass('active');
+        $('.btn-followup-period[data-period="all"]').addClass('active');
         $('#filter_type_input').val('all');
         $('#filter_staff_id').val('');
         $('#filter_custom_date').val('');
+        $('#followup_filter_lead_id').val('');
+        $('#followup_filter_customer_id').val('');
+        $('#followup_filter_source_id').val('');
+        $('#followup_filter_status').val('');
+        $('.followup-filter-date-group').addClass('d-none');
 
-        if (followupTable) {
-            followupTable.ajax.reload();
-        }
+        if (followupTable) followupTable.ajax.reload();
+    });
+
+    // KPI Card Click Handlers
+    $('#kpi_card_total_followups').on('click', function () {
+        $('#resetFollowupFiltersBtn').click();
     });
 });

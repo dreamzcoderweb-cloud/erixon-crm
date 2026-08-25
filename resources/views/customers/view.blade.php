@@ -3,7 +3,34 @@
 @section('content')
     <div class="container-xxl flex-grow-1 container-p-y">
         <div id="alert-container"></div>
-
+         <!-- Analytics KPI Cards -->
+            <div class="row g-3 mb-4">
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="card shadow-sm border-start border-primary border-4 kpi-card-clickable" id="kpi_card_resellers" style="cursor: pointer;" title="Click to filter Resellers">
+                    <div class="card-body p-3 text-center">
+                        <small class="text-muted text-uppercase fw-semibold d-block">Resellers</small>
+                        <h3 class="mb-0 text-primary fw-bold mt-1" id="kpi_resellers">0</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="card shadow-sm border-start border-warning border-4 kpi-card-clickable" id="kpi_card_users" style="cursor: pointer;" title="Click to filter Users">
+                    <div class="card-body p-3 text-center">
+                        <small class="text-muted text-uppercase fw-semibold d-block">Users</small>
+                        <h3 class="mb-0 text-warning fw-bold mt-1" id="kpi_users">0</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="card shadow-sm border-start border-warning border-4 kpi-card-clickable" id="kpi_card_staffs" style="cursor: pointer;" title="Click to filter Staff">
+                    <div class="card-body p-3 text-center">
+                        <small class="text-muted text-uppercase fw-semibold d-block">Staff created count</small>
+                        <h3 class="mb-0 text-warning fw-bold mt-1" id="kpi_staffs">0</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card">
         <div class="card">
             <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
                 <h5 class="card-header p-0 m-0"><i class="bx bx-user me-2"></i>Customers Management</h5>
@@ -18,19 +45,101 @@
                     @endcan
                 </div>
             </div>
+
+            <!-- Customer Filter Bar -->
+            <div class="p-3 bg-light border-bottom">
+                <form id="customerFilterForm">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-12">
+                            <label class="form-label fw-semibold d-block">Date Period</label>
+                            <div class="btn-group btn-group-sm" role="group" id="periodBtnGroup">
+                                <button type="button" class="btn btn-outline-primary btn-customer-period active" data-period="all">All Time</button>
+                                <button type="button" class="btn btn-outline-primary btn-customer-period" data-period="daily">Daily</button>
+                                <button type="button" class="btn btn-outline-primary btn-customer-period" data-period="weekly">Weekly</button>
+                                <button type="button" class="btn btn-outline-primary btn-customer-period" data-period="monthly">Monthly</button>
+                                <button type="button" class="btn btn-outline-primary btn-customer-period" data-period="custom">Custom</button>
+                            </div>
+                            <input type="hidden" name="filter_type" id="customer_filter_period" value="all">
+                        </div>
+
+                        <div class="col-md-3 customer-filter-date-group d-none" id="customer_group_daily">
+                            <label class="form-label fw-semibold">Date</label>
+                            <input type="date" name="date" id="customer_filter_date" class="form-control form-control-sm" value="{{ date('Y-m-d') }}">
+                        </div>
+
+                        <div class="col-md-3 customer-filter-date-group d-none" id="customer_group_monthly">
+                            <label class="form-label fw-semibold">Month</label>
+                            <input type="month" name="month" id="customer_filter_month" class="form-control form-control-sm" value="{{ date('Y-m') }}">
+                        </div>
+
+                        <div class="col-md-3 customer-filter-date-group d-none" id="customer_group_custom_start">
+                            <label class="form-label fw-semibold">Start Date</label>
+                            <input type="date" name="start_date" id="customer_filter_start_date" class="form-control form-control-sm" value="{{ date('Y-m-01') }}">
+                        </div>
+
+                        <div class="col-md-3 customer-filter-date-group d-none" id="customer_group_custom_end">
+                            <label class="form-label fw-semibold">End Date</label>
+                            <input type="date" name="end_date" id="customer_filter_end_date" class="form-control form-control-sm" value="{{ date('Y-m-d') }}">
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Created By</label>
+                            <select name="created_by" id="customer_filter_created_by" class="form-select form-select-sm">
+                                <option value="">-- All Staff --</option>
+                                @if(isset($staffs) && count($staffs) > 0)
+                                    @foreach ($staffs as $staff)
+                                        <option value="{{ $staff->id }}">{{ $staff->name }} ({{ $staff->email }})</option>
+                                    @endforeach
+                                @endif
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Customer Type</label>
+                            <select name="customer_type" id="customer_filter_type" class="form-select form-select-sm">
+                                <option value="">-- All Types --</option>
+                                <option value="user">User</option>
+                                <option value="reseller">Reseller</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Status</label>
+                            <select name="status" id="customer_filter_status" class="form-select form-select-sm">
+                                <option value="">-- All Statuses --</option>
+                                <option value="1">Active</option>
+                                <option value="0">Inactive</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
+                                    <i class="bx bx-filter-alt me-1"></i> Apply Filter
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" id="resetCustomerFilterBtn" title="Reset Filters">
+                                    <i class="bx bx-refresh me-1"></i> Reset
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
             <div class="table-responsive text-nowrap p-3">
                 <table id="customers-table" class="table table-hover align-middle w-100">
                     <thead class="table-light">
                         <tr>
-                            <th>#</th>
+                            <th class="text-center">#</th>
                             <th>Customer Type</th>
                             <th>Name</th>
                             <th>Company</th>
                             <th>Mobile</th>
                             <th>Email</th>
                             <th>City / State</th>
-                            <th>Status</th>
-                            <th>Actions</th>
+                            <th>Created Date</th>
+                            <th>Created By</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -253,13 +362,13 @@
                     <div class="modal-body">
                         <div class="mb-3 text-end">
                             <a href="{{ route('admin.customers.sample-csv') }}" class="btn btn-sm btn-outline-info">
-                                <i class="bx bx-download me-1"></i> Download Sample CSV
+                                <i class="bx bx-download me-1"></i> Download Sample Excel
                             </a>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Select CSV File <span class="text-danger">*</span></label>
-                            <input type="file" name="csv_file" class="form-control" accept=".csv,text/csv" required>
-                            <small class="text-muted">Upload a standard CSV file with headers: Name, Mobile, Email, Company Name, Customer Type, Address, City, State, Country, Pincode.</small>
+                            <label class="form-label">Select Excel / CSV File <span class="text-danger">*</span></label>
+                            <input type="file" name="excel_file" class="form-control" accept=".xlsx,.xls,.csv" required>
+                            <small class="text-muted">Upload an Excel (.xlsx/.xls) or CSV file with headers: Name, Mobile, Email, Company Name, Customer Type, Alternate Mobile, Address, City, State, Country, Pincode.</small>
                         </div>
                         <div id="import-results" class="d-none mt-2 alert alert-info"></div>
                     </div>

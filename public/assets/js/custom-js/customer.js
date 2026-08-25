@@ -8,11 +8,33 @@ $(document).ready(function () {
     let customerTable = $('#customers-table').DataTable({
         ajax: {
             url: APP_URL + '/admin/customers/data',
-            dataSrc: 'data'
+            data: function (d) {
+                d.filter_type = $('#customer_filter_period').val();
+                d.date = $('#customer_filter_date').val();
+                d.month = $('#customer_filter_month').val();
+                d.start_date = $('#customer_filter_start_date').val();
+                d.end_date = $('#customer_filter_end_date').val();
+                d.created_by = $('#customer_filter_created_by').val();
+                d.customer_type = $('#customer_filter_type').val();
+                d.status = $('#customer_filter_status').val();
+            },
+            dataSrc: function (json) {
+                if (json.resellcount !== undefined) {
+                    $('#kpi_resellers').text(json.resellcount);
+                }
+                if (json.user !== undefined) {
+                    $('#kpi_users').text(json.user);
+                }
+                if (json.staffcount !== undefined) {
+                    $('#kpi_staffs').text(json.staffcount);
+                }
+                return json.data || [];
+            }
         },
         columns: [
             {
                 data: null,
+                className: 'text-center',
                 render: function (data, type, row, meta) {
                     return meta.row + 1;
                 }
@@ -56,14 +78,30 @@ $(document).ready(function () {
                 }
             },
             {
+                data: 'created_at',
+                render: function (data, type) {
+                    if (type !== 'display') return formatDate(data) || 'N/A';
+                    return data ? formatDate(data) : '<span class="text-muted">N/A</span>';
+                }
+            },
+            {
+                data: 'creator',
+                render: function (data, type, row) {
+                    let creatorName = data && data.name ? data.name : (row.created_by ? 'User #' + row.created_by : 'N/A');
+                    if (type !== 'display') return creatorName;
+                    return data && data.name ? `<span>${data.name}</span>` : (row.created_by ? `<span class="text-muted">User #${row.created_by}</span>` : '<span class="text-muted">N/A</span>');
+                }
+            },
+            {
                 data: 'status',
+                className: 'text-center',
                 render: function (data, type, row) {
                     let statusText = data == 1 ? 'Active' : 'Inactive';
                     if (type !== 'display') return statusText;
                     let isChecked = data == 1 ? 'checked' : '';
                     let statusLabel = data == 1 ? '<span class="badge bg-label-success">Active</span>' : '<span class="badge bg-label-secondary">Inactive</span>';
                     return `
-                        <div class="d-flex align-items-center gap-2">
+                        <div class="d-flex align-items-center justify-content-center gap-2">
                             ${statusLabel}
                             <div class="form-check form-switch mb-0">
                                 <input class="form-check-input btn-toggle-status" type="checkbox" data-id="${row.customer_id}" ${isChecked}>
@@ -75,6 +113,7 @@ $(document).ready(function () {
             {
                 data: null,
                 orderable: false,
+                className: 'text-center',
                 render: function (data, type, row) {
                     return `
                         <div class="dropdown">
@@ -99,11 +138,47 @@ $(document).ready(function () {
                 'pageLength',
                 {
                     buttons: [
-                        { extend: 'copy', className: 'btn btn-secondary btn-sm me-1', exportOptions: { columns: ':not(:last-child)' } },
-                        { extend: 'csv', className: 'btn btn-secondary btn-sm me-1', exportOptions: { columns: ':not(:last-child)' } },
-                        { extend: 'excel', className: 'btn btn-secondary btn-sm me-1', exportOptions: { columns: ':not(:last-child)' } },
-                        { extend: 'pdf', className: 'btn btn-secondary btn-sm me-1', exportOptions: { columns: ':not(:last-child)' } },
-                        { extend: 'print', className: 'btn btn-secondary btn-sm', exportOptions: { columns: ':not(:last-child)' } }
+                    {
+                        extend: 'colvis',
+                        text: '<i class="bx bx-columns me-1"></i> Column Visibility',
+                        className: 'btn btn-secondary btn-sm me-1',
+                        columns: ':not(:first-child):not(:last-child)'
+                    },
+                    {
+                        extend: 'copy',
+                        className: 'btn btn-secondary btn-sm me-1',
+                        exportOptions: {
+                            columns: ':visible:not(:last-child)'
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        className: 'btn btn-secondary btn-sm me-1',
+                        exportOptions: {
+                            columns: ':visible:not(:last-child)'
+                        }
+                    },
+                    {
+                        extend: 'excel',
+                        className: 'btn btn-secondary btn-sm me-1',
+                        exportOptions: {
+                            columns: ':visible:not(:last-child)'
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        className: 'btn btn-secondary btn-sm me-1',
+                        exportOptions: {
+                            columns: ':visible:not(:last-child)'
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        className: 'btn btn-secondary btn-sm',
+                        exportOptions: {
+                            columns: ':visible:not(:last-child)'
+                        }
+                    }
                     ]
                 }
             ],
@@ -361,5 +436,68 @@ $(document).ready(function () {
                 showAlert('danger', xhr.responseJSON?.message || 'CSV Import failed. Please check file format.');
             }
         });
+    });
+
+    // Period Toggle Buttons
+    $('.btn-customer-period').on('click', function () {
+        $('.btn-customer-period').removeClass('active');
+        $(this).addClass('active');
+
+        let period = $(this).data('period');
+        $('#customer_filter_period').val(period);
+        $('.customer-filter-date-group').addClass('d-none');
+
+        if (period === 'daily') {
+            $('#customer_group_daily').removeClass('d-none');
+        } else if (period === 'weekly') {
+            $('#customer_group_custom_start').removeClass('d-none');
+        } else if (period === 'monthly') {
+            $('#customer_group_monthly').removeClass('d-none');
+        } else if (period === 'custom') {
+            $('#customer_group_custom_start').removeClass('d-none');
+            $('#customer_group_custom_end').removeClass('d-none');
+        }
+
+        customerTable.ajax.reload();
+    });
+
+    // Customer Filter Form Submit
+    $('#customerFilterForm').on('submit', function (e) {
+        e.preventDefault();
+        customerTable.ajax.reload();
+    });
+
+    // Reset Filters
+    $('#resetCustomerFilterBtn').on('click', function () {
+        $('#customerFilterForm')[0].reset();
+        $('.btn-customer-period').removeClass('active');
+        $('.btn-customer-period[data-period="all"]').addClass('active');
+        $('#customer_filter_period').val('all');
+        $('#customer_filter_created_by').val('');
+        $('#customer_filter_type').val('');
+        $('#customer_filter_status').val('');
+        $('.customer-filter-date-group').addClass('d-none');
+        customerTable.ajax.reload();
+    });
+
+    // KPI Card Click Quick-Filters
+    $('#kpi_card_resellers').on('click', function () {
+        let current = $('#customer_filter_type').val();
+        if (current === 'reseller') {
+            $('#customer_filter_type').val('');
+        } else {
+            $('#customer_filter_type').val('reseller');
+        }
+        customerTable.ajax.reload();
+    });
+
+    $('#kpi_card_users').on('click', function () {
+        let current = $('#customer_filter_type').val();
+        if (current === 'user') {
+            $('#customer_filter_type').val('');
+        } else {
+            $('#customer_filter_type').val('user');
+        }
+        customerTable.ajax.reload();
     });
 });

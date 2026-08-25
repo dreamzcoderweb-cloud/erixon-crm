@@ -3,31 +3,118 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class CustomerController extends Controller
 {
     public function index(Request $request)
     {
         if ($request->ajax() || $request->wantsJson()) {
-            return $this->listData();
+            return $this->listData($request);
         }
 
-        return view('customers.view');
+        $staffs = User::orderBy('name')->get();
+
+        return view('customers.view', compact('staffs'));
     }
 
-    public function listData()
+    public function listData(Request $request = null)
     {
-        $customers = Customer::forUser(Auth::user())
-            ->with('creator:id,name')
+        $request = $request ?? request();
+
+        $query = Customer::forUser(Auth::user());
+
+        if ($request->filled('customer_type')) {
+            $query->where('customer_type', $request->input('customer_type'));
+        }
+
+        if ($request->filled('status') && $request->input('status') !== '') {
+            $query->where('status', $request->input('status'));
+        }
+
+        if ($request->filled('created_by')) {
+            $query->where('created_by', $request->input('created_by'));
+        }
+
+        $filterType = $request->input('filter_type');
+        $date       = $request->input('date');
+        $month      = $request->input('month');
+        $startDate  = $request->input('start_date');
+        $endDate    = $request->input('end_date');
+
+        if ($filterType === 'daily' && !empty($date)) {
+            $query->whereDate('created_at', $date);
+        } elseif ($filterType === 'weekly') {
+            $refDate = !empty($startDate) ? Carbon::parse($startDate) : Carbon::today();
+            $query->whereBetween('created_at', [
+                $refDate->copy()->startOfWeek(),
+                $refDate->copy()->endOfWeek(),
+            ]);
+        } elseif ($filterType === 'monthly' && !empty($month)) {
+            [$year, $selectedMonth] = array_pad(explode('-', $month), 2, null);
+            $query->whereYear('created_at', $year ?: date('Y'))
+                ->whereMonth('created_at', $selectedMonth ?: date('m'));
+        } elseif ($filterType === 'custom') {
+            if (!empty($startDate)) {
+                $query->whereDate('created_at', '>=', $startDate);
+            }
+            if (!empty($endDate)) {
+                $query->whereDate('created_at', '<=', $endDate);
+            }
+        }
+
+        $customers = (clone $query)->with('creator:id,name')
             ->orderBy('customer_id', 'DESC')
             ->get();
 
+        $baseCountQuery = Customer::forUser(Auth::user());
+
+        if ($request->filled('status') && $request->input('status') !== '') {
+            $baseCountQuery->where('status', $request->input('status'));
+        }
+
+        if ($request->filled('created_by')) {
+            $baseCountQuery->where('created_by', $request->input('created_by'));
+        }
+
+        if ($filterType === 'daily' && !empty($date)) {
+            $baseCountQuery->whereDate('created_at', $date);
+        } elseif ($filterType === 'weekly') {
+            $refDate = !empty($startDate) ? Carbon::parse($startDate) : Carbon::today();
+            $baseCountQuery->whereBetween('created_at', [
+                $refDate->copy()->startOfWeek(),
+                $refDate->copy()->endOfWeek(),
+            ]);
+        } elseif ($filterType === 'monthly' && !empty($month)) {
+            [$year, $selectedMonth] = array_pad(explode('-', $month), 2, null);
+            $baseCountQuery->whereYear('created_at', $year ?: date('Y'))
+                ->whereMonth('created_at', $selectedMonth ?: date('m'));
+        } elseif ($filterType === 'custom') {
+            if (!empty($startDate)) {
+                $baseCountQuery->whereDate('created_at', '>=', $startDate);
+            }
+            if (!empty($endDate)) {
+                $baseCountQuery->whereDate('created_at', '<=', $endDate);
+            }
+        }
+
+        $resellcount = (clone $baseCountQuery)->where('customer_type', 'reseller')->count();
+        $user        = (clone $baseCountQuery)->where('customer_type', 'user')->count();
+        $staffcount  = (clone $baseCountQuery)->whereNotNull('created_by')->count();
+
         return response()->json([
-            'status' => true,
-            'data' => $customers
+            'status'      => true,
+            'data'        => $customers,
+            'resellcount' => $resellcount,
+            'user'        => $user,
+            'staffcount'  => $staffcount
         ]);
     }
 
@@ -174,32 +261,36 @@ class CustomerController extends Controller
     }
 
     /**
-     * Requirement 14: Import Customer Data Option (CSV file)
+     * Requirement 14: Import Customer Data Option (Excel / CSV)
      */
     public function import(Request $request)
     {
-        $request->validate([
-            'csv_file' => ['required', 'file', 'mimes:csv,txt,xlsx', 'max:10240'],
-        ]);
+        $file = $request->file('excel_file') ?? $request->file('csv_file');
 
-        $file = $request->file('csv_file');
-        $handle = fopen($file->getRealPath(), 'r');
-
-        if ($handle === false) {
-            return response()->json(['status' => false, 'message' => 'Unable to read the uploaded CSV file.'], 422);
+        if (!$file) {
+            return response()->json(['status' => false, 'message' => 'Please upload an Excel or CSV file.'], 422);
         }
 
-        $header = fgetcsv($handle, 1000, ',');
-        if (!$header) {
-            fclose($handle);
-            return response()->json(['status' => false, 'message' => 'Uploaded CSV file is empty.'], 422);
+        try {
+            $spreadsheet = IOFactory::load($file->getRealPath());
+            $worksheet   = $spreadsheet->getActiveSheet();
+            $rows        = $worksheet->toArray(null, true, true, true);
+        } catch (\Exception $e) {
+            return response()->json(['status' => false, 'message' => 'Unable to parse uploaded file: ' . $e->getMessage()], 422);
         }
 
-        // Normalize header keys
+        if (empty($rows)) {
+            return response()->json(['status' => false, 'message' => 'Uploaded file is empty.'], 422);
+        }
+
+        // Header row
+        $headerRow = array_shift($rows);
         $headerMap = [];
-        foreach ($header as $index => $colName) {
-            $normalized = strtolower(trim(str_replace([' ', '_', '-'], '', $colName)));
-            $headerMap[$normalized] = $index;
+        foreach ($headerRow as $colLetter => $colName) {
+            if (!empty($colName)) {
+                $normalized = strtolower(trim(str_replace([' ', '_', '-'], '', (string)$colName)));
+                $headerMap[$normalized] = $colLetter;
+            }
         }
 
         $importedCount = 0;
@@ -207,20 +298,24 @@ class CustomerController extends Controller
         $errors        = [];
         $rowNum        = 1;
 
-        while (($row = fgetcsv($handle, 1000, ',')) !== false) {
+        foreach ($rows as $row) {
             $rowNum++;
 
-            $name           = isset($headerMap['name']) ? trim($row[$headerMap['name']] ?? '') : ($row[0] ?? '');
-            $mobile         = isset($headerMap['mobile']) ? trim($row[$headerMap['mobile']] ?? '') : ($row[1] ?? '');
-            $email          = isset($headerMap['email']) ? trim($row[$headerMap['email']] ?? '') : ($row[2] ?? '');
-            $companyName    = isset($headerMap['companyname']) ? trim($row[$headerMap['companyname']] ?? '') : ($row[3] ?? '');
-            $customerType   = isset($headerMap['customertype']) ? strtolower(trim($row[$headerMap['customertype']] ?? 'user')) : 'user';
-            $alternateMobile = isset($headerMap['alternatemobile']) ? trim($row[$headerMap['alternatemobile']] ?? '') : '';
-            $address        = isset($headerMap['address']) ? trim($row[$headerMap['address']] ?? '') : '';
-            $city           = isset($headerMap['city']) ? trim($row[$headerMap['city']] ?? '') : '';
-            $state          = isset($headerMap['state']) ? trim($row[$headerMap['state']] ?? '') : '';
-            $country        = isset($headerMap['country']) ? trim($row[$headerMap['country']] ?? '') : '';
-            $pincode        = isset($headerMap['pincode']) ? trim($row[$headerMap['pincode']] ?? '') : '';
+            $name            = isset($headerMap['name']) ? trim((string)($row[$headerMap['name']] ?? '')) : '';
+            $mobile          = isset($headerMap['mobile']) ? trim((string)($row[$headerMap['mobile']] ?? '')) : '';
+            $email           = isset($headerMap['email']) ? trim((string)($row[$headerMap['email']] ?? '')) : '';
+            $companyName     = isset($headerMap['companyname']) ? trim((string)($row[$headerMap['companyname']] ?? '')) : '';
+            $customerType    = isset($headerMap['customertype']) ? strtolower(trim((string)($row[$headerMap['customertype']] ?? 'user'))) : 'user';
+            $alternateMobile = isset($headerMap['alternatemobile']) ? trim((string)($row[$headerMap['alternatemobile']] ?? '')) : '';
+            $address         = isset($headerMap['address']) ? trim((string)($row[$headerMap['address']] ?? '')) : '';
+            $city            = isset($headerMap['city']) ? trim((string)($row[$headerMap['city']] ?? '')) : '';
+            $state           = isset($headerMap['state']) ? trim((string)($row[$headerMap['state']] ?? '')) : '';
+            $country         = isset($headerMap['country']) ? trim((string)($row[$headerMap['country']] ?? '')) : '';
+            $pincode         = isset($headerMap['pincode']) ? trim((string)($row[$headerMap['pincode']] ?? '')) : '';
+
+            if (empty($name) && empty($mobile)) {
+                continue; // Skip blank rows
+            }
 
             if (empty($name) || empty($mobile)) {
                 $skippedCount++;
@@ -259,8 +354,6 @@ class CustomerController extends Controller
             $importedCount++;
         }
 
-        fclose($handle);
-
         return response()->json([
             'status'         => true,
             'message'        => "Customer import complete. Imported: {$importedCount}, Skipped: {$skippedCount}.",
@@ -272,13 +365,24 @@ class CustomerController extends Controller
 
     public function downloadSampleCsv()
     {
-        $csvContent = "Name,Mobile,Email,Company Name,Customer Type,Alternate Mobile,Address,City,State,Country,Pincode\n";
-        $csvContent .= "John Doe,9876543210,john@example.com,Acme Corp,user,9876543211,123 Main St,Chennai,Tamil Nadu,India,600001\n";
-        $csvContent .= "Jane Smith,9123456789,jane@example.com,Global Resellers,reseller,,456 Tech Park,Bangalore,Karnataka,India,560001\n";
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
 
-        return response($csvContent, 200, [
-            'Content-Type'        => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="customer_import_sample.csv"',
+        $headers = ['Name', 'Mobile', 'Email', 'Company Name', 'Customer Type', 'Alternate Mobile', 'Address', 'City', 'State', 'Country', 'Pincode'];
+        $sheet->fromArray([$headers], null, 'A1');
+
+        $sampleData = [
+            ['John Doe', '9876543210', 'john@example.com', 'Acme Corp', 'user', '9876543211', '123 Main St', 'Chennai', 'Tamil Nadu', 'India', '600001'],
+            ['Jane Smith', '9123456789', 'jane@example.com', 'Global Resellers', 'reseller', '', '456 Tech Park', 'Bangalore', 'Karnataka', 'India', '560001']
+        ];
+        $sheet->fromArray($sampleData, null, 'A2');
+
+        $writer = new Xlsx($spreadsheet);
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, 'customer_import_sample.xlsx', [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ]);
     }
 }

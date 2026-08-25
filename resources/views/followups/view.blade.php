@@ -4,17 +4,37 @@
     <div class="container-xxl flex-grow-1 container-p-y">
         <div id="alert-container"></div>
 
+        <!-- Analytics KPI Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="card shadow-sm border-start border-primary border-4 kpi-card-clickable" id="kpi_card_total_followups" style="cursor: pointer;" title="Click to reset filters">
+                    <div class="card-body p-3 text-center">
+                        <small class="text-muted text-uppercase fw-semibold d-block">Follow-up Count</small>
+                        <h3 class="mb-0 text-primary fw-bold mt-1" id="kpi_total_followups">0</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="card shadow-sm border-start border-warning border-4 kpi-card-clickable" id="kpi_card_staff_followups" style="cursor: pointer;" title="Click to view staff created followups">
+                    <div class="card-body p-3 text-center">
+                        <small class="text-muted text-uppercase fw-semibold d-block">Staff Created Count</small>
+                        <h3 class="mb-0 text-warning fw-bold mt-1" id="kpi_staff_created_followups">0</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="card">
             <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
                 <h5 class="card-header p-0 m-0"><i class="bx bx-phone-call me-2"></i>Follow-ups Management</h5>
                 <div class="d-flex gap-2">
                     @can('followups.reassign')
-                        <button class="btn btn-outline-secondary btn-view-reassignment-history">
+                        <button class="btn btn-outline-secondary btn-sm btn-view-reassignment-history">
                             <i class="bx bx-history me-1"></i> Audit History
                         </button>
                     @endcan
                     @can('followups.create')
-                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addFollowupModal">
+                        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addFollowupModal">
                             <i class="bx bx-plus me-1"></i> Add Follow-up
                         </button>
                     @endcan
@@ -22,67 +42,156 @@
             </div>
 
             <!-- Follow-up Filter Bar & Nav Tabs -->
-            <div class="px-3 pt-3">
-                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 border-bottom pb-3">
-                    <ul class="nav nav-pills" id="followupFilterTabs">
-                        <li class="nav-item">
-                            <button class="nav-link active btn-filter-tab" data-filter="all">
-                                <i class="bx bx-list-ul me-1"></i> All Follow-ups
-                                <span class="badge bg-secondary ms-1" id="badge_count_all">0</span>
-                            </button>
-                        </li>
-                        <li class="nav-item">
-                            <button class="nav-link btn-filter-tab" data-filter="today">
-                                <i class="bx bx-calendar-event me-1"></i> Today's Follow-up
-                                <span class="badge bg-danger ms-1" id="badge_count_today">0</span>
-                            </button>
-                        </li>
-                        <li class="nav-item">
-                            <button class="nav-link btn-filter-tab" data-filter="upcoming">
-                                <i class="bx bx-calendar me-1"></i> Tomorrow / Upcoming
-                                <span class="badge bg-primary ms-1" id="badge_count_upcoming">0</span>
-                            </button>
-                        </li>
-                        <li class="nav-item">
-                            <button class="nav-link btn-filter-tab" data-filter="overdue">
-                                <i class="bx bx-error-circle me-1"></i> Overdue
-                                <span class="badge bg-warning text-dark ms-1" id="badge_count_overdue">0</span>
-                            </button>
-                        </li>
-                    </ul>
+            <div class="p-3 bg-light border-bottom">
+                <form id="followupFilterForm">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-12 border-bottom pb-3 mb-2">
+                            <ul class="nav nav-pills" id="followupFilterTabs">
+                                <li class="nav-item">
+                                    <button type="button" class="nav-link active btn-filter-tab" data-filter="all">
+                                        <i class="bx bx-list-ul me-1"></i> All Follow-ups
+                                        <span class="badge bg-secondary ms-1" id="badge_count_all">0</span>
+                                    </button>
+                                </li>
+                                <li class="nav-item">
+                                    <button type="button" class="nav-link btn-filter-tab" data-filter="today">
+                                        <i class="bx bx-calendar-event me-1"></i> Today's Follow-up
+                                        <span class="badge bg-danger ms-1" id="badge_count_today">0</span>
+                                    </button>
+                                </li>
+                                <li class="nav-item">
+                                    <button type="button" class="nav-link btn-filter-tab" data-filter="upcoming">
+                                        <i class="bx bx-calendar me-1"></i> Tomorrow / Upcoming
+                                        <span class="badge bg-primary ms-1" id="badge_count_upcoming">0</span>
+                                    </button>
+                                </li>
+                                <li class="nav-item">
+                                    <button type="button" class="nav-link btn-filter-tab" data-filter="overdue">
+                                        <i class="bx bx-error-circle me-1"></i> Overdue
+                                        <span class="badge bg-warning text-dark ms-1" id="badge_count_overdue">0</span>
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
 
-                    <div class="d-flex align-items-center gap-2">
-                        <input type="hidden" id="filter_type_input" value="all">
-                        @if (Auth::user() && Auth::user()->isAdmin())
-                            <select id="filter_staff_id" class="form-select form-select-sm" style="width: 200px;">
-                                <option value="">-- All Staff Members --</option>
-                                @foreach ($staffs as $staff)
-                                    <option value="{{ $staff->id }}">{{ $staff->name }}</option>
-                                @endforeach
+                        <div class="col-12">
+                            <label class="form-label fw-semibold d-block">Date Period</label>
+                            <div class="btn-group btn-group-sm" role="group" id="followupPeriodBtnGroup">
+                                <button type="button" class="btn btn-outline-primary btn-followup-period active" data-period="all">All Time</button>
+                                <button type="button" class="btn btn-outline-primary btn-followup-period" data-period="daily">Daily</button>
+                                <button type="button" class="btn btn-outline-primary btn-followup-period" data-period="weekly">Weekly</button>
+                                <button type="button" class="btn btn-outline-primary btn-followup-period" data-period="monthly">Monthly</button>
+                                <button type="button" class="btn btn-outline-primary btn-followup-period" data-period="custom">Custom</button>
+                            </div>
+                            <input type="hidden" name="filter_type" id="filter_type_input" value="all">
+                        </div>
+
+                        <div class="col-md-3 followup-filter-date-group d-none" id="followup_group_daily">
+                            <label class="form-label fw-semibold">Date</label>
+                            <input type="date" name="date" id="filter_custom_date" class="form-control form-control-sm" value="{{ date('Y-m-d') }}">
+                        </div>
+
+                        <div class="col-md-3 followup-filter-date-group d-none" id="followup_group_monthly">
+                            <label class="form-label fw-semibold">Month</label>
+                            <input type="month" name="month" id="followup_filter_month" class="form-control form-control-sm" value="{{ date('Y-m') }}">
+                        </div>
+
+                        <div class="col-md-3 followup-filter-date-group d-none" id="followup_group_custom_start">
+                            <label class="form-label fw-semibold">Start Date</label>
+                            <input type="date" name="start_date" id="followup_filter_start_date" class="form-control form-control-sm" value="{{ date('Y-m-01') }}">
+                        </div>
+
+                        <div class="col-md-3 followup-filter-date-group d-none" id="followup_group_custom_end">
+                            <label class="form-label fw-semibold">End Date</label>
+                            <input type="date" name="end_date" id="followup_filter_end_date" class="form-control form-control-sm" value="{{ date('Y-m-d') }}">
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Lead Title</label>
+                            <select name="lead_id" id="followup_filter_lead_id" class="form-select form-select-sm">
+                                <option value="">-- All Leads --</option>
+                                @if(isset($leads) && count($leads) > 0)
+                                    @foreach ($leads as $ld)
+                                        <option value="{{ $ld->lead_id }}">{{ $ld->lead_title }} ({{ $ld->customer->name ?? 'N/A' }})</option>
+                                    @endforeach
+                                @endif
                             </select>
-                        @endif
-                        <input type="date" id="filter_custom_date" class="form-control form-control-sm" style="width: 160px;" title="Filter by Specific Follow-up Date">
-                        <button type="button" class="btn btn-sm btn-outline-secondary" id="resetFollowupFiltersBtn" title="Reset Filters">
-                            <i class="bx bx-refresh"></i>
-                        </button>
+                        </div>
+
+                        {{-- <div class="col-md-3">
+                            <label class="form-label fw-semibold">Customer</label>
+                            <select name="customer_id" id="followup_filter_customer_id" class="form-select form-select-sm">
+                                <option value="">-- All Customers --</option>
+                                @if(isset($customers) && count($customers) > 0)
+                                    @foreach ($customers as $cust)
+                                        <option value="{{ $cust->customer_id }}">{{ $cust->name }} ({{ $cust->mobile }})</option>
+                                    @endforeach
+                                @endif
+                            </select>
+                        </div> --}}
+
+                        {{-- <div class="col-md-3">
+                            <label class="form-label fw-semibold">Source</label>
+                            <select name="lead_source_id" id="followup_filter_source_id" class="form-select form-select-sm">
+                                <option value="">-- All Sources --</option>
+                                @if(isset($leadSources) && count($leadSources) > 0)
+                                    @foreach ($leadSources as $src)
+                                        <option value="{{ $src->lead_sources_id }}">{{ $src->name }}</option>
+                                    @endforeach
+                                @endif
+                            </select>
+                        </div> --}}
+
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Created By / Staff</label>
+                            <select name="created_by" id="filter_staff_id" class="form-select form-select-sm">
+                                <option value="">-- All Staff --</option>
+                                @if(isset($allStaffs) && count($allStaffs) > 0)
+                                    @foreach ($allStaffs as $stf)
+                                        <option value="{{ $stf->id }}">{{ $stf->name }} ({{ $stf->email }})</option>
+                                    @endforeach
+                                @endif
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Status</label>
+                            <select name="status" id="followup_filter_status" class="form-select form-select-sm">
+                                <option value="">-- All Statuses --</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Cancelled">Cancelled</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
+                                    <i class="bx bx-filter-alt me-1"></i> Apply Filter
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" id="resetFollowupFiltersBtn" title="Reset Filters">
+                                    <i class="bx bx-refresh me-1"></i> Reset
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                </form>
             </div>
 
             <div class="table-responsive text-nowrap p-3">
                 <table id="followups-table" class="table table-hover align-middle w-100">
                     <thead class="table-light">
                         <tr>
-                            <th>#</th>
+                            <th class="text-center">#</th>
                             <th>Lead Info</th>
                             <th>Type</th>
-                            <th>Duration</th>
+                            <th class="text-center">Duration</th>
                             <th>Next Follow-up Date</th>
-                            <th>Status</th>
+                            <th class="text-center">Status</th>
                             <th>Forward To</th>
                             <th>Created By</th>
                             <th>Remarks</th>
-                            <th>Actions</th>
+                            <th class="text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -128,7 +237,7 @@
                                 </select>
                                 <div class="invalid-feedback"></div>
                             </div>
-                            
+
                             <!-- Dynamic Duration Field for Call -->
                             <div class="col-md-6" id="add_duration_container">
                                 <label class="form-label">Duration <span class="text-danger">*</span></label>
