@@ -70,12 +70,36 @@ $(document).ready(function () {
                     }
                 },
                 {
-                    data: 'actual_check_in_formatted',
+                    data: 'session_1',
                     render: function (data, type, row) {
-                        let text = data || row.check_in || '-';
+                        let text = data || (row.check_in ? row.check_in + (row.check_out ? ' → ' + row.check_out : '') : '-');
                         if (type !== 'display') return text;
                         let badge = row.status === 'Late' ? 'bg-label-warning' : 'bg-label-success';
                         return `<span class="badge ${badge}"><i class="bx bx-log-in me-1"></i>${text}</span>`;
+                    }
+                },
+                {
+                    data: 'permission_period',
+                    render: function (data, type) {
+                        let text = data || '-';
+                        if (type !== 'display') return text;
+                        return text !== '-' ? `<span class="badge bg-label-info"><i class="bx bx-time me-1"></i>${text}</span>` : '<span class="text-muted">-</span>';
+                    }
+                },
+                {
+                    data: 'permission_duration',
+                    render: function (data, type) {
+                        let text = data || '-';
+                        if (type !== 'display') return text;
+                        return text !== '-' ? `<span class="badge bg-label-primary"><i class="bx bx-timer me-1"></i>${text}</span>` : '<span class="text-muted">-</span>';
+                    }
+                },
+                {
+                    data: 'session_2',
+                    render: function (data, type) {
+                        let text = data || '-';
+                        if (type !== 'display') return text;
+                        return text !== '-' ? `<span class="badge bg-label-success"><i class="bx bx-log-in-circle me-1"></i>${text}</span>` : '<span class="text-muted">-</span>';
                     }
                 },
                 {

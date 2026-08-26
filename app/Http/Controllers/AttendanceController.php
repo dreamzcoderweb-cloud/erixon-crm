@@ -59,16 +59,16 @@ class AttendanceController extends Controller
             }
         }
 
-        if ($request->filled('check_in_time')) {
-            $inTime = $request->input('check_in_time');
+        if ($request->filled('check_in_time') && trim((string) $request->input('check_in_time')) !== '') {
+            $inTime = trim((string) $request->input('check_in_time'));
             $query->where(function ($q) use ($inTime) {
                 $q->where('check_in', 'LIKE', "%{$inTime}%")
                   ->orWhereRaw("TIME_FORMAT(check_in, '%H:%i') = ?", [$inTime]);
             });
         }
 
-        if ($request->filled('check_out_time')) {
-            $outTime = $request->input('check_out_time');
+        if ($request->filled('check_out_time') && trim((string) $request->input('check_out_time')) !== '') {
+            $outTime = trim((string) $request->input('check_out_time'));
             $query->where(function ($q) use ($outTime) {
                 $q->where('check_out', 'LIKE', "%{$outTime}%")
                   ->orWhereRaw("TIME_FORMAT(check_out, '%H:%i') = ?", [$outTime]);
@@ -108,14 +108,14 @@ class AttendanceController extends Controller
         if (!$isSuperAdmin) {
             $baseCountQuery->where('user_id', $user->id);
         } else {
-            if ($request->filled('user_id')) {
+            if ($request->filled('user_id') && !empty($request->input('user_id'))) {
                 $baseCountQuery->where('user_id', $request->input('user_id'));
             }
         }
-        if ($request->filled('status') && $request->input('status') !== '') {
+        if ($request->filled('status') && $request->input('status') !== '' && $request->input('status') !== null) {
             $baseCountQuery->where('status', $request->input('status'));
         }
-        if ($request->filled('checkin_checkout')) {
+        if ($request->filled('checkin_checkout') && !empty($request->input('checkin_checkout'))) {
             $cc = $request->input('checkin_checkout');
             if ($cc === 'checked_in') {
                 $baseCountQuery->whereNotNull('check_in');
@@ -125,15 +125,15 @@ class AttendanceController extends Controller
                 $baseCountQuery->whereNotNull('check_in')->whereNull('check_out');
             }
         }
-        if ($request->filled('check_in_time')) {
-            $inTime = $request->input('check_in_time');
+        if ($request->filled('check_in_time') && trim((string) $request->input('check_in_time')) !== '') {
+            $inTime = trim((string) $request->input('check_in_time'));
             $baseCountQuery->where(function ($q) use ($inTime) {
                 $q->where('check_in', 'LIKE', "%{$inTime}%")
                   ->orWhereRaw("TIME_FORMAT(check_in, '%H:%i') = ?", [$inTime]);
             });
         }
-        if ($request->filled('check_out_time')) {
-            $outTime = $request->input('check_out_time');
+        if ($request->filled('check_out_time') && trim((string) $request->input('check_out_time')) !== '') {
+            $outTime = trim((string) $request->input('check_out_time'));
             $baseCountQuery->where(function ($q) use ($outTime) {
                 $q->where('check_out', 'LIKE', "%{$outTime}%")
                   ->orWhereRaw("TIME_FORMAT(check_out, '%H:%i') = ?", [$outTime]);
@@ -183,24 +183,37 @@ class AttendanceController extends Controller
         }
 
         $validated = $request->validate([
-            'user_id'   => ['required', 'exists:users,id'],
-            'date'      => ['required', 'date'],
-            'check_in'  => ['required'],
-            'check_out' => ['nullable'],
-            'status'    => ['nullable', 'in:Auto,Present,Late,Half Day,Absent,On Leave'],
+            'user_id'          => ['required', 'exists:users,id'],
+            'date'             => ['required', 'date'],
+            'check_in'         => ['required'],
+            'check_out'        => ['nullable'],
+            'permission_start' => ['nullable'],
+            'permission_end'   => ['nullable'],
+            'second_check_in'  => ['nullable'],
+            'second_check_out' => ['nullable'],
+            'status'           => ['nullable', 'in:Auto,Present,Late,Half Day,Absent,On Leave'],
         ]);
 
         $targetUser = User::find($validated['user_id']);
         $status = $this->determineAttendanceStatus($targetUser, $validated['check_in'], $validated['status'] ?? 'Auto');
-        $workingHours = $this->calculateWorkingHours($validated['check_in'], $validated['check_out'] ?? null);
+        $workingHours = $this->calculateWorkingHours(
+            $validated['check_in'],
+            $validated['check_out'] ?? null,
+            $validated['second_check_in'] ?? null,
+            $validated['second_check_out'] ?? null
+        );
 
         $attendance = Attendance::create([
-            'user_id'       => $validated['user_id'],
-            'date'          => $validated['date'],
-            'check_in'      => $validated['check_in'],
-            'check_out'     => $validated['check_out'] ?? null,
-            'working_hours' => $workingHours,
-            'status'        => $status,
+            'user_id'          => $validated['user_id'],
+            'date'             => $validated['date'],
+            'check_in'         => $validated['check_in'],
+            'check_out'        => $validated['check_out'] ?? null,
+            'permission_start' => $validated['permission_start'] ?? null,
+            'permission_end'   => $validated['permission_end'] ?? null,
+            'second_check_in'  => $validated['second_check_in'] ?? null,
+            'second_check_out' => $validated['second_check_out'] ?? null,
+            'working_hours'    => $workingHours,
+            'status'           => $status,
         ]);
 
         return response()->json([
@@ -237,24 +250,37 @@ class AttendanceController extends Controller
         }
 
         $validated = $request->validate([
-            'user_id'   => ['required', 'exists:users,id'],
-            'date'      => ['required', 'date'],
-            'check_in'  => ['required'],
-            'check_out' => ['nullable'],
-            'status'    => ['nullable', 'in:Auto,Present,Late,Half Day,Absent,On Leave'],
+            'user_id'          => ['required', 'exists:users,id'],
+            'date'             => ['required', 'date'],
+            'check_in'         => ['required'],
+            'check_out'        => ['nullable'],
+            'permission_start' => ['nullable'],
+            'permission_end'   => ['nullable'],
+            'second_check_in'  => ['nullable'],
+            'second_check_out' => ['nullable'],
+            'status'           => ['nullable', 'in:Auto,Present,Late,Half Day,Absent,On Leave'],
         ]);
 
         $user = User::find($validated['user_id']);
         $status = $this->determineAttendanceStatus($user, $validated['check_in'], $validated['status'] ?? 'Auto');
-        $workingHours = $this->calculateWorkingHours($validated['check_in'], $validated['check_out'] ?? null);
+        $workingHours = $this->calculateWorkingHours(
+            $validated['check_in'],
+            $validated['check_out'] ?? null,
+            $validated['second_check_in'] ?? null,
+            $validated['second_check_out'] ?? null
+        );
 
         $attendance->update([
-            'user_id'       => $validated['user_id'],
-            'date'          => $validated['date'],
-            'check_in'      => $validated['check_in'],
-            'check_out'     => $validated['check_out'] ?? null,
-            'working_hours' => $workingHours,
-            'status'        => $status,
+            'user_id'          => $validated['user_id'],
+            'date'             => $validated['date'],
+            'check_in'         => $validated['check_in'],
+            'check_out'        => $validated['check_out'] ?? null,
+            'permission_start' => $validated['permission_start'] ?? null,
+            'permission_end'   => $validated['permission_end'] ?? null,
+            'second_check_in'  => $validated['second_check_in'] ?? null,
+            'second_check_out' => $validated['second_check_out'] ?? null,
+            'working_hours'    => $workingHours,
+            'status'           => $status,
         ]);
 
         return response()->json([
@@ -265,7 +291,7 @@ class AttendanceController extends Controller
     }
 
     /**
-     * Mark self attendance (Check In / Check Out) for logged-in user
+     * Mark self attendance (Check In / Check Out) for logged-in user with multi-session support
      */
     public function markSelfAttendance(Request $request)
     {
@@ -278,30 +304,83 @@ class AttendanceController extends Controller
             ->whereDate('date', $today)
             ->first();
 
+        // Check for approved permission request for user today
+        $approvedPermission = \App\Models\PermissionRequest::where('user_id', $user->id)
+            ->whereDate('date', $today)
+            ->where('status', 'Approved')
+            ->first();
+
         if ($type === 'check_in') {
-            if ($attendance) {
+            if (!$attendance) {
+                // Session 1 Check-In
+                $status = $this->determineAttendanceStatus($user, $nowTime, 'Auto');
+
+                $createData = [
+                    'user_id'       => $user->id,
+                    'date'          => $today,
+                    'check_in'      => $nowTime,
+                    'check_out'     => null,
+                    'working_hours' => null,
+                    'status'        => $status,
+                ];
+
+                if ($approvedPermission) {
+                    $createData['permission_start'] = $approvedPermission->start_time;
+                    $createData['permission_end']   = $approvedPermission->end_time;
+                    $createData['permission_id']    = $approvedPermission->id;
+                }
+
+                $attendance = Attendance::create($createData);
+
                 return response()->json([
-                    'status'  => false,
-                    'message' => 'You have already checked in today at ' . $attendance->check_in
-                ], 422);
+                    'status'  => true,
+                    'message' => "Checked in for Session 1 at {$nowTime}. Status: {$status}",
+                    'data'    => $attendance
+                ]);
+            } else {
+                // Attendance record already exists for today
+                if (empty($attendance->check_out)) {
+                    return response()->json([
+                        'status'  => false,
+                        'message' => 'You are currently checked in for Session 1.'
+                    ], 422);
+                }
+
+                if (!empty($attendance->check_in) && !empty($attendance->check_out) && empty($attendance->second_check_in)) {
+                    // Session 2 Check-In
+                    $updateData = [
+                        'second_check_in' => $nowTime,
+                    ];
+
+                    if ($approvedPermission && empty($attendance->permission_id)) {
+                        $updateData['permission_start'] = $approvedPermission->start_time;
+                        $updateData['permission_end']   = $approvedPermission->end_time;
+                        $updateData['permission_id']    = $approvedPermission->id;
+                    }
+
+                    $attendance->update($updateData);
+
+                    return response()->json([
+                        'status'  => true,
+                        'message' => "Checked in for Session 2 at {$nowTime}.",
+                        'data'    => $attendance
+                    ]);
+                }
+
+                if (!empty($attendance->second_check_in) && empty($attendance->second_check_out)) {
+                    return response()->json([
+                        'status'  => false,
+                        'message' => 'You are currently checked in for Session 2.'
+                    ], 422);
+                }
+
+                if (!empty($attendance->second_check_out)) {
+                    return response()->json([
+                        'status'  => false,
+                        'message' => 'You have already completed all work sessions for today.'
+                    ], 422);
+                }
             }
-
-            $status = $this->determineAttendanceStatus($user, $nowTime, 'Auto');
-
-            $attendance = Attendance::create([
-                'user_id'       => $user->id,
-                'date'          => $today,
-                'check_in'      => $nowTime,
-                'check_out'     => null,
-                'working_hours' => null,
-                'status'        => $status,
-            ]);
-
-            return response()->json([
-                'status'  => true,
-                'message' => "Checked in successfully at {$nowTime}. Status: {$status}",
-                'data'    => $attendance
-            ]);
         } elseif ($type === 'check_out') {
             if (!$attendance) {
                 return response()->json([
@@ -310,18 +389,38 @@ class AttendanceController extends Controller
                 ], 422);
             }
 
-            $workingHours = $this->calculateWorkingHours($attendance->check_in, $nowTime);
+            if (!empty($attendance->second_check_in) && empty($attendance->second_check_out)) {
+                // Session 2 Check-Out
+                $workingHours = $this->calculateWorkingHours($attendance->check_in, $attendance->check_out, $attendance->second_check_in, $nowTime);
+                $attendance->update([
+                    'second_check_out' => $nowTime,
+                    'working_hours'    => $workingHours,
+                ]);
 
-            $attendance->update([
-                'check_out'     => $nowTime,
-                'working_hours' => $workingHours,
-            ]);
+                return response()->json([
+                    'status'  => true,
+                    'message' => "Checked out for Session 2 at {$nowTime}.",
+                    'data'    => $attendance
+                ]);
+            } elseif (!empty($attendance->check_in) && empty($attendance->check_out)) {
+                // Session 1 Check-Out
+                $workingHours = $this->calculateWorkingHours($attendance->check_in, $nowTime);
+                $attendance->update([
+                    'check_out'     => $nowTime,
+                    'working_hours' => $workingHours,
+                ]);
 
-            return response()->json([
-                'status'  => true,
-                'message' => "Checked out successfully at {$nowTime}.",
-                'data'    => $attendance
-            ]);
+                return response()->json([
+                    'status'  => true,
+                    'message' => "Checked out for Session 1 at {$nowTime}.",
+                    'data'    => $attendance
+                ]);
+            } else {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'No active check-in session found to check out.'
+                ], 422);
+            }
         }
 
         return response()->json(['status' => false, 'message' => 'Invalid action.'], 400);
@@ -525,6 +624,56 @@ class AttendanceController extends Controller
                 }
             }
 
+            // Check for linked or approved permission request for user on date
+            $permReq = $rec->permissionRequest;
+            if (!$permReq && empty($rec->permission_start)) {
+                $permReq = \App\Models\PermissionRequest::where('user_id', $rec->user_id)
+                    ->whereDate('date', $rec->date)
+                    ->where('status', 'Approved')
+                    ->first();
+            }
+
+            if ($permReq && empty($rec->permission_start)) {
+                $rec->permission_start = $permReq->start_time;
+                $rec->permission_end   = $permReq->end_time;
+                $rec->permission_id    = $permReq->id;
+            }
+
+            // Session 1 breakdown
+            $s1CheckIn  = !empty($rec->check_in) ? Carbon::parse($rec->check_in)->format('h:i A') : '-';
+            $s1CheckOut = !empty($rec->check_out) ? Carbon::parse($rec->check_out)->format('h:i A') : '-';
+            $rec->session_1 = ($rec->check_in) ? "{$s1CheckIn} → {$s1CheckOut}" : '-';
+
+            // Permission breakdown & duration
+            $pStart = !empty($rec->permission_start) ? Carbon::parse($rec->permission_start)->format('h:i A') : null;
+            $pEnd   = !empty($rec->permission_end) ? Carbon::parse($rec->permission_end)->format('h:i A') : null;
+            $rec->permission_period = ($pStart && $pEnd) ? "{$pStart} → {$pEnd}" : '-';
+
+            $pDurationMins = 0;
+            if ($pStart && $pEnd) {
+                try {
+                    $pIn = Carbon::parse($rec->permission_start);
+                    $pOut = Carbon::parse($rec->permission_end);
+                    if ($pOut->greaterThan($pIn)) {
+                        $pDurationMins = $pIn->diffInMinutes($pOut);
+                    }
+                } catch (\Exception $e) {}
+            }
+            $pHours = floor($pDurationMins / 60);
+            $pMins  = $pDurationMins % 60;
+            $rec->permission_duration = $pDurationMins > 0 ? ($pHours > 0 ? "{$pHours} hrs " : "") . ($pMins > 0 ? "{$pMins} mins" : "") : '-';
+
+            // Session 2 breakdown
+            $s2CheckIn  = !empty($rec->second_check_in) ? Carbon::parse($rec->second_check_in)->format('h:i A') : '-';
+            $s2CheckOut = !empty($rec->second_check_out) ? Carbon::parse($rec->second_check_out)->format('h:i A') : '-';
+            $rec->session_2 = ($rec->second_check_in) ? "{$s2CheckIn} → {$s2CheckOut}" : '-';
+
+            // Total working hours
+            $computedWorkedHours = $this->calculateWorkingHours($rec->check_in, $rec->check_out, $rec->second_check_in, $rec->second_check_out);
+            if ($computedWorkedHours) {
+                $rec->working_hours = $computedWorkedHours;
+            }
+
             $rec->allowed_check_in_time = $allowTimeFormatted;
             $rec->actual_check_in_formatted = $actualCheckInFormatted;
             $rec->late_duration_minutes = $lateDurationMins;
@@ -545,7 +694,7 @@ class AttendanceController extends Controller
         $totalAbsent   = $records->where('status', 'Absent')->count();
         $totalOnLeave  = $records->where('status', 'On Leave')->count();
 
-        // Calculate Total Working Hours
+        // Calculate Total Working Hours across all work sessions
         $totalMinutes = 0;
         foreach ($records as $rec) {
             if (!empty($rec->check_in) && !empty($rec->check_out)) {
@@ -556,6 +705,16 @@ class AttendanceController extends Controller
                         $out->addDay();
                     }
                     $totalMinutes += $in->diffInMinutes($out);
+                } catch (\Exception $e) {}
+            }
+            if (!empty($rec->second_check_in) && !empty($rec->second_check_out)) {
+                try {
+                    $in2  = Carbon::parse($rec->second_check_in);
+                    $out2 = Carbon::parse($rec->second_check_out);
+                    if ($out2->lessThan($in2)) {
+                        $out2->addDay();
+                    }
+                    $totalMinutes += $in2->diffInMinutes($out2);
                 } catch (\Exception $e) {}
             }
         }
@@ -582,31 +741,43 @@ class AttendanceController extends Controller
         ]);
     }
 
-    private function calculateWorkingHours($checkIn, $checkOut)
+    private function calculateWorkingHours($checkIn, $checkOut, $secondCheckIn = null, $secondCheckOut = null)
     {
-        if (empty($checkIn) || empty($checkOut)) {
+        $totalMinutes = 0;
+
+        if (!empty($checkIn) && !empty($checkOut)) {
+            try {
+                $in = Carbon::parse($checkIn);
+                $out = Carbon::parse($checkOut);
+                if ($out->lessThan($in)) {
+                    $out->addDay();
+                }
+                $totalMinutes += $in->diffInMinutes($out);
+            } catch (\Exception $e) {}
+        }
+
+        if (!empty($secondCheckIn) && !empty($secondCheckOut)) {
+            try {
+                $in2 = Carbon::parse($secondCheckIn);
+                $out2 = Carbon::parse($secondCheckOut);
+                if ($out2->lessThan($in2)) {
+                    $out2->addDay();
+                }
+                $totalMinutes += $in2->diffInMinutes($out2);
+            } catch (\Exception $e) {}
+        }
+
+        if ($totalMinutes <= 0) {
             return null;
         }
 
-        try {
-            $in = Carbon::parse($checkIn);
-            $out = Carbon::parse($checkOut);
+        $hours = floor($totalMinutes / 60);
+        $minutes = $totalMinutes % 60;
 
-            if ($out->lessThan($in)) {
-                $out->addDay();
-            }
-
-            $diffMinutes = $in->diffInMinutes($out);
-            $hours = floor($diffMinutes / 60);
-            $minutes = $diffMinutes % 60;
-
-            if ($minutes > 0) {
-                return "{$hours} hrs {$minutes} mins";
-            }
-
-            return "{$hours} hrs";
-        } catch (\Exception $e) {
-            return null;
+        if ($minutes > 0) {
+            return "{$hours} hrs {$minutes} mins";
         }
+
+        return "{$hours} hrs";
     }
 }

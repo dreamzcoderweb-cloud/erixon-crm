@@ -430,12 +430,39 @@ $(document).ready(function () {
                     }
                 },
                 {
+                    data: 'leave_deduction',
+                    className: 'text-center align-middle',
+                    render: function (data, type) {
+                        let val = parseFloat(data || 0);
+                        if (type !== 'display') return val;
+                        return val > 0 ? `<span class="badge bg-label-danger fw-bold">-₹${val.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>` : '<span class="text-muted">₹0.00</span>';
+                    }
+                },
+                {
+                    data: 'late_deduction',
+                    className: 'text-center align-middle',
+                    render: function (data, type) {
+                        let val = parseFloat(data || 0);
+                        if (type !== 'display') return val;
+                        return val > 0 ? `<span class="badge bg-label-warning fw-bold">-₹${val.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>` : '<span class="text-muted">₹0.00</span>';
+                    }
+                },
+                {
                     data: 'salary_deduction',
                     className: 'text-center align-middle',
                     render: function (data, type) {
                         let val = parseFloat(data || 0);
                         if (type !== 'display') return val;
                         return val > 0 ? `<span class="badge bg-label-danger fw-bold">-₹${val.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>` : '<span class="text-muted">₹0.00</span>';
+                    }
+                },
+                {
+                    data: 'incentive_amount',
+                    className: 'text-center align-middle',
+                    render: function (data, type) {
+                        let val = parseFloat(data || 0);
+                        if (type !== 'display') return val;
+                        return val > 0 ? `<span class="badge bg-label-success fw-bold">+₹${val.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>` : '<span class="text-muted">₹0.00</span>';
                     }
                 },
                 {
@@ -453,11 +480,17 @@ $(document).ready(function () {
                     'pageLength',
                     {
                         buttons: [
-                            { extend: 'copy', className: 'btn btn-secondary btn-sm me-1' },
-                            { extend: 'csv', className: 'btn btn-secondary btn-sm me-1' },
-                            { extend: 'excel', className: 'btn btn-secondary btn-sm me-1' },
-                            { extend: 'pdf', className: 'btn btn-secondary btn-sm me-1' },
-                            { extend: 'print', className: 'btn btn-secondary btn-sm' }
+                            {
+                                extend: 'colvis',
+                                text: '<i class="bx bx-columns me-1"></i> Column Visibility',
+                                className: 'btn btn-secondary btn-sm me-1',
+                                columns: ':not(:first-child)'
+                            },
+                            { extend: 'copy', className: 'btn btn-secondary btn-sm me-1', exportOptions: { columns: ':visible' } },
+                            { extend: 'csv', className: 'btn btn-secondary btn-sm me-1', exportOptions: { columns: ':visible' } },
+                            { extend: 'excel', className: 'btn btn-secondary btn-sm me-1', exportOptions: { columns: ':visible' } },
+                            { extend: 'pdf', className: 'btn btn-secondary btn-sm me-1', exportOptions: { columns: ':visible' } },
+                            { extend: 'print', className: 'btn btn-secondary btn-sm', exportOptions: { columns: ':visible' } }
                         ]
                     }
                 ],

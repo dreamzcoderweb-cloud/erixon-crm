@@ -255,9 +255,61 @@ class LeaveController extends Controller
             $excessLeaveDays = max(0, round($totalApprovedLeaveDays - $availableLeaves, 2));
 
             $baseSalary = floatval($staff->base_salary ?? 0);
-            $perDaySalary = $workingDaysInMonth > 0 ? round($baseSalary / $workingDaysInMonth, 2) : 0;
-            $salaryDeduction = round($excessLeaveDays * $perDaySalary, 2);
-            $netSalary = max(0, round($baseSalary - $salaryDeduction, 2));
+            $perDaySalary = $workingDaysInMonth > 0 ? ($baseSalary / $workingDaysInMonth) : 0;
+            $leaveDeduction = round($excessLeaveDays * $perDaySalary, 2);
+
+            // Calculate Late Attendance Deduction for staff in target month
+            $allowedLateCount = (int) ($staff->late_attendance_count ?? 3);
+            $rawAllowTime = ($staff && $staff->allow_check_in_time) ? $staff->allow_check_in_time : (($staff && $staff->check_in_time) ? $staff->check_in_time : '09:10:00');
+            $allowTime24 = Carbon::parse($rawAllowTime)->format('H:i:s');
+
+            $dailyMins = 480;
+            if ($staff && $staff->check_in_time && $staff->check_out_time) {
+                try {
+                    $cIn = Carbon::parse($staff->check_in_time);
+                    $cOut = Carbon::parse($staff->check_out_time);
+                    $diff = $cIn->diffInMinutes($cOut);
+                    if ($diff > 0) {
+                        $dailyMins = $diff;
+                    }
+                } catch (\Exception $e) {}
+            }
+
+            $perMinuteSalary = $dailyMins > 0 ? ($perDaySalary / $dailyMins) : 0;
+
+            $attRecords = \App\Models\Attendance::where('user_id', $staff->id)
+                ->whereYear('date', $carbonMonth->year)
+                ->whereMonth('date', $carbonMonth->month)
+                ->orderBy('date', 'ASC')
+                ->get();
+
+            $lateCount = 0;
+            $lateDeduction = 0.00;
+
+            foreach ($attRecords as $rec) {
+                $actualCheckIn24 = !empty($rec->check_in) ? Carbon::parse($rec->check_in)->format('H:i:s') : null;
+                if ($actualCheckIn24 && $actualCheckIn24 > $allowTime24) {
+                    $lateCount++;
+                    if ($lateCount > $allowedLateCount) {
+                        $inTimeSeconds = strtotime($actualCheckIn24);
+                        $allowTimeSeconds = strtotime($allowTime24);
+                        $lateDurationMins = max(0, round(($inTimeSeconds - $allowTimeSeconds) / 60));
+                        $lateDeduction += round($lateDurationMins * $perMinuteSalary, 2);
+                    }
+                }
+            }
+
+            $lateDeduction = round($lateDeduction, 2);
+            $perDaySalaryRate = round($perDaySalary, 2);
+            $totalSalaryDeduction = round($leaveDeduction + $lateDeduction, 2);
+
+            // Incentive amount for target month
+            $incentiveAmount = \App\Models\Incentive::where('staff_id', $staff->id)
+                ->where('month', $monthStr)
+                ->sum('amount');
+            $incentiveAmount = round(floatval($incentiveAmount ?? 0), 2);
+
+            $netSalary = max(0, round($baseSalary - $totalSalaryDeduction + $incentiveAmount, 2));
 
             $reportData[] = [
                 'user_id'                => $staff->id,
@@ -271,8 +323,11 @@ class LeaveController extends Controller
                 'working_days_in_month'  => $workingDaysInMonth,
                 'sundays_count'          => $sundays,
                 'total_calendar_days'    => $totalDays,
-                'per_day_salary'         => $perDaySalary,
-                'salary_deduction'       => $salaryDeduction,
+                'per_day_salary'         => $perDaySalaryRate,
+                'leave_deduction'        => $leaveDeduction,
+                'late_deduction'         => $lateDeduction,
+                'salary_deduction'       => $totalSalaryDeduction,
+                'incentive_amount'       => $incentiveAmount,
                 'net_salary'             => $netSalary,
             ];
         }
@@ -360,6 +415,19 @@ class LeaveController extends Controller
         $permission->approved_by   = Auth::id();
         $permission->admin_remarks = $request->input('admin_remarks');
         $permission->save();
+
+        // Auto-link approved permission details to the user's Attendance record for that date if present
+        $attendance = \App\Models\Attendance::where('user_id', $permission->user_id)
+            ->whereDate('date', $permission->date)
+            ->first();
+
+        if ($attendance) {
+            $attendance->update([
+                'permission_start' => $permission->start_time,
+                'permission_end'   => $permission->end_time,
+                'permission_id'    => $permission->id,
+            ]);
+        }
 
         return response()->json([
             'status'  => true,

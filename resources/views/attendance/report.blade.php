@@ -138,12 +138,15 @@
                             <th>Staff Member</th>
                             <th>Date</th>
                             <th>Allowed In</th>
-                            <th>Actual Check-In</th>
+                            <th>Session 1 (In → Out)</th>
+                            <th>Permission Period</th>
+                            <th>Permission Duration</th>
+                            <th>Session 2 (In → Out)</th>
                             <th>Late Duration</th>
                             <th>Late Status</th>
                             <th>Exceeded?</th>
                             <th>Deduction Amount</th>
-                            <th>Working Hours</th>
+                            <th>Total Worked Hours</th>
                             <th>Status</th>
                         </tr>
                     </thead>

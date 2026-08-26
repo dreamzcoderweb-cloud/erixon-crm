@@ -221,7 +221,10 @@
                                             <th class="text-center align-middle text-nowrap" style="min-width: 170px;">Approved Leaves Taken</th>
                                             <th class="text-center align-middle text-nowrap" style="min-width: 160px;">Excess Leave Days</th>
                                             <th class="text-center align-middle text-nowrap" style="min-width: 160px;">Per-Day Salary Rate</th>
-                                            <th class="text-center align-middle text-nowrap" style="min-width: 150px;">Salary Deduction</th>
+                                            <th class="text-center align-middle text-nowrap" style="min-width: 150px;">Leave Deduction</th>
+                                            <th class="text-center align-middle text-nowrap" style="min-width: 160px;">Late Deduction</th>
+                                            <th class="text-center align-middle text-nowrap" style="min-width: 160px;">Total Deduction</th>
+                                            <th class="text-center align-middle text-nowrap" style="min-width: 140px;">Incentive Amount</th>
                                             <th class="text-center align-middle text-nowrap" style="min-width: 140px;">Net Salary</th>
                                         </tr>
                                     </thead>

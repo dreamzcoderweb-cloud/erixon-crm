@@ -110,6 +110,63 @@
         </div>
     </div>
 
+    @php
+        $user = auth()->user();
+        $isSuperAdmin = $user && $user->isSuperAdmin();
+    @endphp
+
+    @if(!$isSuperAdmin)
+        <!-- Quick Attendance Widget for Logged In Staff -->
+        <div class="card mb-4 border-0 shadow-sm rounded-4 overflow-hidden" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
+            <div class="card-body p-3 p-md-4 d-flex justify-content-between align-items-center flex-wrap gap-3 text-white">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle bg-white bg-opacity-10 p-3 d-flex align-items-center justify-content-center text-primary fs-3 shadow-sm border border-white border-opacity-10">
+                        <i class="bx bx-time-five text-info fs-2"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-1 text-white fw-bold d-flex align-items-center gap-2">
+                            Today's Attendance Quick Action
+                            <span class="badge bg-info bg-opacity-20 text-info border border-info border-opacity-20 fs-xs font-monospace fw-normal"></span>
+                        </h5>
+
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    @if(empty($myTodayAttendance))
+                        <button class="btn btn-success btn-lg px-4 rounded-pill shadow-sm btn-mark-self-attendance fw-bold" data-type="check_in">
+                            <i class="bx bx-log-in me-1"></i> Check In Now
+                        </button>
+                    @elseif(empty($myTodayAttendance->check_out))
+                        <span class="badge  bg-opacity-20 text-success border border-success border-opacity-20 px-3 py-2 fs-6 rounded-pill">
+                            <i class="bx bx-check-circle me-1"></i>Session 1: {{ \Carbon\Carbon::parse($myTodayAttendance->check_in)->format('h:i A') }} ({{ $myTodayAttendance->status }})
+                        </span>
+                        <button class="btn btn-danger btn-lg px-4 rounded-pill shadow-sm btn-mark-self-attendance fw-bold" data-type="check_out">
+                            <i class="bx bx-log-out me-1"></i> Session 1 Check Out
+                        </button>
+                    @elseif(empty($myTodayAttendance->second_check_in))
+                        <span class="badge bg-info bg-opacity-20  border border-info border-opacity-20 px-3 py-2 fs-6 rounded-pill">
+                            <i class="bx bx-check-double me-1"></i>Session 1: {{ \Carbon\Carbon::parse($myTodayAttendance->check_in)->format('h:i A') }} – {{ \Carbon\Carbon::parse($myTodayAttendance->check_out)->format('h:i A') }}
+                        </span>
+                        <button class="btn btn-primary btn-lg px-4 rounded-pill shadow-sm btn-mark-self-attendance fw-bold" data-type="check_in">
+                            <i class="bx bx-log-in-circle me-1"></i> Session 2 Check In
+                        </button>
+                    @elseif(empty($myTodayAttendance->second_check_out))
+                        <span class="badge  bg-opacity-20 text-warning border border-warning border-opacity-20 px-3 py-2 fs-6 rounded-pill">
+                            <i class="bx bx-time me-1"></i>Session 2: {{ \Carbon\Carbon::parse($myTodayAttendance->second_check_in)->format('h:i A') }}
+                        </span>
+                        <button class="btn btn-danger btn-lg px-4 rounded-pill shadow-sm btn-mark-self-attendance fw-bold" data-type="check_out">
+                            <i class="bx bx-log-out me-1"></i> Session 2 Check Out
+                        </button>
+                    @else
+                        <span class="badge  px-3 py-2 fs-6 rounded-pill shadow-sm">
+                            <i class="bx bx-check-shield me-1"></i> All Sessions Completed Today (Worked: {{ $myTodayAttendance->working_hours }})
+                        </span>
+                    @endif
+                </div>
+            </div>
+        </div>
+    @endif
+
     <!-- CORE MODULES STAT CARDS (ROW 1) -->
     <div class="row g-3 g-md-4 mb-4">
         <!-- Module 1: Customers -->

@@ -9,7 +9,7 @@
         @endphp
         @if(!$isSuperAdmin)
         <!-- Quick Attendance Widget for Logged In User -->
-        <div class="card mb-4 bg-label-primary border-0 shadow-sm">
+        {{-- <div class="card mb-4 bg-label-primary border-0 shadow-sm">
             <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
                 <div>
                     <h5 class="mb-1 text-primary"><i class="bx bx-time-five me-1"></i> Today's Attendance Quick Action</h5>
@@ -27,16 +27,26 @@
                             <i class="bx bx-log-in me-1"></i> Check In Now
                         </button>
                     @elseif(empty($myTodayAttendance->check_out))
-                        <span class="badge bg-success fs-6 me-2">Checked In: {{ \Carbon\Carbon::parse($myTodayAttendance->check_in)->format('h:i A') }} ({{ $myTodayAttendance->status }})</span>
+                        <span class="badge bg-success fs-6 me-2">Session 1 Checked In: {{ \Carbon\Carbon::parse($myTodayAttendance->check_in)->format('h:i A') }} ({{ $myTodayAttendance->status }})</span>
                         <button class="btn btn-danger btn-mark-self-attendance" data-type="check_out">
-                            <i class="bx bx-log-out me-1"></i> Check Out Now
+                            <i class="bx bx-log-out me-1"></i> Session 1 Check Out
+                        </button>
+                    @elseif(empty($myTodayAttendance->second_check_in))
+                        <span class="badge bg-info fs-6 me-2">Session 1: {{ \Carbon\Carbon::parse($myTodayAttendance->check_in)->format('h:i A') }} - {{ \Carbon\Carbon::parse($myTodayAttendance->check_out)->format('h:i A') }}</span>
+                        <button class="btn btn-primary btn-mark-self-attendance" data-type="check_in">
+                            <i class="bx bx-log-in me-1"></i> Session 2 Check In
+                        </button>
+                    @elseif(empty($myTodayAttendance->second_check_out))
+                        <span class="badge bg-success fs-6 me-2">Session 2 Checked In: {{ \Carbon\Carbon::parse($myTodayAttendance->second_check_in)->format('h:i A') }}</span>
+                        <button class="btn btn-danger btn-mark-self-attendance" data-type="check_out">
+                            <i class="bx bx-log-out me-1"></i> Session 2 Check Out
                         </button>
                     @else
-                        <span class="badge bg-primary fs-6"><i class="bx bx-check-circle me-1"></i> Completed Today ({{ $myTodayAttendance->check_in }} - {{ $myTodayAttendance->check_out }})</span>
+                        <span class="badge bg-primary fs-6"><i class="bx bx-check-circle me-1"></i> Completed Today (Total Worked: {{ $myTodayAttendance->working_hours }})</span>
                     @endif
                 </div>
             </div>
-        </div>
+        </div> --}}
         @endif
 
         <!-- Analytics KPI Cards -->
@@ -125,7 +135,7 @@
                             </select>
                         </div>
 
-                        
+
 
                         <div class="col-md-3">
                             <label class="form-label fw-semibold">Status</label>

@@ -11,6 +11,7 @@ use App\Models\LeadStage;
 use App\Models\LeadRequirement;
 use App\Models\LostReason;
 use App\Models\Followup;
+use App\Models\Attendance;
 use Spatie\Permission\Models\Role;
 
 use Illuminate\Support\Facades\Auth;
@@ -20,6 +21,12 @@ class DashboardController extends Controller
     public function index()
     {
         $user = Auth::user();
+
+        if ($user && !$user->isSuperAdmin()) {
+            $data['myTodayAttendance'] = Attendance::where('user_id', $user->id)
+                ->whereDate('date', date('Y-m-d'))
+                ->first();
+        }
 
         // 1. Customers Module
         $data['totalcustomers']    = Customer::forUser($user)->count();

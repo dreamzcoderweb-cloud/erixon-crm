@@ -18,6 +18,11 @@ class Attendance extends Model
         'date',
         'check_in',
         'check_out',
+        'permission_start',
+        'permission_end',
+        'second_check_in',
+        'second_check_out',
+        'permission_id',
         'working_hours',
         'status',
     ];
@@ -25,5 +30,10 @@ class Attendance extends Model
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id', 'id');
+    }
+
+    public function permissionRequest()
+    {
+        return $this->belongsTo(PermissionRequest::class, 'permission_id', 'id');
     }
 }
