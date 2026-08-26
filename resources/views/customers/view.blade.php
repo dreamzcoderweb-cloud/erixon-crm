@@ -138,6 +138,8 @@
                             <th>City / State</th>
                             <th>Created Date</th>
                             <th>Created By</th>
+                            <th>Owner By</th>
+                            <th>Assign By</th>
                             <th class="text-center">Status</th>
                             <th class="text-center">Actions</th>
                         </tr>
@@ -218,6 +220,30 @@
                             <div class="col-md-3">
                                 <label class="form-label">Pincode</label>
                                 <input type="text" name="pincode" class="form-control" placeholder="Pincode">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Owner By</label>
+                                <select name="owner_by" class="form-select">
+                                    <option value="">-- Select Owner --</option>
+                                    @if(isset($allUsers) && count($allUsers) > 0)
+                                        @foreach ($allUsers as $usr)
+                                            <option value="{{ $usr->id }}">{{ $usr->name }} ({{ $usr->email }})</option>
+                                        @endforeach
+                                    @endif
+                                </select>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Assign By</label>
+                                <select name="assign_by" class="form-select">
+                                    <option value="">-- Select Assign By --</option>
+                                    @if(isset($allUsers) && count($allUsers) > 0)
+                                        @foreach ($allUsers as $usr)
+                                            <option value="{{ $usr->id }}">{{ $usr->name }} ({{ $usr->email }})</option>
+                                        @endforeach
+                                    @endif
+                                </select>
                                 <div class="invalid-feedback"></div>
                             </div>
                             <div class="col-md-6">
@@ -310,6 +336,30 @@
                             <div class="col-md-3">
                                 <label class="form-label">Pincode</label>
                                 <input type="text" name="pincode" id="edit_pincode" class="form-control" placeholder="Pincode">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Owner By</label>
+                                <select name="owner_by" id="edit_owner_by" class="form-select">
+                                    <option value="">-- Select Owner --</option>
+                                    @if(isset($allUsers) && count($allUsers) > 0)
+                                        @foreach ($allUsers as $usr)
+                                            <option value="{{ $usr->id }}">{{ $usr->name }} ({{ $usr->email }})</option>
+                                        @endforeach
+                                    @endif
+                                </select>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Assign By</label>
+                                <select name="assign_by" id="edit_assign_by" class="form-select">
+                                    <option value="">-- Select Assign By --</option>
+                                    @if(isset($allUsers) && count($allUsers) > 0)
+                                        @foreach ($allUsers as $usr)
+                                            <option value="{{ $usr->id }}">{{ $usr->name }} ({{ $usr->email }})</option>
+                                        @endforeach
+                                    @endif
+                                </select>
                                 <div class="invalid-feedback"></div>
                             </div>
                             <div class="col-md-6">

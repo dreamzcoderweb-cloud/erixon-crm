@@ -143,7 +143,24 @@ $(document).ready(function () {
 
     function tableLayout() {
         return {
-            topStart: ['pageLength', { buttons: ['copy', 'csv', 'excel', 'pdf', 'print'] }],
+            topStart: [
+                'pageLength',
+                {
+                    buttons: [
+                        {
+                            extend: 'colvis',
+                            text: '<i class="bx bx-columns me-1"></i> Column Visibility',
+                            className: 'btn btn-secondary btn-sm me-1',
+                            columns: ':not(:first-child):not(:last-child)'
+                        },
+                        { extend: 'copy', className: 'btn btn-secondary btn-sm me-1', exportOptions: { columns: ':visible:not(:last-child)' } },
+                        { extend: 'csv', className: 'btn btn-secondary btn-sm me-1', exportOptions: { columns: ':visible:not(:last-child)' } },
+                        { extend: 'excel', className: 'btn btn-secondary btn-sm me-1', exportOptions: { columns: ':visible:not(:last-child)' } },
+                        { extend: 'pdf', className: 'btn btn-secondary btn-sm me-1', exportOptions: { columns: ':visible:not(:last-child)' } },
+                        { extend: 'print', className: 'btn btn-secondary btn-sm', exportOptions: { columns: ':visible:not(:last-child)' } }
+                    ]
+                }
+            ],
             topEnd: 'search',
             bottomStart: 'info',
             bottomEnd: 'paging'

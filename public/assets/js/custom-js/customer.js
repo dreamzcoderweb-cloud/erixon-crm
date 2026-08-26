@@ -93,6 +93,22 @@ $(document).ready(function () {
                 }
             },
             {
+                data: 'owner',
+                render: function (data, type, row) {
+                    let ownerName = data && data.name ? data.name : (row.owner_by ? 'User #' + row.owner_by : '-');
+                    if (type !== 'display') return ownerName;
+                    return data && data.name ? `<span class="badge bg-label-primary">${data.name}</span>` : '<span class="text-muted">-</span>';
+                }
+            },
+            {
+                data: 'assigned_by',
+                render: function (data, type, row) {
+                    let assignName = data && data.name ? data.name : (row.assign_by ? 'User #' + row.assign_by : '-');
+                    if (type !== 'display') return assignName;
+                    return data && data.name ? `<span class="badge bg-label-info">${data.name}</span>` : '<span class="text-muted">-</span>';
+                }
+            },
+            {
                 data: 'status',
                 className: 'text-center',
                 render: function (data, type, row) {
@@ -302,6 +318,8 @@ $(document).ready(function () {
                     $('#edit_state').val(customer.state);
                     $('#edit_country').val(customer.country);
                     $('#edit_pincode').val(customer.pincode);
+                    $('#edit_owner_by').val(customer.owner_by || '');
+                    $('#edit_assign_by').val(customer.assign_by || '');
                     $('#edit_status').val(customer.status);
 
                     $('#editCustomerModal').modal('show');

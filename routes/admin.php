@@ -20,6 +20,7 @@ use App\Http\Controllers\CallRecordingController;
 use App\Http\Controllers\CallLogController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\LeaveController;
+use App\Http\Controllers\IncentiveController;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -374,4 +375,19 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
         ->middleware('permission:permissions.approve');
     Route::post('permissions/reject/{id}', [LeaveController::class, 'rejectPermission'])
         ->middleware('permission:permissions.approve');
+
+    // Incentive routes
+    Route::get('incentives', [IncentiveController::class, 'index'])
+        ->middleware('permission:incentives.view')
+        ->name('incentives.index');
+    Route::get('incentives/data', [IncentiveController::class, 'listData'])
+        ->middleware('permission:incentives.view');
+    Route::post('incentives/store', [IncentiveController::class, 'store'])
+        ->middleware('permission:incentives.create');
+    Route::get('incentives/edit/{id}', [IncentiveController::class, 'edit'])
+        ->middleware('permission:incentives.edit');
+    Route::post('incentives/update/{id}', [IncentiveController::class, 'update'])
+        ->middleware('permission:incentives.edit');
+    Route::delete('incentives/delete/{id}', [IncentiveController::class, 'destroy'])
+        ->middleware('permission:incentives.delete');
 });

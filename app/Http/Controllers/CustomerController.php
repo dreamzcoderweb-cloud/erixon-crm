@@ -27,7 +27,9 @@ class CustomerController extends Controller
             $staffs = User::where('id', Auth::id())->get();
         }
 
-        return view('customers.view', compact('staffs'));
+        $allUsers = User::orderBy('name')->get();
+
+        return view('customers.view', compact('staffs', 'allUsers'));
     }
 
     public function listData(Request $request = null)
@@ -75,7 +77,7 @@ class CustomerController extends Controller
             }
         }
 
-        $customers = (clone $query)->with('creator:id,name')
+        $customers = (clone $query)->with(['creator:id,name', 'owner:id,name', 'assignedBy:id,name'])
             ->orderBy('customer_id', 'DESC')
             ->get();
 
@@ -136,8 +138,10 @@ class CustomerController extends Controller
             'city'          => ['nullable', 'string', 'max:100'],
             'state'         => ['nullable', 'string', 'max:100'],
             'country'       => ['nullable', 'string', 'max:100'],
-            'pincode'       => ['nullable', 'string', 'max:20'],
-            'status'        => ['required', 'in:0,1'],
+            'pincode'          => ['nullable', 'string', 'max:20'],
+            'owner_by'         => ['nullable', 'exists:users,id'],
+            'assign_by'        => ['nullable', 'exists:users,id'],
+            'status'           => ['required', 'in:0,1'],
         ]);
 
         $validated['created_by'] = Auth::id();
@@ -178,18 +182,20 @@ class CustomerController extends Controller
         }
 
         $validated = $request->validate([
-            'customer_type' => ['required', 'in:user,reseller'],
-            'name'          => ['required', 'string', 'max:255'],
-            'company_name'  => ['nullable', 'string', 'max:255'],
-            'mobile'        => ['required', 'string', 'max:20', Rule::unique('customers', 'mobile')->ignore($customer->customer_id, 'customer_id')->withoutTrashed()],
-            'email'         => ['nullable', 'email', 'max:255'],
+            'customer_type'    => ['required', 'in:user,reseller'],
+            'name'             => ['required', 'string', 'max:255'],
+            'company_name'     => ['nullable', 'string', 'max:255'],
+            'mobile'           => ['required', 'string', 'max:20', Rule::unique('customers', 'mobile')->ignore($customer->customer_id, 'customer_id')->withoutTrashed()],
+            'email'            => ['nullable', 'email', 'max:255'],
             'alternate_mobile' => ['nullable', 'string', 'max:20'],
-            'address'       => ['nullable', 'string'],
-            'city'          => ['nullable', 'string', 'max:100'],
-            'state'         => ['nullable', 'string', 'max:100'],
-            'country'       => ['nullable', 'string', 'max:100'],
-            'pincode'       => ['nullable', 'string', 'max:20'],
-            'status'        => ['required', 'in:0,1'],
+            'address'          => ['nullable', 'string'],
+            'city'             => ['nullable', 'string', 'max:100'],
+            'state'            => ['nullable', 'string', 'max:100'],
+            'country'          => ['nullable', 'string', 'max:100'],
+            'pincode'          => ['nullable', 'string', 'max:20'],
+            'owner_by'         => ['nullable', 'exists:users,id'],
+            'assign_by'        => ['nullable', 'exists:users,id'],
+            'status'           => ['required', 'in:0,1'],
         ]);
 
         $customer->update($validated);

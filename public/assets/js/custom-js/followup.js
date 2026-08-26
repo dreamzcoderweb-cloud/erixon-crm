@@ -198,6 +198,14 @@ $(document).ready(function () {
                     }
                 },
                 {
+                    data: 'created_at',
+                    render: function (data, type, row) {
+                        let formatted = row.created_at ? formatDate(row.created_at) : '';
+                        if (type !== 'display') return formatted || 'N/A';
+                        return row.created_at ? `<small class="text-muted">${formatted}</small>` : '<span class="text-muted">N/A</span>';
+                    }
+                },
+                {
                     data: 'remarks',
                     render: function (data, type) {
                         if (type !== 'display') return data || '';

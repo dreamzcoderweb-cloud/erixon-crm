@@ -333,7 +333,7 @@
     <script src="{{ asset('assets/js/custom-js/leaves.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/credit_request.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/payment.js') }}"></script>
-
+    <script src="{{ asset('assets/js/custom-js/incentive.js') }}"></script>
     <!-- Vendors JS -->
     <script src="{{ asset('assets/vendor/libs/apex-charts/apexcharts.js') }}"></script>
 

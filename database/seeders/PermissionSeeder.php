@@ -28,6 +28,12 @@ class PermissionSeeder extends Seeder
             'staff.create',
             'staff.edit',
             'staff.delete',
+
+            'incentives.view',
+            'incentives.create',
+            'incentives.edit',
+            'incentives.delete',
+
             'customers.view',
             'customers.create',
             'customers.edit',

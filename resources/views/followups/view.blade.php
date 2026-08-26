@@ -190,6 +190,7 @@
                             <th class="text-center">Status</th>
                             <th>Forward To</th>
                             <th>Created By</th>
+                            <th>Created At</th>
                             <th>Remarks</th>
                             <th class="text-center">Actions</th>
                         </tr>

@@ -31,6 +31,8 @@ class Customer extends Authenticatable
         'country',
         'pincode',
         'created_by',
+        'owner_by',
+        'assign_by',
         'status',
         'credit_balance',
         'password',
@@ -52,6 +54,16 @@ class Customer extends Authenticatable
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function owner()
+    {
+        return $this->belongsTo(User::class, 'owner_by');
+    }
+
+    public function assignedBy()
+    {
+        return $this->belongsTo(User::class, 'assign_by');
     }
 
     public function leads()
