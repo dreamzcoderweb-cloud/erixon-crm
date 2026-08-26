@@ -107,7 +107,7 @@
                             <div class="d-flex gap-2">
                                 @if(auth()->user()->isSuperAdmin())
                                     <select id="filter_leave_user_id" class="form-select form-select-sm" style="width: 200px;">
-                                        <option value="">-- Select Staff Member --</option>
+                                        <option value="">-- All Staff Members --</option>
                                         @foreach ($staffs as $staff)
                                             <option value="{{ $staff->id }}">{{ $staff->name }}</option>
                                         @endforeach

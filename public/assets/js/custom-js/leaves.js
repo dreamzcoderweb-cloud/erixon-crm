@@ -39,7 +39,7 @@ $(document).ready(function () {
         });
     }
 
-    // Auto calculate leave days from date range
+    // Auto calculate leave days from date range (excluding Sundays/weekly holidays)
     $('#leave_from_date, #leave_to_date').on('change', function () {
         let from = $('#leave_from_date').val();
         let to = $('#leave_to_date').val();
@@ -47,9 +47,15 @@ $(document).ready(function () {
             let d1 = new Date(from);
             let d2 = new Date(to);
             if (d2 >= d1) {
-                let diffTime = Math.abs(d2 - d1);
-                let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-                $('#leave_number_of_days').val(diffDays);
+                let workingDays = 0;
+                let cur = new Date(d1.getTime());
+                while (cur <= d2) {
+                    if (cur.getDay() !== 0) { // 0 is Sunday
+                        workingDays++;
+                    }
+                    cur.setDate(cur.getDate() + 1);
+                }
+                $('#leave_number_of_days').val(workingDays);
             }
         }
     });

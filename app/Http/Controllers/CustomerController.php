@@ -20,7 +20,12 @@ class CustomerController extends Controller
             return $this->listData($request);
         }
 
-        $staffs = User::orderBy('name')->get();
+        $user = Auth::user();
+        if ($user && $user->isSuperAdmin()) {
+            $staffs = User::staffOnly()->orderBy('name')->get();
+        } else {
+            $staffs = User::where('id', Auth::id())->get();
+        }
 
         return view('customers.view', compact('staffs'));
     }

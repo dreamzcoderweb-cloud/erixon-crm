@@ -24,12 +24,12 @@ class FollowupController extends Controller
         $data['leads']       = Lead::forUser($user)->with('customer')->orderBy('lead_id', 'DESC')->get();
         $data['customers']   = \App\Models\Customer::forUser($user)->where('status', 1)->orderBy('name')->get();
         $data['leadSources'] = \App\Models\LeadSource::where('status', 1)->orderBy('name')->get();
-        $data['allStaffs']   = User::orderBy('name')->get();
-
-        if ($isAdmin) {
+        if ($user->isSuperAdmin()) {
+            $data['allStaffs']       = User::staffOnly()->orderBy('name')->get();
             $data['staffs']          = User::staffOnly()->orderBy('name')->get();
             $data['availableStaffs'] = User::staffOnly()->availableForAssignment()->orderBy('name')->get();
         } else {
+            $data['allStaffs']       = User::where('id', $user->id)->get();
             $data['staffs']          = User::where('id', $user->id)->get();
             $data['availableStaffs'] = User::where('id', $user->id)->get();
         }

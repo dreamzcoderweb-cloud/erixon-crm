@@ -133,12 +133,12 @@ class CallLogController extends Controller
 
     private function formData(): array
     {
-        $user    = Auth::user();
-        $isAdmin = $user && $user->isAdmin();
+        $user         = Auth::user();
+        $isSuperAdmin = $user && $user->isSuperAdmin();
 
         return [
             'leads'      => Lead::forUser($user)->with('customer')->orderBy('lead_id', 'DESC')->get(),
-            'staffs'     => $isAdmin ? User::staffOnly()->orderBy('name')->get() : User::where('id', $user->id)->get(),
+            'staffs'     => $isSuperAdmin ? User::staffOnly()->orderBy('name')->get() : User::where('id', $user->id)->get(),
             'recordings' => CallRecording::forUser($user)->with('lead.customer')->orderBy('call_id', 'DESC')->get(),
         ];
     }

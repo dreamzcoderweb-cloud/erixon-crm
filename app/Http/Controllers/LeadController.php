@@ -28,13 +28,14 @@ class LeadController extends Controller
         $data['leadStages']       = LeadStage::where('status', 1)->orderBy('sort_order', 'ASC')->get();
         $data['leadRequirements'] = LeadRequirement::where('status', 1)->orderBy('name')->get();
         $data['lostReasons']      = LostReason::where('status', 1)->orderBy('reason')->get();
-        $data['allStaffs']        = User::orderBy('name')->get();
         $data['leadTitles']       = Lead::forUser($user)->select('lead_title')->distinct()->whereNotNull('lead_title')->orderBy('lead_title')->pluck('lead_title');
 
-        if ($isAdmin) {
-            $data['staffs'] = User::staffOnly()->orderBy('name')->get();
+        if ($user->isSuperAdmin()) {
+            $data['allStaffs'] = User::staffOnly()->orderBy('name')->get();
+            $data['staffs']    = User::staffOnly()->orderBy('name')->get();
         } else {
-            $data['staffs'] = User::where('id', $user->id)->get();
+            $data['allStaffs'] = User::where('id', $user->id)->get();
+            $data['staffs']    = User::where('id', $user->id)->get();
         }
 
         return view('leads.view', $data);

@@ -233,8 +233,20 @@ class LeaveController extends Controller
                 $overlapEnd   = $lTo->lessThan($endOfMonth) ? $lTo->copy() : $endOfMonth->copy();
 
                 if ($overlapStart->lessThanOrEqualTo($overlapEnd)) {
-                    $daysInMonth = $overlapStart->diffInDays($overlapEnd) + 1;
-                    $totalApprovedLeaveDays += min($daysInMonth, floatval($leave->number_of_days));
+                    $curr = $overlapStart->copy();
+                    $leaveDaysInOverlap = 0;
+                    while ($curr->lessThanOrEqualTo($overlapEnd)) {
+                        // Exclude Sundays (weekly holidays) from deductible leave calculation
+                        if (!$curr->isSunday()) {
+                            if ($lFrom->equalTo($lTo) && floatval($leave->number_of_days) <= 0.5) {
+                                $leaveDaysInOverlap += floatval($leave->number_of_days);
+                            } else {
+                                $leaveDaysInOverlap += 1.0;
+                            }
+                        }
+                        $curr->addDay();
+                    }
+                    $totalApprovedLeaveDays += min($leaveDaysInOverlap, floatval($leave->number_of_days));
                 }
             }
 
