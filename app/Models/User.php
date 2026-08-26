@@ -32,9 +32,14 @@ class User extends Authenticatable
         'date_of_birth',
         'date_of_joining',
         'designation',
+        'staff_type',
         'base_salary',
         'available_leave_count',
         'check_in_time',
+        'allow_check_in_time',
+        'late_attendance_count',
+        'increment_amount',
+        'increment_date',
         'check_out_time',
     ];
 
@@ -62,6 +67,9 @@ class User extends Authenticatable
             'date_of_joining' => 'date',
             'base_salary' => 'decimal:2',
             'available_leave_count' => 'float',
+            'late_attendance_count' => 'integer',
+            'increment_amount' => 'decimal:2',
+            'increment_date' => 'date',
         ];
     }
 

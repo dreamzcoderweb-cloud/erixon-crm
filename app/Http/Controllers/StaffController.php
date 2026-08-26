@@ -12,10 +12,17 @@ class StaffController extends Controller
 {
     public function index()
     {
-        $data['staffs'] = User::with('roles')
-            ->staffOnly()
-            ->orderBy('id', 'DESC')
-            ->get();
+        $user = auth()->user();
+        if ($user->isSuperAdmin()) {
+            $data['staffs'] = User::with('roles')
+                ->staffOnly()
+                ->orderBy('id', 'DESC')
+                ->get();
+        } else {
+            $data['staffs'] = User::with('roles')
+                ->where('id', $user->id)
+                ->get();
+        }
 
         return view('staff.view', $data);
     }
@@ -39,9 +46,14 @@ class StaffController extends Controller
                 'date_of_birth' => ['nullable', 'date'],
                 'date_of_joining' => ['nullable', 'date'],
                 'designation' => ['nullable', 'string', 'max:100'],
+                'staff_type' => ['nullable', 'string', 'in:Temporary,Permanent'],
                 'base_salary' => ['nullable', 'numeric', 'min:0'],
                 'available_leave_count' => ['nullable', 'numeric', 'min:0'],
                 'check_in_time' => ['nullable'],
+                'allow_check_in_time' => ['nullable'],
+                'late_attendance_count' => ['nullable', 'integer', 'min:0'],
+                'increment_amount' => ['nullable', 'numeric', 'min:0'],
+                'increment_date' => ['nullable', 'date'],
                 'check_out_time' => ['nullable'],
             ]
         );
@@ -55,9 +67,14 @@ class StaffController extends Controller
         $user->date_of_birth = $validated['date_of_birth'] ?? null;
         $user->date_of_joining = $validated['date_of_joining'] ?? null;
         $user->designation = $validated['designation'] ?? null;
+        $user->staff_type = $validated['staff_type'] ?? 'Permanent';
         $user->base_salary = $validated['base_salary'] ?? 0.00;
-        $user->available_leave_count = $validated['available_leave_count'] ?? 0.00;
+        $user->available_leave_count = ($user->staff_type === 'Temporary') ? 0.00 : ($validated['available_leave_count'] ?? 0.00);
         $user->check_in_time = $validated['check_in_time'] ?? null;
+        $user->allow_check_in_time = $validated['allow_check_in_time'] ?? null;
+        $user->late_attendance_count = $validated['late_attendance_count'] ?? 0;
+        $user->increment_amount = $validated['increment_amount'] ?? 0.00;
+        $user->increment_date = $validated['increment_date'] ?? null;
         $user->check_out_time = $validated['check_out_time'] ?? null;
         $user->is_on_leave = false;
         $user->password = Hash::make($validated['password']);
@@ -103,9 +120,14 @@ class StaffController extends Controller
                 'date_of_birth' => ['nullable', 'date'],
                 'date_of_joining' => ['nullable', 'date'],
                 'designation' => ['nullable', 'string', 'max:100'],
+                'staff_type' => ['nullable', 'string', 'in:Temporary,Permanent'],
                 'base_salary' => ['nullable', 'numeric', 'min:0'],
                 'available_leave_count' => ['nullable', 'numeric', 'min:0'],
                 'check_in_time' => ['nullable'],
+                'allow_check_in_time' => ['nullable'],
+                'late_attendance_count' => ['nullable', 'integer', 'min:0'],
+                'increment_amount' => ['nullable', 'numeric', 'min:0'],
+                'increment_date' => ['nullable', 'date'],
                 'check_out_time' => ['nullable'],
             ]
         );
@@ -118,9 +140,14 @@ class StaffController extends Controller
         $user->date_of_birth = $validated['date_of_birth'] ?? null;
         $user->date_of_joining = $validated['date_of_joining'] ?? null;
         $user->designation = $validated['designation'] ?? null;
+        $user->staff_type = $validated['staff_type'] ?? 'Permanent';
         $user->base_salary = $validated['base_salary'] ?? 0.00;
-        $user->available_leave_count = $validated['available_leave_count'] ?? 0.00;
+        $user->available_leave_count = ($user->staff_type === 'Temporary') ? 0.00 : ($validated['available_leave_count'] ?? 0.00);
         $user->check_in_time = $validated['check_in_time'] ?? null;
+        $user->allow_check_in_time = $validated['allow_check_in_time'] ?? null;
+        $user->late_attendance_count = $validated['late_attendance_count'] ?? 0;
+        $user->increment_amount = $validated['increment_amount'] ?? 0.00;
+        $user->increment_date = $validated['increment_date'] ?? null;
         $user->check_out_time = $validated['check_out_time'] ?? null;
         if (!empty($validated['password'])) {
             $user->password = Hash::make($validated['password']);

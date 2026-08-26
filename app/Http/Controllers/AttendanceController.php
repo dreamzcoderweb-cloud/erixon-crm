@@ -15,8 +15,12 @@ class AttendanceController extends Controller
             return $this->listData($request);
         }
 
-        $data['staffs'] = User::staffOnly()->orderBy('name')->get();
-        $data['myTodayAttendance'] = Attendance::where('user_id', auth()->id())
+        $user = auth()->user();
+        $data['staffs'] = $user->isSuperAdmin()
+            ? User::staffOnly()->orderBy('name')->get()
+            : User::where('id', $user->id)->get();
+
+        $data['myTodayAttendance'] = Attendance::where('user_id', $user->id)
             ->whereDate('date', date('Y-m-d'))
             ->first();
 
@@ -27,17 +31,17 @@ class AttendanceController extends Controller
     {
         $request = $request ?? request();
         $user = auth()->user();
-        $canManageAll = $user->can('leaves.approve') || $user->hasRole(['Super Admin', 'Admin', 'super admin', 'super-admin']);
+        $isSuperAdmin = $user->isSuperAdmin();
 
-        $query = Attendance::with('user:id,name,email,check_in_time,check_out_time');
+        $query = Attendance::with('user:id,name,email,check_in_time,check_out_time,allow_check_in_time');
 
-        // Non-admin staff can only see their own attendance records
-        if (!$canManageAll) {
+        // Non-Super Admin staff can only see their own attendance records
+        if (!$isSuperAdmin) {
             $query->where('user_id', $user->id);
-        }
-
-        if ($request->filled('user_id')) {
-            $query->where('user_id', $request->input('user_id'));
+        } else {
+            if ($request->filled('user_id')) {
+                $query->where('user_id', $request->input('user_id'));
+            }
         }
 
         if ($request->filled('status') && $request->input('status') !== '') {
@@ -101,11 +105,12 @@ class AttendanceController extends Controller
         $attendance = (clone $query)->orderBy('attendance_id', 'DESC')->get();
 
         $baseCountQuery = Attendance::query();
-        if (!$canManageAll) {
+        if (!$isSuperAdmin) {
             $baseCountQuery->where('user_id', $user->id);
-        }
-        if ($request->filled('user_id')) {
-            $baseCountQuery->where('user_id', $request->input('user_id'));
+        } else {
+            if ($request->filled('user_id')) {
+                $baseCountQuery->where('user_id', $request->input('user_id'));
+            }
         }
         if ($request->filled('status') && $request->input('status') !== '') {
             $baseCountQuery->where('status', $request->input('status'));
@@ -162,7 +167,7 @@ class AttendanceController extends Controller
 
         return response()->json([
             'status'           => true,
-            'can_manage_all'   => $canManageAll,
+            'can_manage_all'   => $isSuperAdmin,
             'total_attendance' => $totalAttendance,
             'present_count'    => $presentCount,
             'staff_count'      => $staffCount,
@@ -173,8 +178,8 @@ class AttendanceController extends Controller
     public function store(Request $request)
     {
         $user = auth()->user();
-        if (!$user->can('leaves.approve') && !$user->hasRole(['Super Admin', 'Admin', 'super admin', 'super-admin'])) {
-            return response()->json(['status' => false, 'message' => 'Unauthorized action. Admin privileges required to add attendance for staff.'], 403);
+        if (!$user->isSuperAdmin()) {
+            return response()->json(['status' => false, 'message' => 'Unauthorized action. Super Admin privileges required to add attendance for staff.'], 403);
         }
 
         $validated = $request->validate([
@@ -207,7 +212,7 @@ class AttendanceController extends Controller
 
     public function edit($id)
     {
-        $attendance = Attendance::with('user:id,name,email,check_in_time,check_out_time')->find($id);
+        $attendance = Attendance::with('user:id,name,email,check_in_time,check_out_time,allow_check_in_time')->find($id);
         if (!$attendance) {
             return response()->json([
                 'status'  => false,
@@ -323,7 +328,7 @@ class AttendanceController extends Controller
     }
 
     /**
-     * Compare actual check-in time against staff reference check_in_time
+     * Compare actual check-in time against staff reference allow_check_in_time or check_in_time
      */
     private function determineAttendanceStatus($user, $actualCheckIn, $requestedStatus = 'Auto')
     {
@@ -331,12 +336,13 @@ class AttendanceController extends Controller
             return $requestedStatus;
         }
 
-        if (!$user || !$user->check_in_time) {
+        $allowTime = $user ? ($user->allow_check_in_time ?? $user->check_in_time) : null;
+        if (!$allowTime) {
             return 'Present';
         }
 
         try {
-            $assignedIn = Carbon::parse($user->check_in_time)->format('H:i:s');
+            $assignedIn = Carbon::parse($allowTime)->format('H:i:s');
             $actualIn = Carbon::parse($actualCheckIn)->format('H:i:s');
 
             if ($actualIn > $assignedIn) {
@@ -376,24 +382,44 @@ class AttendanceController extends Controller
             return $this->reportData($request);
         }
 
-        $data['staffs'] = User::staffOnly()->orderBy('name')->get();
+        $user = auth()->user();
+        $data['staffs'] = $user->isSuperAdmin()
+            ? User::staffOnly()->orderBy('name')->get()
+            : User::where('id', $user->id)->get();
 
         return view('attendance.report', $data);
     }
 
     /**
      * Requirement: Attendance Report Data with Daily, Weekly, Monthly & Custom filters
+     * Includes Late Attendance Count and Salary Deduction calculation logic.
      */
     public function reportData(Request $request)
     {
-        $filterType = $request->input('filter_type', 'daily');
+        $user         = auth()->user();
+        $isSuperAdmin = $user->isSuperAdmin();
+
+        $filterType = $request->input('filter_type');
         $userId     = $request->input('user_id');
         $date       = $request->input('date', date('Y-m-d'));
         $month      = $request->input('month', date('Y-m'));
         $startDate  = $request->input('start_date');
         $endDate    = $request->input('end_date');
 
-        $query = Attendance::with('user:id,name,email');
+        // Requirement: For a logged-in non-Super Admin staff member, restrict user_id to logged-in user and default to current month
+        if (!$isSuperAdmin) {
+            $userId = $user->id;
+            if (empty($filterType)) {
+                $filterType = 'monthly';
+                $month = date('Y-m'); // e.g. August 2026
+            }
+        } else {
+            if (empty($filterType)) {
+                $filterType = 'daily';
+            }
+        }
+
+        $query = Attendance::with('user:id,name,email,base_salary,check_in_time,check_out_time,allow_check_in_time,late_attendance_count');
 
         if (!empty($userId)) {
             $query->where('user_id', $userId);
@@ -421,7 +447,96 @@ class AttendanceController extends Controller
             }
         }
 
-        $records = $query->orderBy('date', 'DESC')->get();
+        // Fetch all matching records sorted chronologically by user and date ASC for late count calculation
+        $allRecords = $query->orderBy('user_id', 'ASC')->orderBy('date', 'ASC')->get();
+
+        // Calculate late attendance & salary deduction per user
+        $userLateCounts = [];
+        $totalLateDeductions = 0;
+
+        foreach ($allRecords as $rec) {
+            $staff = $rec->user;
+            $uId = $rec->user_id;
+
+            if (!isset($userLateCounts[$uId])) {
+                $userLateCounts[$uId] = 0;
+            }
+
+            $rawAllowTime = ($staff && $staff->allow_check_in_time) ? $staff->allow_check_in_time : (($staff && $staff->check_in_time) ? $staff->check_in_time : '09:10:00');
+            $allowTimeFormatted = Carbon::parse($rawAllowTime)->format('h:i A');
+            $allowTime24 = Carbon::parse($rawAllowTime)->format('H:i:s');
+            $allowedLateCount = (int) ($staff->late_attendance_count ?? 3);
+
+            $actualCheckIn24 = !empty($rec->check_in) ? Carbon::parse($rec->check_in)->format('H:i:s') : null;
+            $actualCheckInFormatted = !empty($rec->check_in) ? Carbon::parse($rec->check_in)->format('h:i A') : '-';
+
+            $isLate = false;
+            $lateDurationMins = 0;
+            $deductionAmount = 0.00;
+            $isExceeded = false;
+            $lateCountStatus = 'On Time';
+
+            if ($actualCheckIn24 && $actualCheckIn24 > $allowTime24) {
+                $isLate = true;
+                $userLateCounts[$uId]++;
+                $currentLateCount = $userLateCounts[$uId];
+
+                // Calculate late duration in minutes
+                $inTimeSeconds = strtotime($actualCheckIn24);
+                $allowTimeSeconds = strtotime($allowTime24);
+                $lateDurationMins = max(0, round(($inTimeSeconds - $allowTimeSeconds) / 60));
+
+                if ($currentLateCount > $allowedLateCount) {
+                    $isExceeded = true;
+                    $lateCountStatus = "Late #{$currentLateCount} ({$currentLateCount}/{$allowedLateCount})";
+
+                    // Calculate deduction rate based on base salary
+                    $baseSalary = (float) ($staff->base_salary ?? 0);
+                    $recDate = Carbon::parse($rec->date);
+                    $totalDaysInMonth = $recDate->daysInMonth;
+
+                    // Calculate working days in month (excluding Sundays)
+                    $sundays = 0;
+                    for ($d = 1; $d <= $totalDaysInMonth; $d++) {
+                        if (Carbon::createFromDate($recDate->year, $recDate->month, $d)->isSunday()) {
+                            $sundays++;
+                        }
+                    }
+                    $workingDays = max(1, $totalDaysInMonth - $sundays);
+                    $perDaySalary = $workingDays > 0 ? ($baseSalary / $workingDays) : 0;
+
+                    // Calculate daily working minutes from assigned check_in and check_out time, default 480 mins (8 hrs)
+                    $dailyMins = 480;
+                    if ($staff && $staff->check_in_time && $staff->check_out_time) {
+                        try {
+                            $cIn = Carbon::parse($staff->check_in_time);
+                            $cOut = Carbon::parse($staff->check_out_time);
+                            $diff = $cIn->diffInMinutes($cOut);
+                            if ($diff > 0) {
+                                $dailyMins = $diff;
+                            }
+                        } catch (\Exception $e) {}
+                    }
+
+                    $perMinuteSalary = $perDaySalary / $dailyMins;
+                    $deductionAmount = round($lateDurationMins * $perMinuteSalary, 2);
+                } else {
+                    $lateCountStatus = "Late #{$currentLateCount} ({$currentLateCount}/{$allowedLateCount})";
+                }
+            }
+
+            $rec->allowed_check_in_time = $allowTimeFormatted;
+            $rec->actual_check_in_formatted = $actualCheckInFormatted;
+            $rec->late_duration_minutes = $lateDurationMins;
+            $rec->late_count_status = $lateCountStatus;
+            $rec->is_allowed_count_exceeded = $isExceeded;
+            $rec->salary_deduction = $deductionAmount;
+
+            $totalLateDeductions += $deductionAmount;
+        }
+
+        // Sort records by date DESC for display
+        $records = $allRecords->sortByDesc('date')->values();
 
         // Calculate KPI Summaries
         $totalPresent  = $records->where('status', 'Present')->count();
@@ -450,13 +565,14 @@ class AttendanceController extends Controller
         $totalHrsText = $totalHours . ' hrs' . ($remMinutes > 0 ? " {$remMinutes} mins" : '');
 
         $summary = [
-            'total_records'       => $records->count(),
-            'total_present'       => $totalPresent,
-            'total_late'          => $totalLate,
-            'total_half_day'      => $totalHalfDay,
-            'total_absent'        => $totalAbsent,
-            'total_on_leave'      => $totalOnLeave,
-            'total_working_hours' => $totalHrsText,
+            'total_records'        => $records->count(),
+            'total_present'        => $totalPresent,
+            'total_late'           => $totalLate,
+            'total_half_day'       => $totalHalfDay,
+            'total_absent'         => $totalAbsent,
+            'total_on_leave'       => $totalOnLeave,
+            'total_working_hours'  => $totalHrsText,
+            'total_late_deduction' => round($totalLateDeductions, 2),
         ];
 
         return response()->json([

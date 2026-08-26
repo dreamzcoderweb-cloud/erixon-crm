@@ -1,11 +1,16 @@
 @extends('layouts.master')
-@section('title', 'Attendance Report - Super Admin')
+@section('title', 'Attendance Report')
 @section('content')
     <div class="container-xxl flex-grow-1 container-p-y">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h4 class="fw-bold m-0"><i class="bx bx-bar-chart-alt-2 me-2"></i> Attendance Report</h4>
             <div>
-                <span class="badge bg-label-primary fs-6"><i class="bx bx-shield me-1"></i> Full Access</span>
+                <div class="btn-group" role="group" aria-label="Report Period">
+                    <button type="button" class="btn btn-outline-primary btn-period active" data-period="monthly">Monthly</button>
+                    <button type="button" class="btn btn-outline-primary btn-period" data-period="daily">Daily</button>
+                    <button type="button" class="btn btn-outline-primary btn-period" data-period="weekly">Weekly</button>
+                    <button type="button" class="btn btn-outline-primary btn-period" data-period="custom">Custom</button>
+                </div>
             </div>
         </div>
 
@@ -13,26 +18,33 @@
         <div class="card mb-4">
             <div class="card-body">
                 <form id="attendanceReportFilterForm">
+                    <input type="hidden" name="filter_type" id="filter_type" value="monthly">
                     <div class="row g-3 align-items-end">
                         <div class="col-md-3">
                             <label class="form-label fw-semibold">Select Staff</label>
                             <select name="user_id" id="filter_user_id" class="form-select">
-                                <option value="">-- All Staff Members --</option>
-                                @foreach ($staffs as $staff)
-                                    <option value="{{ $staff->id }}">{{ $staff->name }} ({{ $staff->email }})</option>
-                                @endforeach
+                                @if(auth()->user()->isSuperAdmin())
+                                    <option value="">-- All Staff Members --</option>
+                                    @foreach ($staffs as $staff)
+                                        <option value="{{ $staff->id }}">{{ $staff->name }} ({{ $staff->email }})</option>
+                                    @endforeach
+                                @else
+                                    @foreach ($staffs as $staff)
+                                        <option value="{{ $staff->id }}" selected>{{ $staff->name }} ({{ $staff->email }})</option>
+                                    @endforeach
+                                @endif
                             </select>
                         </div>
 
                         <!-- Filter inputs per type -->
-                        <div class="col-md-3 filter-input-group" id="group_daily">
-                            <label class="form-label fw-semibold">Select Date</label>
-                            <input type="date" name="date" id="filter_date" class="form-control" value="{{ date('Y-m-d') }}">
-                        </div>
-
-                        <div class="col-md-3 filter-input-group d-none" id="group_monthly">
+                        <div class="col-md-3 filter-input-group" id="group_monthly">
                             <label class="form-label fw-semibold">Select Month</label>
                             <input type="month" name="month" id="filter_month" class="form-control" value="{{ date('Y-m') }}">
+                        </div>
+
+                        <div class="col-md-3 filter-input-group d-none" id="group_daily">
+                            <label class="form-label fw-semibold">Select Date</label>
+                            <input type="date" name="date" id="filter_date" class="form-control" value="{{ date('Y-m-d') }}">
                         </div>
 
                         <div class="col-md-3 filter-input-group d-none" id="group_custom_start">
@@ -95,10 +107,10 @@
                 </div>
             </div>
             <div class="col-6 col-md-4 col-lg-2">
-                <div class="card shadow-sm border-start border-secondary border-4">
+                <div class="card shadow-sm border-start border-danger border-4">
                     <div class="card-body p-3 text-center">
-                        <small class="text-muted text-uppercase fw-semibold d-block">On Leave</small>
-                        <h3 class="mb-0 text-secondary fw-bold mt-1" id="kpi_on_leave">0</h3>
+                        <small class="text-muted text-uppercase fw-semibold d-block">Late Deduction</small>
+                        <h5 class="mb-0 text-danger fw-bold mt-2" id="kpi_late_deduction">₹0.00</h5>
                     </div>
                 </div>
             </div>
@@ -116,7 +128,7 @@
         <div class="card">
             <div class="card-header border-bottom d-flex justify-content-between align-items-center">
                 <h5 class="card-title m-0"><i class="bx bx-table me-1"></i> Attendance Logs</h5>
-                <small class="text-muted" id="report_period_label">Showing Today's Report</small>
+                <small class="text-muted" id="report_period_label">Showing Monthly Report</small>
             </div>
             <div class="table-responsive text-nowrap p-3">
                 <table id="attendance-report-table" class="table table-hover align-middle w-100">
@@ -125,8 +137,12 @@
                             <th>#</th>
                             <th>Staff Member</th>
                             <th>Date</th>
-                            <th>Check-In</th>
-                            <th>Check-Out</th>
+                            <th>Allowed In</th>
+                            <th>Actual Check-In</th>
+                            <th>Late Duration</th>
+                            <th>Late Status</th>
+                            <th>Exceeded?</th>
+                            <th>Deduction Amount</th>
                             <th>Working Hours</th>
                             <th>Status</th>
                         </tr>

@@ -30,6 +30,8 @@ $(document).ready(function () {
                         $('#kpi_absent').text(json.summary.total_absent || 0);
                         $('#kpi_on_leave').text(json.summary.total_on_leave || 0);
                         $('#kpi_total_hours').text(json.summary.total_working_hours || '0 hrs');
+                        let deductionVal = json.summary.total_late_deduction || 0;
+                        $('#kpi_late_deduction').text('₹' + parseFloat(deductionVal).toFixed(2));
                     }
                     return json.data || [];
                 }
@@ -60,19 +62,57 @@ $(document).ready(function () {
                     }
                 },
                 {
-                    data: 'check_in',
+                    data: 'allowed_check_in_time',
                     render: function (data, type) {
-                        if (!data) return '-';
+                        if (!data) return '<span class="text-muted">09:10 AM</span>';
                         if (type !== 'display') return data;
-                        return `<span class="badge bg-label-success"><i class="bx bx-log-in me-1"></i>${data}</span>`;
+                        return `<span class="badge bg-label-secondary">${data}</span>`;
                     }
                 },
                 {
-                    data: 'check_out',
+                    data: 'actual_check_in_formatted',
+                    render: function (data, type, row) {
+                        let text = data || row.check_in || '-';
+                        if (type !== 'display') return text;
+                        let badge = row.status === 'Late' ? 'bg-label-warning' : 'bg-label-success';
+                        return `<span class="badge ${badge}"><i class="bx bx-log-in me-1"></i>${text}</span>`;
+                    }
+                },
+                {
+                    data: 'late_duration_minutes',
                     render: function (data, type) {
-                        if (!data) return '<span class="text-muted">Not Checked Out</span>';
+                        if (!data || data <= 0) return '<span class="text-muted">0 mins</span>';
+                        if (type !== 'display') return data + ' mins';
+                        return `<span class="badge bg-label-warning"><i class="bx bx-time me-1"></i>${data} mins</span>`;
+                    }
+                },
+                {
+                    data: 'late_count_status',
+                    render: function (data, type) {
+                        if (!data) return '<span class="text-muted">-</span>';
                         if (type !== 'display') return data;
-                        return `<span class="badge bg-label-danger"><i class="bx bx-log-out me-1"></i>${data}</span>`;
+                        return `<small class="fw-semibold text-dark">${data}</small>`;
+                    }
+                },
+                {
+                    data: 'is_allowed_count_exceeded',
+                    render: function (data, type) {
+                        if (type !== 'display') return data ? 'Yes' : 'No';
+                        if (data) {
+                            return `<span class="badge bg-label-danger"><i class="bx bx-error me-1"></i>Yes (Exceeded)</span>`;
+                        }
+                        return `<span class="badge bg-label-success"><i class="bx bx-check me-1"></i>No</span>`;
+                    }
+                },
+                {
+                    data: 'salary_deduction',
+                    render: function (data, type) {
+                        let amount = parseFloat(data || 0);
+                        if (type !== 'display') return amount;
+                        if (amount > 0) {
+                            return `<span class="badge bg-danger text-white"><i class="bx bx-minus-circle me-1"></i>₹${amount.toFixed(2)}</span>`;
+                        }
+                        return `<span class="text-muted">₹0.00</span>`;
                     }
                 },
                 {
@@ -147,11 +187,11 @@ $(document).ready(function () {
     $('#resetReportFilterBtn').on('click', function () {
         $('#attendanceReportFilterForm')[0].reset();
         $('.btn-period').removeClass('active');
-        $('.btn-period[data-period="daily"]').addClass('active');
-        $('#filter_type').val('daily');
+        $('.btn-period[data-period="monthly"]').addClass('active');
+        $('#filter_type').val('monthly');
         $('.filter-input-group').addClass('d-none');
-        $('#group_daily').removeClass('d-none');
-        $('#report_period_label').text('Daily Attendance Report');
+        $('#group_monthly').removeClass('d-none');
+        $('#report_period_label').text('Monthly Attendance Report');
         reportTable.ajax.reload();
     });
 });

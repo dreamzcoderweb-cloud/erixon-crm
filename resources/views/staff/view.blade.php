@@ -32,9 +32,10 @@
                     <thead class="table-light">
                         <tr>
                             <th>Staff Info</th>
-                            <th>Designation & Role</th>
-                            <th>Assigned Timings</th>
-                            <th>Base Salary & Leaves</th>
+                            <th>Designation & Type</th>
+                            <th>Timings & Allowed In</th>
+                            <th>Salary & Leaves</th>
+                            <th>Late Limit & Increments</th>
                             <th>Leave Status</th>
                             <th>Actions</th>
                         </tr>
@@ -51,7 +52,8 @@
                                 </td>
                                 <td>
                                     <strong>{{ $staff->designation ?? 'N/A' }}</strong>
-                                    <br><span class="badge bg-label-info">{{ $staff->roles->first()?->name ?? '-' }}</span>
+                                    <br><span class="badge bg-label-info me-1">{{ $staff->roles->first()?->name ?? '-' }}</span>
+                                    <span class="badge {{ ($staff->staff_type ?? 'Permanent') === 'Temporary' ? 'bg-label-warning' : 'bg-label-success' }}">{{ $staff->staff_type ?? 'Permanent' }}</span>
                                 </td>
                                 <td>
                                     @if($staff->check_in_time || $staff->check_out_time)
@@ -61,12 +63,31 @@
                                             {{ $staff->check_out_time ? \Carbon\Carbon::parse($staff->check_out_time)->format('h:i A') : '--:--' }}
                                         </span>
                                     @else
-                                        <span class="text-muted">Not Set</span>
+                                        <span class="text-muted d-block">Not Set</span>
+                                    @endif
+                                    @if($staff->allow_check_in_time)
+                                        <small class="text-muted d-block mt-1"><i class="bx bx-log-in-circle me-1"></i>Allow In: <strong>{{ \Carbon\Carbon::parse($staff->allow_check_in_time)->format('h:i A') }}</strong></small>
                                     @endif
                                 </td>
                                 <td>
                                     <div><strong>₹{{ number_format($staff->base_salary ?? 0, 2) }}</strong></div>
-                                    <small class="text-muted">Leaves: <strong>{{ $staff->available_leave_count ?? 0 }} day(s)</strong></small>
+                                    @if(($staff->staff_type ?? 'Permanent') !== 'Temporary')
+                                        <small class="text-muted">Leaves: <strong>{{ $staff->available_leave_count ?? 0 }} day(s)</strong></small>
+                                    @else
+                                        <small class="text-muted">Leaves: <em>N/A (Temporary)</em></small>
+                                    @endif
+                                </td>
+                                <td>
+                                    <small class="d-block">Allowed Late: <strong>{{ $staff->late_attendance_count ?? 0 }} count(s)</strong></small>
+                                    @if($staff->increment_amount > 0)
+                                        <small class="text-success d-block"><i class="bx bx-trending-up me-1"></i>+₹{{ number_format($staff->increment_amount, 2) }}
+                                        @if($staff->increment_date)
+                                            ({{ \Carbon\Carbon::parse($staff->increment_date)->format('d-m-Y') }})
+                                        @endif
+                                        </small>
+                                    @else
+                                        <small class="text-muted">No Increment</small>
+                                    @endif
                                 </td>
                                 <td>
                                     <span class="badge leave-status-badge {{ $staff->is_on_leave ? 'bg-label-danger' : 'bg-label-success' }}">
