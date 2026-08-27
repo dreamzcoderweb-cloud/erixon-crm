@@ -40,6 +40,11 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
         ->middleware('permission:dashboard.view')
         ->name('dashboard');
 
+    // Notification routes
+    Route::get('notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('notifications/mark-as-read/{id}', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.mark-as-read');
+    Route::post('notifications/mark-all-as-read', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-as-read');
+
     // profile
     Route::get('profile', [ProfileController::class, 'show'])
         ->middleware('permission:profile.view')

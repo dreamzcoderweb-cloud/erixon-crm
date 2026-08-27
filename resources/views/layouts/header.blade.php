@@ -18,7 +18,31 @@ id="layout-navbar">
     <!-- /Search -->
 
     <ul class="navbar-nav flex-row align-items-center ms-auto">
-        <!-- Place this tag where you want the button to render. -->
+        <!-- Notifications -->
+        <li class="nav-item dropdown-notifications navbar-dropdown dropdown me-3 me-xl-2">
+            <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" id="notificationDropdownToggle">
+                <i class="bx bx-bell bx-sm"></i>
+                <span class="badge bg-danger rounded-pill badge-notifications d-none" id="notification-badge-count">0</span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end py-0" style="min-width: 320px; max-width: 380px;">
+                <li class="dropdown-menu-header border-bottom">
+                    <div class="dropdown-header d-flex align-items-center py-3">
+                        <h6 class="text-body mb-0 me-auto fw-bold"><i class="bx bx-bell me-1"></i> Notifications</h6>
+                        <a href="javascript:void(0)" class="dropdown-notifications-all text-body" id="mark-all-read-btn" title="Mark all as read">
+                            <span class="badge bg-label-primary fs-tiny">Mark all as read</span>
+                        </a>
+                    </div>
+                </li>
+                <li class="dropdown-notifications-list scrollable-container" style="max-height: 320px; overflow-y: auto;">
+                    <ul class="list-group list-group-flush" id="notification-list-container">
+                        <li class="list-group-item text-center text-muted py-3">
+                            <span class="spinner-border spinner-border-sm me-1" role="status"></span> Loading...
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </li>
+        <!--/ Notifications -->
 
         <!-- User -->
         <li class="nav-item navbar-dropdown dropdown-user dropdown">

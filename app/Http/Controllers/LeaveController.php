@@ -4,6 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\LeaveRequest;
 use App\Models\User;
+use App\Notifications\LeaveQuotaCompleted;
+use App\Notifications\LeaveRequestSubmitted;
+use App\Notifications\LeaveRequestApproved;
+use App\Notifications\LeaveRequestRejected;
+use App\Notifications\AdminLeaveRequestReceived;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -85,6 +90,37 @@ class LeaveController extends Controller
             'status'         => 'Pending',
         ]);
 
+        $targetUser = User::find($targetUserId);
+        if ($targetUser) {
+            $targetUser->notify(new LeaveRequestSubmitted($leave));
+
+            // Notify Super Admin / Admin users about new pending staff leave request
+            $admins = User::all()->filter(function ($u) use ($targetUserId) {
+                return $u->id !== (int) $targetUserId && ($u->isSuperAdmin() || $u->isAdmin());
+            });
+            foreach ($admins as $adminUser) {
+                $adminUser->notify(new AdminLeaveRequestReceived($leave, $targetUser));
+            }
+        }
+
+        $allowedLeaveDays = (float) ($targetUser?->available_leave_count ?? 0);
+        if ($targetUser && $allowedLeaveDays > 0) {
+            $month = Carbon::parse($validated['from_date']);
+            $usedLeaveDays = (float) LeaveRequest::where('user_id', $targetUser->id)
+                ->whereIn('status', ['Approved', 'Pending'])
+                ->whereDate('from_date', '<=', $month->copy()->endOfMonth())
+                ->whereDate('to_date', '>=', $month->copy()->startOfMonth())
+                ->sum('number_of_days');
+
+            if ($usedLeaveDays >= $allowedLeaveDays) {
+                $targetUser->notify(new LeaveQuotaCompleted(
+                    $month->format('F'),
+                    round($usedLeaveDays, 2),
+                    $allowedLeaveDays
+                ));
+            }
+        }
+
         return response()->json([
             'status'  => true,
             'message' => 'Leave request submitted successfully (Status: Pending).',
@@ -111,12 +147,17 @@ class LeaveController extends Controller
 
         // Update user is_on_leave status if leave is active today
         $today = Carbon::today()->toDateString();
+        $staff = User::find($leave->user_id);
         if ($leave->from_date->toDateString() <= $today && $leave->to_date->toDateString() >= $today) {
-            $staff = User::find($leave->user_id);
             if ($staff) {
                 $staff->is_on_leave = true;
                 $staff->save();
             }
+        }
+
+        // Notify staff member that leave request was approved by admin
+        if ($staff) {
+            $staff->notify(new LeaveRequestApproved($leave));
         }
 
         return response()->json([
@@ -142,6 +183,12 @@ class LeaveController extends Controller
         $leave->approved_by = Auth::id();
         $leave->admin_remarks = $request->input('admin_remarks');
         $leave->save();
+
+        // Notify staff member that leave request was rejected by admin
+        $staff = User::find($leave->user_id);
+        if ($staff) {
+            $staff->notify(new LeaveRequestRejected($leave));
+        }
 
         return response()->json([
             'status'  => true,
@@ -331,7 +378,7 @@ class LeaveController extends Controller
                 'net_salary'             => $netSalary,
             ];
         }
-        
+
         return response()->json([
             'status'             => true,
             'month'              => $monthStr,

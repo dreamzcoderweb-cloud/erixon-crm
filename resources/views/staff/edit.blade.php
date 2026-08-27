@@ -53,7 +53,7 @@
                                     <span class="text-danger small">{{ $errors->first('staff_type') }}</span>
                                 </div>
                                 <div class="col-md-6 mb-3" id="available_leave_count_wrapper">
-                                    <label class="form-label" for="available_leave_count">Available Leave Count</label>
+                                    <label class="form-label" for="available_leave_count">Available Leave Count Per Month</label>
                                     <input type="number" step="0.5" min="0" class="form-control" id="available_leave_count" name="available_leave_count" placeholder="e.g. 1" value="{{ old('available_leave_count', $staff->available_leave_count) }}" />
                                     <span class="text-danger small">{{ $errors->first('available_leave_count') }}</span>
                                 </div>

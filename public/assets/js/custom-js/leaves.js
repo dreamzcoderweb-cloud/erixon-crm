@@ -237,6 +237,9 @@ $(document).ready(function () {
                     $('#requestLeaveModal').modal('hide');
                     form[0].reset();
                     if (leavesTable) leavesTable.ajax.reload(null, false);
+                    if (typeof window.loadAppNotifications === 'function') {
+                        window.loadAppNotifications();
+                    }
                     showAlert('success', response.message);
                 }
             },

@@ -59,7 +59,7 @@
                                     @if($staff->check_in_time || $staff->check_out_time)
                                         <span class="badge bg-label-primary">
                                             <i class="bx bx-time me-1"></i>
-                                            {{ $staff->check_in_time ? \Carbon\Carbon::parse($staff->check_in_time)->format('h:i A') : '--:--' }} - 
+                                            {{ $staff->check_in_time ? \Carbon\Carbon::parse($staff->check_in_time)->format('h:i A') : '--:--' }} -
                                             {{ $staff->check_out_time ? \Carbon\Carbon::parse($staff->check_out_time)->format('h:i A') : '--:--' }}
                                         </span>
                                     @else
@@ -72,7 +72,7 @@
                                 <td>
                                     <div><strong>₹{{ number_format($staff->base_salary ?? 0, 2) }}</strong></div>
                                     @if(($staff->staff_type ?? 'Permanent') !== 'Temporary')
-                                        <small class="text-muted">Leaves: <strong>{{ $staff->available_leave_count ?? 0 }} day(s)</strong></small>
+                                        <small class="text-muted">Leaves: <strong>{{ $staff->available_leave_count ?? 0 }} day(s) per month</strong></small>
                                     @else
                                         <small class="text-muted">Leaves: <em>N/A (Temporary)</em></small>
                                     @endif
@@ -143,7 +143,7 @@
                 </div>
                 <div class="modal-body">
                     <p class="text-muted">Below are the pending client follow-ups scheduled for today assigned to this staff member. Select an available staff member to reassign each follow-up.</p>
-                    
+
                     <div id="leaveStaffFollowupsContainer" class="table-responsive text-nowrap">
                         <table class="table table-bordered align-middle">
                             <thead class="table-light">
