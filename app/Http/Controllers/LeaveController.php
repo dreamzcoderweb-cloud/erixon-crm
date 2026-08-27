@@ -93,14 +93,6 @@ class LeaveController extends Controller
         $targetUser = User::find($targetUserId);
         if ($targetUser) {
             $targetUser->notify(new LeaveRequestSubmitted($leave));
-
-            // Notify Super Admin / Admin users about new pending staff leave request
-            $admins = User::all()->filter(function ($u) use ($targetUserId) {
-                return $u->id !== (int) $targetUserId && ($u->isSuperAdmin() || $u->isAdmin());
-            });
-            foreach ($admins as $adminUser) {
-                $adminUser->notify(new AdminLeaveRequestReceived($leave, $targetUser));
-            }
         }
 
         $allowedLeaveDays = (float) ($targetUser?->available_leave_count ?? 0);

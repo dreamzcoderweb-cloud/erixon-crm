@@ -18,7 +18,7 @@
             border-collapse: collapse !important;
         }
 
-        #salary-report-table th, 
+        #salary-report-table th,
         #salary-report-table td {
             vertical-align: middle !important;
             white-space: nowrap !important;
@@ -71,11 +71,18 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h4 class="fw-bold m-0"><i class="bx bx-calendar-event me-2"></i> Leave & Salary Management</h4>
             <div class="d-flex gap-2">
-                @can('leaves.create')
+                @php
+                    $staff= auth()->user();
+
+                @endphp
+                @if ($staff->staff_type !='Temporary')
+                    @can('leaves.create')
                     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#requestLeaveModal">
                         <i class="bx bx-plus me-1"></i> Submit Leave Request
                     </button>
-                @endcan
+                    @endcan
+                @endif
+
             </div>
         </div>
 
