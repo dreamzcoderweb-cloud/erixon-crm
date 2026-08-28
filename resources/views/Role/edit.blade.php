@@ -140,7 +140,7 @@
                 'staff' => ['title' => 'Staff Management', 'icon' => 'bx-group', 'badge' => 'bg-label-warning'],
                 'roles' => ['title' => 'Roles & Access Control', 'icon' => 'bx-shield-quarter', 'badge' => 'bg-label-info'],
                 'general-settings' => ['title' => 'General Settings', 'icon' => 'bx-cog', 'badge' => 'bg-label-secondary'],
-                'referral-settings' => ['title' => 'Referral Settings', 'icon' => 'bx-gift', 'badge' => 'bg-label-primary'],
+                'lead-settings' => ['title' => 'Lead Settings', 'icon' => 'bx-gift', 'badge' => 'bg-label-primary'],
                 'profile' => ['title' => 'Profile Settings', 'icon' => 'bx-user-circle', 'badge' => 'bg-label-dark'],
                 'dashboard' => ['title' => 'Dashboard Access', 'icon' => 'bx-home-smile', 'badge' => 'bg-label-primary'],
             ];

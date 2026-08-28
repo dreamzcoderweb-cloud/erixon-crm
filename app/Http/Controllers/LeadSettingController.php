@@ -2,20 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ReferralSetting;
+use App\Models\LeadSetting;
 use Illuminate\Http\Request;
 
-class ReferralSettingController extends Controller
+class LeadSettingController extends Controller
 {
     public function index()
     {
-        $data['setting'] = ReferralSetting::getSettings();
-        return view('settings.referral', $data);
+        $data['setting'] = LeadSetting::getSettings();
+        return view('settings.lead', $data);
     }
 
     public function update(Request $request)
     {
-        $setting = ReferralSetting::getSettings();
+        $setting = LeadSetting::getSettings();
 
         $validated = $request->validate([
             'referral_points' => ['required', 'integer', 'min:0'],
@@ -24,7 +24,7 @@ class ReferralSettingController extends Controller
         $setting->referral_points = $validated['referral_points'];
         $setting->save();
 
-        session()->flash('success', 'Referral settings saved successfully.');
+        session()->flash('success', 'Lead settings saved successfully.');
         return redirect()->back();
     }
 }

@@ -5,16 +5,18 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class ReferralSetting extends Model
+class LeadSetting extends Model
 {
     use HasFactory;
+
+    protected $table = 'referral_settings';
 
     protected $fillable = [
         'referral_points',
     ];
 
     /**
-     * Get single referral setting record or create default instance
+     * Get single lead setting record or create default instance
      */
     public static function getSettings()
     {

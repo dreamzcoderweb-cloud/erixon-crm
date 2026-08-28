@@ -110,12 +110,7 @@
         </div>
     </div>
 
-    @php
-        $user = auth()->user();
-        $isSuperAdmin = $user && $user->isSuperAdmin();
-    @endphp
 
-    @if(!$isSuperAdmin)
         <!-- Quick Attendance Widget for Logged In Staff -->
         <div class="card mb-4 border-0 shadow-sm rounded-4 overflow-hidden" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
             <div class="card-body p-3 p-md-4 d-flex justify-content-between align-items-center flex-wrap gap-3 text-white">
@@ -165,7 +160,7 @@
                 </div>
             </div>
         </div>
-    @endif
+    
 
     <!-- CORE MODULES STAT CARDS (ROW 1) -->
     <div class="row g-3 g-md-4 mb-4">

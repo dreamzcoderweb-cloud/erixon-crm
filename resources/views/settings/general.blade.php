@@ -34,13 +34,13 @@
                         </a>
                     </li>
                 @endcan
-                {{-- @can('referral-settings.view')
+                @can('lead-settings.view')
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('admin.settings.referral') }}">
-                            <i class="bx bx-gift me-1"></i> Referral Settings
+                        <a class="nav-link" href="{{ route('admin.settings.lead') }}">
+                            <i class="bx bx-gift me-1"></i> Lead Setting
                         </a>
                     </li>
-                @endcan --}}
+                @endcan
             </ul>
         </div>
     </div>

@@ -13,7 +13,7 @@ use App\Http\Controllers\LostReasonController;
 use App\Http\Controllers\FollowupController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\GeneralSettingController;
-use App\Http\Controllers\ReferralSettingController;
+use App\Http\Controllers\LeadSettingController;
 use App\Http\Controllers\LeadDocumentController;
 use App\Http\Controllers\TemplateController;
 use App\Http\Controllers\CallRecordingController;
@@ -204,12 +204,12 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
         ->middleware('permission:general-settings.edit')
         ->name('settings.general.update');
 
-    Route::get('settings/referral', [ReferralSettingController::class, 'index'])
-        ->middleware('permission:referral-settings.view')
-        ->name('settings.referral');
-    Route::post('settings/referral', [ReferralSettingController::class, 'update'])
-        ->middleware('permission:referral-settings.edit')
-        ->name('settings.referral.update');
+    Route::get('settings/lead', [LeadSettingController::class, 'index'])
+        ->middleware('permission:lead-settings.view')
+        ->name('settings.lead');
+    Route::post('settings/lead', [LeadSettingController::class, 'update'])
+        ->middleware('permission:lead-settings.edit')
+        ->name('settings.lead.update');
 
     // Lead Documents routes
     Route::get('lead-documents', [LeadDocumentController::class, 'index'])

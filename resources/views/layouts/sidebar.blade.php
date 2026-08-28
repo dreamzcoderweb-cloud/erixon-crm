@@ -27,7 +27,7 @@
 
         @canany(['roles.view', 'staff.view', 'attendance.view', 'leaves.view','incentives.view'])
             <li
-                class="menu-item {{ request()->is('admin/roles_with_filter') || request()->is('admin/add_role') || request()->is('admin/edit_role/*') || request()->is('admin/staff*') || request()->is('admin/attendance*') || request()->is('admin/leaves*') || request()->is('admin/incentives*') ? 'active open' : '' }}">
+                class="menu-item {{ request()->is('admin/roles_with_filter') || request()->is('admin/add_role') || request()->is('admin/edit_role/*') || request()->is('admin/staff*') || request()->is('admin/add_staff') || request()->is('admin/edit_staff/*') || request()->is('admin/attendance*') || request()->is('admin/leaves*') || request()->is('admin/incentives*') ? 'active open' : '' }}">
                 <a href="javascript:void(0);" class="menu-link menu-toggle">
                     <i class="menu-icon tf-icons bx bx-lock-alt"></i>
                     <div class="text-truncate">Access Control</div>
@@ -44,7 +44,7 @@
                     @endcan
                     @can('staff.view')
                         <li
-                            class="menu-item {{ request()->is('admin/staff*') ? 'active' : '' }}">
+                            class="menu-item {{ request()->is('admin/staff*') || request()->is('admin/add_staff') || request()->is('admin/edit_staff/*') ? 'active' : '' }}">
                             <a href="{{ route('admin.staff.index') }}" class="menu-link">
                                 <div class="text-truncate">Staff</div>
                             </a>
@@ -203,7 +203,7 @@
             </li>
         @endcan
 
-        @canany(['general-settings.view', 'referral-settings.view'])
+        @canany(['general-settings.view', 'lead-settings.view'])
             <li class="menu-item {{ request()->is('admin/settings/*') ? 'active' : '' }}">
                 <a href="{{ route('admin.settings.general') }}" class="menu-link">
                     <i class="menu-icon tf-icons bx bx-cog"></i>

@@ -73,8 +73,8 @@ class PermissionSeeder extends Seeder
 
             'general-settings.view',
             'general-settings.edit',
-            'referral-settings.view',
-            'referral-settings.edit',
+            'lead-settings.view',
+            'lead-settings.edit',
 
             'lead-documents.view',
             'lead-documents.create',
