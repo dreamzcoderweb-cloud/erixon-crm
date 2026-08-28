@@ -253,33 +253,46 @@
             </div>
             </a>
         </div>
+        @php
+            $user = Auth::user();
+        @endphp
 
-        <!-- Module 4: Roles / Access Control -->
-        <div class="col-12 col-sm-6 col-xl-3">
-            @can('roles.view')
-                <a href="{{ route('admin.roles.index') }}" class="text-decoration-none d-block h-100">
-            @else
-                <a href="javascript:void(0);" class="text-decoration-none d-block h-100">
-            @endcan
-            <div class="card dashboard-card h-100">
-                <div class="card-body d-flex align-items-center justify-content-between">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="stat-icon-box bg-label-info">
-                            <i class="bx bx-shield-quarter"></i>
+        @if($user && $user->hasRole('Super Admin'))
+            <!-- Module 4: Roles / Access Control -->
+            <div class="col-12 col-sm-6 col-xl-3">
+                @can('roles.view')
+                    <a href="{{ route('admin.roles.index') }}" class="text-decoration-none d-block h-100">
+                @else
+                    <a href="javascript:void(0);" class="text-decoration-none d-block h-100">
+                @endcan
+
+                <div class="card dashboard-card h-100">
+                    <div class="card-body d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="stat-icon-box bg-label-info">
+                                <i class="bx bx-shield-quarter"></i>
+                            </div>
+
+                            <div>
+                                <div class="text-muted small fw-medium">Roles & Access</div>
+                                <div class="h3 fw-bold mb-0 text-dark">
+                                    {{ number_format($totalroles ?? 0) }}
+                                </div>
+                                <div class="text-muted small mt-1">
+                                    Permission Groups
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <div class="text-muted small fw-medium">Roles & Access</div>
-                            <div class="h3 fw-bold mb-0 text-dark">{{ number_format($totalroles ?? 0) }}</div>
-                            <div class="text-muted small mt-1">Permission Groups</div>
-                        </div>
+
+                        @can('roles.view')
+                            <i class="bx bx-chevron-right text-muted fs-4"></i>
+                        @endcan
                     </div>
-                    @can('roles.view')
-                        <i class="bx bx-chevron-right text-muted fs-4"></i>
-                    @endcan
                 </div>
+
+                </a>
             </div>
-            </a>
-        </div>
+        @endif
     </div>
 
     <!-- MASTER MODULES STAT CARDS (ROW 2) -->

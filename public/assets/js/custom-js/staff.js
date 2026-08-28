@@ -25,6 +25,7 @@ $(document).ready(function () {
                     'pageLength',
                     {
                         buttons: [
+                            {extend: 'colvis',text: '<i class="bx bx-columns me-1"></i> Column Visibility',className: 'btn btn-secondary btn-sm me-1',columns: ':not(:last-child)'},
                             { extend: 'copy', className: 'btn btn-secondary btn-sm me-1', exportOptions: { columns: ':not(:last-child)' } },
                             { extend: 'csv', className: 'btn btn-secondary btn-sm me-1', exportOptions: { columns: ':not(:last-child)' } },
                             { extend: 'excel', className: 'btn btn-secondary btn-sm me-1', exportOptions: { columns: ':not(:last-child)' } },
