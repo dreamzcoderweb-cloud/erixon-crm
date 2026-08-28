@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Attendance;
 use App\Models\User;
+use App\Services\SalaryCalculationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -497,6 +498,7 @@ class AttendanceController extends Controller
     {
         $user         = auth()->user();
         $isSuperAdmin = $user->isSuperAdmin();
+        $salaryCalculator = app(SalaryCalculationService::class);
 
         $filterType = $request->input('filter_type');
         $userId     = $request->input('user_id');
@@ -673,6 +675,17 @@ class AttendanceController extends Controller
             if ($computedWorkedHours) {
                 $rec->working_hours = $computedWorkedHours;
             }
+
+            $recDate = Carbon::parse($rec->date);
+            $rec->actual_work_finished_time = ($staff && $staff->check_out_time)
+                ? Carbon::parse($staff->check_out_time)->format('h:i A')
+                : '-';
+            $rec->ot_minutes = $salaryCalculator->otMinutes($rec, $staff);
+            $rec->ot_income = $salaryCalculator->otIncome(
+                $rec,
+                $staff,
+                $salaryCalculator->workingDaysInMonth($recDate)
+            );
 
             $rec->allowed_check_in_time = $allowTimeFormatted;
             $rec->actual_check_in_formatted = $actualCheckInFormatted;

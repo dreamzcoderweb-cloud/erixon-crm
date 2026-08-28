@@ -222,9 +222,14 @@
                                     <thead class="table-light">
                                         <tr>
                                             <th class="text-start align-middle text-nowrap" style="min-width: 200px;">Staff Name</th>
+                                            <th class="text-center align-middle text-nowrap" style="min-width: 110px;">Month</th>
                                             <th class="text-center align-middle text-nowrap" style="min-width: 130px;">Designation</th>
                                             <th class="text-center align-middle text-nowrap" style="min-width: 130px;">Base Salary</th>
+                                            <th class="text-center align-middle text-nowrap" style="min-width: 130px;">OT Income</th>
                                             <th class="text-center align-middle text-nowrap" style="min-width: 140px;">Allowed Leaves</th>
+                                            <th class="text-center align-middle text-nowrap" style="min-width: 150px;">Total Leave Days</th>
+                                            <th class="text-center align-middle text-nowrap" style="min-width: 130px;">Paid Leave</th>
+                                            <th class="text-center align-middle text-nowrap" style="min-width: 140px;">Unpaid Leave</th>
                                             <th class="text-center align-middle text-nowrap" style="min-width: 170px;">Approved Leaves Taken</th>
                                             <th class="text-center align-middle text-nowrap" style="min-width: 160px;">Excess Leave Days</th>
                                             <th class="text-center align-middle text-nowrap" style="min-width: 160px;">Per-Day Salary Rate</th>
@@ -232,7 +237,7 @@
                                             <th class="text-center align-middle text-nowrap" style="min-width: 160px;">Late Deduction</th>
                                             <th class="text-center align-middle text-nowrap" style="min-width: 160px;">Total Deduction</th>
                                             <th class="text-center align-middle text-nowrap" style="min-width: 140px;">Incentive Amount</th>
-                                            <th class="text-center align-middle text-nowrap" style="min-width: 140px;">Net Salary</th>
+                                            <th class="text-center align-middle text-nowrap" style="min-width: 140px;">Final Salary</th>
                                         </tr>
                                     </thead>
                                     <tbody id="salaryReportTbody">

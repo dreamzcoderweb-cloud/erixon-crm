@@ -79,6 +79,30 @@ $(document).ready(function () {
                     }
                 },
                 {
+                    data: 'actual_work_finished_time',
+                    render: function (data, type) {
+                        let text = data || '-';
+                        if (type !== 'display') return text;
+                        return text !== '-' ? `<span class="badge bg-label-secondary">${text}</span>` : '<span class="text-muted">-</span>';
+                    }
+                },
+                {
+                    data: 'ot_minutes',
+                    render: function (data, type) {
+                        let minutes = parseInt(data || 0, 10);
+                        if (type !== 'display') return minutes;
+                        return `<span class="badge ${minutes > 0 ? 'bg-label-success' : 'bg-label-secondary'}"><i class="bx bx-time-five me-1"></i>${minutes} min</span>`;
+                    }
+                },
+                {
+                    data: 'ot_income',
+                    render: function (data, type) {
+                        let amount = parseFloat(data || 0);
+                        if (type !== 'display') return amount;
+                        return amount > 0 ? `<span class="badge bg-label-success">+₹${amount.toFixed(2)}</span>` : '<span class="text-muted">₹0.00</span>';
+                    }
+                },
+                {
                     data: 'permission_period',
                     render: function (data, type) {
                         let text = data || '-';

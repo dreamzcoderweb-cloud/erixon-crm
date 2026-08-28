@@ -9,6 +9,7 @@ use App\Notifications\LeaveRequestSubmitted;
 use App\Notifications\LeaveRequestApproved;
 use App\Notifications\LeaveRequestRejected;
 use App\Notifications\AdminLeaveRequestReceived;
+use App\Services\SalaryCalculationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -219,6 +220,7 @@ class LeaveController extends Controller
     {
         $user = Auth::user();
         $isSuperAdmin = $user->isSuperAdmin();
+        $salaryCalculator = app(SalaryCalculationService::class);
 
         $monthStr = $request->input('month', date('Y-m'));
         if (empty($monthStr)) {
@@ -291,6 +293,7 @@ class LeaveController extends Controller
 
             $totalApprovedLeaveDays = round($totalApprovedLeaveDays, 2);
             $availableLeaves = floatval($staff->available_leave_count ?? 0);
+            $paidLeaveDays = min($totalApprovedLeaveDays, $availableLeaves);
             $excessLeaveDays = max(0, round($totalApprovedLeaveDays - $availableLeaves, 2));
 
             $baseSalary = floatval($staff->base_salary ?? 0);
@@ -339,6 +342,11 @@ class LeaveController extends Controller
             }
 
             $lateDeduction = round($lateDeduction, 2);
+            $otIncome = 0.00;
+            foreach ($attRecords as $rec) {
+                $otIncome += $salaryCalculator->otIncome($rec, $staff, $workingDaysInMonth);
+            }
+            $otIncome = round($otIncome, 2);
             $perDaySalaryRate = round($perDaySalary, 2);
             $totalSalaryDeduction = round($leaveDeduction + $lateDeduction, 2);
 
@@ -348,15 +356,19 @@ class LeaveController extends Controller
                 ->sum('amount');
             $incentiveAmount = round(floatval($incentiveAmount ?? 0), 2);
 
-            $netSalary = max(0, round($baseSalary - $totalSalaryDeduction + $incentiveAmount, 2));
+            $netSalary = max(0, round($baseSalary + $otIncome - $totalSalaryDeduction + $incentiveAmount, 2));
 
             $reportData[] = [
                 'user_id'                => $staff->id,
                 'staff_name'             => $staff->name,
                 'email'                  => $staff->email,
+                'month'                  => $carbonMonth->format('M Y'),
                 'designation'            => $staff->designation ?? 'Staff',
                 'base_salary'            => $baseSalary,
                 'available_leave_count'  => $availableLeaves,
+                'total_leave_days'       => $totalApprovedLeaveDays,
+                'paid_leave_days'        => round($paidLeaveDays, 2),
+                'unpaid_leave_days'      => $excessLeaveDays,
                 'approved_leave_days'    => $totalApprovedLeaveDays,
                 'excess_leave_days'      => $excessLeaveDays,
                 'working_days_in_month'  => $workingDaysInMonth,
@@ -364,6 +376,7 @@ class LeaveController extends Controller
                 'total_calendar_days'    => $totalDays,
                 'per_day_salary'         => $perDaySalaryRate,
                 'leave_deduction'        => $leaveDeduction,
+                'ot_income'              => $otIncome,
                 'late_deduction'         => $lateDeduction,
                 'salary_deduction'       => $totalSalaryDeduction,
                 'incentive_amount'       => $incentiveAmount,

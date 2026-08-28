@@ -139,6 +139,9 @@
                             <th>Date</th>
                             <th>Allowed In</th>
                             <th>Session 1 (In → Out)</th>
+                            <th>Actual Work Finished</th>
+                            <th>OT Minutes</th>
+                            <th>OT Income</th>
                             <th>Permission Period</th>
                             <th>Permission Duration</th>
                             <th>Session 2 (In → Out)</th>

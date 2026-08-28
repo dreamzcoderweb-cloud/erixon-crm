@@ -381,6 +381,14 @@ $(document).ready(function () {
                     }
                 },
                 {
+                    data: 'month',
+                    className: 'text-center align-middle',
+                    render: function (data, type) {
+                        if (type !== 'display') return data || '';
+                        return `<span class="badge bg-label-dark">${data || '-'}</span>`;
+                    }
+                },
+                {
                     data: 'designation',
                     className: 'text-center align-middle',
                     render: function (data, type) {
@@ -395,6 +403,15 @@ $(document).ready(function () {
                         let val = parseFloat(data || 0);
                         if (type !== 'display') return val;
                         return `<strong>₹${val.toLocaleString('en-IN', {minimumFractionDigits: 2})}</strong>`;
+                    }
+                },
+                {
+                    data: 'ot_income',
+                    className: 'text-center align-middle',
+                    render: function (data, type) {
+                        let val = parseFloat(data || 0);
+                        if (type !== 'display') return val;
+                        return val > 0 ? `<span class="badge bg-label-success fw-bold">+₹${val.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>` : '<span class="text-muted">₹0.00</span>';
                     }
                 },
                 {
@@ -421,6 +438,30 @@ $(document).ready(function () {
                         if (type !== 'display') return data;
                         let badgeClass = parseFloat(data) > 0 ? 'bg-label-danger' : 'bg-label-success';
                         return `<span class="badge ${badgeClass}">${data} day(s)</span>`;
+                    }
+                },
+                {
+                    data: 'total_leave_days',
+                    className: 'text-center align-middle',
+                    render: function (data, type) {
+                        if (type !== 'display') return data;
+                        return `<span class="badge bg-label-primary">${data} day(s)</span>`;
+                    }
+                },
+                {
+                    data: 'paid_leave_days',
+                    className: 'text-center align-middle',
+                    render: function (data, type) {
+                        if (type !== 'display') return data;
+                        return `<span class="badge bg-label-success">${data} day(s)</span>`;
+                    }
+                },
+                {
+                    data: 'unpaid_leave_days',
+                    className: 'text-center align-middle',
+                    render: function (data, type) {
+                        if (type !== 'display') return data;
+                        return `<span class="badge ${parseFloat(data || 0) > 0 ? 'bg-label-danger' : 'bg-label-secondary'}">${data} day(s)</span>`;
                     }
                 },
                 {
