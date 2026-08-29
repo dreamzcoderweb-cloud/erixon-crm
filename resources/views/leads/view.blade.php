@@ -145,21 +145,13 @@
                     <thead class="table-light">
                         <tr>
                             <th class="text-center">#</th>
-                            <th>Lead Title</th>
-                            <th>Customer</th>
-                            <th>Source</th>
-                            <th>Priority</th>
-                            <th>Expected Amount</th>
-                            <th>Assigned To</th>
-                            <th>Next Follow-up</th>
-                            @if (isset($customFields) && count($customFields) > 0)
-                                @foreach ($customFields as $field)
-                                    <th>{{ $field->field_label }}</th>
+                            @if (isset($visibleColumns) && count($visibleColumns) > 0)
+                                @foreach ($visibleColumns as $col)
+                                    <th class="{{ in_array($col['key'], ['created_at', 'created_by', 'status']) ? 'text-center' : '' }}">
+                                        {{ $col['label'] }}
+                                    </th>
                                 @endforeach
                             @endif
-                            <th class="text-center">Created At</th>
-                            <th class="text-center">Created By</th>
-                            <th class="text-center">Status</th>
                             <th class="text-center">Actions</th>
                         </tr>
                     </thead>
@@ -533,5 +525,6 @@
 
     <script>
         window.customLeadFields = @json($customFields ?? []);
+        window.configuredLeadColumns = @json($visibleColumns ?? []);
     </script>
 @endsection

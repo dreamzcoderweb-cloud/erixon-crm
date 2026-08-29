@@ -29,7 +29,59 @@ class LeadController extends Controller
         $data['leadRequirements'] = LeadRequirement::where('status', 1)->orderBy('name')->get();
         $data['lostReasons']      = LostReason::where('status', 1)->orderBy('reason')->get();
         $data['leadTitles']       = Lead::forUser($user)->select('lead_title')->distinct()->whereNotNull('lead_title')->orderBy('lead_title')->pluck('lead_title');
-        $data['customFields']     = \App\Models\LeadCustomField::where('status', 1)->orderBy('sort_order', 'asc')->orderBy('id', 'asc')->get();
+        $customFields = \App\Models\LeadCustomField::where('status', 1)->orderBy('sort_order', 'asc')->orderBy('id', 'asc')->get();
+
+        $standardFields = [
+            'lead_title'         => 'Lead Title',
+            'customer'           => 'Customer',
+            'lead_source'        => 'Source',
+            'priority'           => 'Priority',
+            'expected_amount'    => 'Expected Amount',
+            'assigned_to'        => 'Assigned To',
+            'next_followup_date' => 'Next Follow-up',
+            'created_at'         => 'Created At',
+            'created_by'         => 'Created By',
+            'status'             => 'Status',
+        ];
+
+        $allAvailableFieldsMap = [];
+        foreach ($standardFields as $key => $label) {
+            $allAvailableFieldsMap[$key] = [
+                'key'   => $key,
+                'label' => $label,
+                'type'  => 'standard',
+            ];
+        }
+
+        foreach ($customFields as $cf) {
+            $allAvailableFieldsMap[$cf->field_name] = [
+                'key'   => $cf->field_name,
+                'label' => $cf->field_label,
+                'type'  => 'custom',
+                'field' => $cf,
+            ];
+        }
+
+        $setting = \App\Models\LeadSetting::getSettings();
+        $savedColumns = $setting->lead_list_columns;
+
+        if (empty($savedColumns) || !is_array($savedColumns)) {
+            $savedColumns = array_keys($allAvailableFieldsMap);
+        } else {
+            $savedColumns = array_values(array_filter($savedColumns, function ($key) use ($allAvailableFieldsMap) {
+                return isset($allAvailableFieldsMap[$key]);
+            }));
+        }
+
+        $visibleColumns = [];
+        foreach ($savedColumns as $colKey) {
+            if (isset($allAvailableFieldsMap[$colKey])) {
+                $visibleColumns[] = $allAvailableFieldsMap[$colKey];
+            }
+        }
+
+        $data['customFields']   = $customFields;
+        $data['visibleColumns'] = $visibleColumns;
 
         if ($user->isSuperAdmin()) {
             $data['allStaffs'] = User::staffOnly()->orderBy('name')->get();

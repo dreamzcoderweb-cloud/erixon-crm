@@ -13,6 +13,11 @@ class LeadSetting extends Model
 
     protected $fillable = [
         'referral_points',
+        'lead_list_columns',
+    ];
+
+    protected $casts = [
+        'lead_list_columns' => 'array',
     ];
 
     /**

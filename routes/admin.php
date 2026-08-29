@@ -225,6 +225,11 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
         ->middleware('permission:lead-settings.edit')
         ->name('settings.lead.custom-fields.destroy');
 
+    // Lead List Customization route
+    Route::post('settings/lead/list-columns/save', [LeadSettingController::class, 'saveLeadListColumns'])
+        ->middleware('permission:lead-settings.edit')
+        ->name('settings.lead.list-columns.save');
+
     // Lead Documents routes
     Route::get('lead-documents', [LeadDocumentController::class, 'index'])
         ->middleware('permission:lead-documents.view')

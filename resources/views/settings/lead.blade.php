@@ -54,33 +54,12 @@
             <div class="card shadow-sm border-0">
                 <div class="card-body p-3">
                     <div class="nav flex-column nav-pills custom-lead-nav gap-1" id="v-pills-tab" role="tablist" aria-orientation="vertical">
-                        {{-- <button class="nav-link text-start py-2 px-3 fw-medium" id="v-pills-auto-assignment-tab" data-bs-toggle="pill" data-bs-target="#v-pills-auto-assignment" type="button" role="tab">
-                            <i class="bx bx-user-check me-2"></i> Auto Assignment
-                        </button>
-                        <button class="nav-link text-start py-2 px-3 fw-medium" id="v-pills-auto-sync-tab" data-bs-toggle="pill" data-bs-target="#v-pills-auto-sync" type="button" role="tab">
-                            <i class="bx bx-sync me-2"></i> Automatic Lead Sync
-                        </button>
-                        <button class="nav-link text-start py-2 px-3 fw-medium" id="v-pills-form-layout-tab" data-bs-toggle="pill" data-bs-target="#v-pills-form-layout" type="button" role="tab">
-                            <i class="bx bx-layout me-2"></i> Form Layout
-                        </button> --}}
                         <button class="nav-link text-start py-2 px-3 fw-medium active" id="v-pills-additional-fields-tab" data-bs-toggle="pill" data-bs-target="#v-pills-additional-fields" type="button" role="tab">
                             <i class="bx bx-list-plus me-2"></i> Additional Lead Fields
                         </button>
-                        {{-- <button class="nav-link text-start py-2 px-3 fw-medium" id="v-pills-dynamic-intake-tab" data-bs-toggle="pill" data-bs-target="#v-pills-dynamic-intake" type="button" role="tab">
-                            <i class="bx bx-select-multiple me-2"></i> Dynamic Intake platform
-                        </button>
-                        <button class="nav-link text-start py-2 px-3 fw-medium" id="v-pills-lead-structure-tab" data-bs-toggle="pill" data-bs-target="#v-pills-lead-structure" type="button" role="tab">
-                            <i class="bx bx-sitemap me-2"></i> Lead Structure
-                        </button> --}}
                         <button class="nav-link text-start py-2 px-3 fw-medium" id="v-pills-site-customization-tab" data-bs-toggle="pill" data-bs-target="#v-pills-site-customization" type="button" role="tab">
                             <i class="bx bx-customize me-2"></i> Lead List Customization
                         </button>
-                        {{-- <button class="nav-link text-start py-2 px-3 fw-medium" id="v-pills-lead-allocation-tab" data-bs-toggle="pill" data-bs-target="#v-pills-lead-allocation" type="button" role="tab">
-                            <i class="bx bx-slider-alt me-2"></i> Lead Allocation Settings
-                        </button> --}}
-                        {{-- <button class="nav-link text-start py-2 px-3 fw-medium" id="v-pills-lead-points-tab" data-bs-toggle="pill" data-bs-target="#v-pills-lead-points" type="button" role="tab">
-                            <i class="bx bx-gift me-2"></i> Lead Points Settings
-                        </button> --}}
                     </div>
                 </div>
             </div>
@@ -155,118 +134,57 @@
                     </div>
                 </div>
 
-                <!-- Auto Assignment -->
-                <div class="tab-pane fade" id="v-pills-auto-assignment" role="tabpanel">
-                    <div class="card shadow-sm border-0">
-                        <h5 class="card-header border-bottom fw-bold">Auto Assignment</h5>
-                        <div class="card-body pt-4">
-                            <p class="text-muted">Configure automatic lead distribution rules and round-robin assignment among staff members.</p>
-                            <div class="form-check form-switch mb-3">
-                                <input class="form-check-input" type="checkbox" id="autoAssignSwitch" checked>
-                                <label class="form-check-label fw-semibold" for="autoAssignSwitch">Enable Round-Robin Auto Assignment</label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Automatic Lead Sync -->
-                <div class="tab-pane fade" id="v-pills-auto-sync" role="tabpanel">
-                    <div class="card shadow-sm border-0">
-                        <h5 class="card-header border-bottom fw-bold">Automatic Lead Sync</h5>
-                        <div class="card-body pt-4">
-                            <p class="text-muted">Manage real-time synchronization settings for incoming leads from third-party sources and webhooks.</p>
-                            <div class="form-check form-switch mb-3">
-                                <input class="form-check-input" type="checkbox" id="autoSyncSwitch" checked>
-                                <label class="form-check-label fw-semibold" for="autoSyncSwitch">Enable Automatic Real-time Sync</label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Form Layout -->
-                <div class="tab-pane fade" id="v-pills-form-layout" role="tabpanel">
-                    <div class="card shadow-sm border-0">
-                        <h5 class="card-header border-bottom fw-bold">Form Layout Settings</h5>
-                        <div class="card-body pt-4">
-                            <p class="text-muted">Customize lead creation and update form sections and layout arrangements.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Dynamic Intake Platform -->
-                <div class="tab-pane fade" id="v-pills-dynamic-intake" role="tabpanel">
-                    <div class="card shadow-sm border-0">
-                        <h5 class="card-header border-bottom fw-bold">Dynamic Intake Platform</h5>
-                        <div class="card-body pt-4">
-                            <p class="text-muted">Configure intake forms and dynamic questionnaire options for incoming prospects.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Lead Structure -->
-                <div class="tab-pane fade" id="v-pills-lead-structure" role="tabpanel">
-                    <div class="card shadow-sm border-0">
-                        <h5 class="card-header border-bottom fw-bold">Lead Structure</h5>
-                        <div class="card-body pt-4">
-                            <p class="text-muted">Set up lead categories, hierarchy, and structural rules.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Lead Site Customization -->
+                <!-- Lead List Customization -->
                 <div class="tab-pane fade" id="v-pills-site-customization" role="tabpanel">
-                    <div class="card shadow-sm border-0">
-                        <h5 class="card-header border-bottom fw-bold">Lead Site Customization</h5>
-                        <div class="card-body pt-4">
-                            <p class="text-muted">Customize client-facing landing pages and web capture forms.</p>
+                    <div class="card shadow-sm border-0 rounded-3">
+                        <div class="card-header border-bottom bg-white d-flex align-items-center justify-content-between py-3 px-4">
+                            <h5 class="card-title mb-0 fw-bold text-dark fs-5">Lead List Customization</h5>
+                            @can('lead-settings.edit')
+                                <button type="button" class="btn btn-success px-4 fw-semibold shadow-sm" id="saveLeadListColumnsBtn" style="background-color: #00c853; border-color: #00c853; border-radius: 6px;">
+                                    <span class="spinner-border spinner-border-sm d-none me-1" role="status"></span>
+                                    Save
+                                </button>
+                            @endcan
                         </div>
-                    </div>
-                </div>
-
-                <!-- Lead Allocation Settings -->
-                <div class="tab-pane fade" id="v-pills-lead-allocation" role="tabpanel">
-                    <div class="card shadow-sm border-0">
-                        <h5 class="card-header border-bottom fw-bold">Lead Allocation Settings</h5>
-                        <div class="card-body pt-4">
-                            <p class="text-muted">Define lead quota limits and allocation parameters per sales executive.</p>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- <!-- Lead Points Settings (Existing Referral/Lead Points Form) -->
-                <div class="tab-pane fade" id="v-pills-lead-points" role="tabpanel">
-                    <div class="card shadow-sm border-0">
-                        <h5 class="card-header border-bottom fw-bold">Lead Points Settings</h5>
-                        <div class="card-body pt-4">
-                            <form action="{{ route('admin.settings.lead.update') }}" method="POST">
-                                @csrf
-                                <div class="row g-3">
-                                    <div class="col-md-12 mb-3">
-                                        <label for="referral_points" class="form-label fw-semibold">Referral Points <span class="text-danger">*</span></label>
-                                        <div class="input-group input-group-merge">
-                                            <span class="input-group-text"><i class="bx bx-gift text-primary"></i></span>
-                                            <input type="number" class="form-control @error('referral_points') is-invalid @enderror" id="referral_points" name="referral_points" value="{{ old('referral_points', $setting->referral_points) }}" placeholder="100" min="0" required />
-                                        </div>
-                                        <div class="form-text mt-2 text-muted">
-                                            Points rewarded to members for successful client referrals.
-                                        </div>
-                                        @error('referral_points')
-                                            <div class="invalid-feedback d-block">{{ $message }}</div>
-                                        @enderror
-                                    </div>
+                        <div class="card-body p-4">
+                            <!-- Section: Selected Fields (Drag) -->
+                            <div class="mb-4">
+                                <h6 class="fw-bold text-dark mb-3 fs-6">Selected Fields (Drag)</h6>
+                                <div id="selectedFieldsContainer" class="d-flex flex-wrap gap-2 align-items-center p-3 rounded-3 border bg-light min-height-100">
+                                    @forelse ($selectedColumns as $key)
+                                        @if (isset($allAvailableFields[$key]))
+                                            @php $item = $allAvailableFields[$key]; @endphp
+                                            <div class="selected-field-chip d-inline-flex align-items-center rounded-pill px-3 py-2 border bg-green-pill cursor-move shadow-sm" draggable="true" data-key="{{ $key }}">
+                                                <span class="fw-medium text-dark small me-2">{{ $item['label'] }}</span>
+                                                <span class="remove-chip-icon text-muted cursor-pointer remove-field-chip-btn" data-key="{{ $key }}" title="Remove">&times;</span>
+                                            </div>
+                                        @endif
+                                    @empty
+                                        <div class="text-muted small no-fields-msg py-2">No fields selected. Select fields from Available Fields below.</div>
+                                    @endforelse
                                 </div>
+                            </div>
 
-                                @can('lead-settings.edit')
-                                    <div class="mt-3">
-                                        <button type="submit" class="btn btn-primary me-2">
-                                            <i class="bx bx-save me-1"></i> Save Settings
-                                        </button>
-                                    </div>
-                                @endcan
-                            </form>
+                            <!-- Section: Available Fields -->
+                            <div>
+                                <h6 class="fw-bold text-dark mb-3 fs-6">Available Fields</h6>
+                                <div class="row row-cols-1 row-cols-md-2 g-3" id="availableFieldsList">
+                                    @foreach ($allAvailableFields as $key => $item)
+                                        @php $isChecked = in_array($key, $selectedColumns); @endphp
+                                        <div class="col">
+                                            <div class="form-check d-flex align-items-center">
+                                                <input class="form-check-input available-field-checkbox me-2" type="checkbox" value="{{ $key }}" id="chk_col_{{ $key }}" {{ $isChecked ? 'checked' : '' }} style="width: 1.1rem; height: 1.1rem;">
+                                                <label class="form-check-label fw-medium text-dark cursor-pointer select-none" for="chk_col_{{ $key }}">
+                                                    {{ $item['label'] }}
+                                                </label>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div> --}}
+                </div>
 
             </div>
         </div>
@@ -429,6 +347,39 @@
         background-color: #e7e7ff;
         color: #696cff;
         font-weight: 600 !important;
+    }
+    .cursor-move {
+        cursor: grab;
+    }
+    .cursor-move:active {
+        cursor: grabbing;
+    }
+    .bg-green-pill {
+        background-color: #dcf5e7 !important;
+        border: 1px solid #7edca6 !important;
+        color: #1b5e35 !important;
+        transition: all 0.2s ease-in-out;
+    }
+    .bg-green-pill:hover {
+        background-color: #ceefdc !important;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+    }
+    .remove-chip-icon {
+        font-size: 1.2rem;
+        line-height: 1;
+        font-weight: bold;
+        color: #2e7d32 !important;
+        padding-left: 4px;
+        transition: color 0.15s ease;
+    }
+    .remove-chip-icon:hover {
+        color: #d32f2f !important;
+    }
+    .min-height-100 {
+        min-height: 90px;
+    }
+    .select-none {
+        user-select: none;
     }
 </style>
 
@@ -626,6 +577,98 @@
                     btn.prop('disabled', false);
                     spinner.addClass('d-none');
                     deleteFieldId = null;
+                }
+            });
+        });
+
+        /* --- Lead List Customization (Drag & Drop Horizontal Chips + 2-Col Checkboxes) --- */
+        let dragItem = null;
+
+        $('#selectedFieldsContainer').on('dragstart', '.selected-field-chip', function (e) {
+            dragItem = this;
+            $(this).css('opacity', '0.5');
+            if (e.originalEvent && e.originalEvent.dataTransfer) {
+                e.originalEvent.dataTransfer.effectAllowed = 'move';
+            }
+        });
+
+        $('#selectedFieldsContainer').on('dragend', '.selected-field-chip', function () {
+            $(this).css('opacity', '1');
+            dragItem = null;
+        });
+
+        $('#selectedFieldsContainer').on('dragover', function (e) {
+            e.preventDefault();
+            if (e.originalEvent && e.originalEvent.dataTransfer) {
+                e.originalEvent.dataTransfer.dropEffect = 'move';
+            }
+            let target = e.target.closest('.selected-field-chip');
+            if (target && target !== dragItem) {
+                let rect = target.getBoundingClientRect();
+                let next = (e.clientX - rect.left) / (rect.right - rect.left) > 0.5;
+                let container = document.getElementById('selectedFieldsContainer');
+                container.insertBefore(dragItem, next ? target.nextSibling : target);
+            }
+        });
+
+        // Available Fields Checkbox Toggle
+        $(document).on('change', '.available-field-checkbox', function () {
+            let key = $(this).val();
+            let isChecked = $(this).is(':checked');
+
+            if (isChecked) {
+                if ($('#selectedFieldsContainer').find(`[data-key="${key}"]`).length === 0) {
+                    let label = $(this).siblings('label').text().trim();
+                    let chipHtml = `
+                        <div class="selected-field-chip d-inline-flex align-items-center rounded-pill px-3 py-2 border bg-green-pill cursor-move shadow-sm" draggable="true" data-key="${key}">
+                            <span class="fw-medium text-dark small me-2">${label}</span>
+                            <span class="remove-chip-icon text-muted cursor-pointer remove-field-chip-btn" data-key="${key}" title="Remove">&times;</span>
+                        </div>
+                    `;
+                    $('#selectedFieldsContainer').append(chipHtml);
+                    $('.no-fields-msg').remove();
+                }
+            } else {
+                $('#selectedFieldsContainer').find(`[data-key="${key}"]`).remove();
+            }
+        });
+
+        // Remove field via chip x button
+        $(document).on('click', '.remove-field-chip-btn', function () {
+            let key = $(this).data('key');
+            $(`#chk_col_${key}`).prop('checked', false).trigger('change');
+        });
+
+        // Save Customization Order
+        $('#saveLeadListColumnsBtn').on('click', function () {
+            let columns = [];
+            $('#selectedFieldsContainer .selected-field-chip').each(function () {
+                columns.push($(this).data('key'));
+            });
+
+            let btn = $(this);
+            let spinner = btn.find('.spinner-border');
+            btn.prop('disabled', true);
+            spinner.removeClass('d-none');
+
+            $.ajax({
+                url: "{{ route('admin.settings.lead.list-columns.save') }}",
+                type: "POST",
+                data: {
+                    _token: $('meta[name="csrf-token"]').attr('content'),
+                    columns: columns
+                },
+                success: function (response) {
+                    if (response.status) {
+                        showSettingsAlert('success', response.message);
+                    }
+                },
+                error: function () {
+                    showSettingsAlert('danger', 'Failed to save Lead List customization.');
+                },
+                complete: function () {
+                    btn.prop('disabled', false);
+                    spinner.addClass('d-none');
                 }
             });
         });

@@ -11,8 +11,55 @@ class LeadSettingController extends Controller
 {
     public function index()
     {
-        $data['setting'] = LeadSetting::getSettings();
-        $data['customFields'] = LeadCustomField::orderBy('id', 'asc')->get();
+        $setting = LeadSetting::getSettings();
+        $customFields = LeadCustomField::orderBy('id', 'asc')->get();
+
+        $standardFields = [
+            'lead_title'         => 'Lead Title',
+            'customer'           => 'Customer',
+            'lead_source'        => 'Source',
+            'priority'           => 'Priority',
+            'expected_amount'    => 'Expected Amount',
+            'assigned_to'        => 'Assigned To',
+            'next_followup_date' => 'Next Follow-up',
+            'created_at'         => 'Created At',
+            'created_by'         => 'Created By',
+            'status'             => 'Status',
+        ];
+
+        $allAvailableFields = [];
+        foreach ($standardFields as $key => $label) {
+            $allAvailableFields[$key] = [
+                'key'   => $key,
+                'label' => $label,
+                'type'  => 'standard',
+            ];
+        }
+
+        foreach ($customFields as $cf) {
+            $allAvailableFields[$cf->field_name] = [
+                'key'   => $cf->field_name,
+                'label' => $cf->field_label,
+                'type'  => 'custom',
+                'field' => $cf,
+            ];
+        }
+
+        $savedColumns = $setting->lead_list_columns;
+        if (empty($savedColumns) || !is_array($savedColumns)) {
+            $savedColumns = array_keys($allAvailableFields);
+        } else {
+            // Keep only keys that exist in allAvailableFields
+            $savedColumns = array_values(array_filter($savedColumns, function ($key) use ($allAvailableFields) {
+                return isset($allAvailableFields[$key]);
+            }));
+        }
+
+        $data['setting']            = $setting;
+        $data['customFields']       = $customFields;
+        $data['allAvailableFields'] = $allAvailableFields;
+        $data['selectedColumns']    = $savedColumns;
+
         return view('settings.lead', $data);
     }
 
@@ -28,6 +75,30 @@ class LeadSettingController extends Controller
         $setting->save();
 
         session()->flash('success', 'Lead settings saved successfully.');
+        return redirect()->back();
+    }
+
+    public function saveLeadListColumns(Request $request)
+    {
+        $setting = LeadSetting::getSettings();
+
+        $validated = $request->validate([
+            'columns'   => ['nullable', 'array'],
+            'columns.*' => ['string'],
+        ]);
+
+        $setting->lead_list_columns = $validated['columns'] ?? [];
+        $setting->save();
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'status'  => true,
+                'message' => 'Lead List customization saved successfully.',
+                'data'    => $setting->lead_list_columns
+            ]);
+        }
+
+        session()->flash('success', 'Lead List customization saved successfully.');
         return redirect()->back();
     }
 
