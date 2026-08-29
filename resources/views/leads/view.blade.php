@@ -152,6 +152,11 @@
                             <th>Expected Amount</th>
                             <th>Assigned To</th>
                             <th>Next Follow-up</th>
+                            @if (isset($customFields) && count($customFields) > 0)
+                                @foreach ($customFields as $field)
+                                    <th>{{ $field->field_label }}</th>
+                                @endforeach
+                            @endif
                             <th class="text-center">Created At</th>
                             <th class="text-center">Created By</th>
                             <th class="text-center">Status</th>
@@ -276,6 +281,53 @@
                                 </select>
                                 <div class="invalid-feedback"></div>
                             </div>
+
+                            @if (isset($customFields) && count($customFields) > 0)
+                                <div class="col-12 border-top pt-3 mt-3">
+                                    <h6 class="fw-bold mb-3 text-primary"><i class="bx bx-list-plus me-1"></i> Additional Fields</h6>
+                                    <div class="row g-3">
+                                        @foreach ($customFields as $field)
+                                            @php
+                                                $isReq = $field->is_required === 'Yes';
+                                                $inputName = "custom_fields[{$field->field_name}]";
+                                                $options = array_map('trim', explode(',', $field->field_options ?? ''));
+                                            @endphp
+                                            <div class="col-md-6">
+                                                <label class="form-label">
+                                                    {{ $field->field_label }}
+                                                    @if ($isReq) <span class="text-danger">*</span> @endif
+                                                </label>
+
+                                                @if ($field->field_type === 'Number')
+                                                    <input type="number" step="any" name="{{ $inputName }}" class="form-control" placeholder="Enter {{ strtolower($field->field_label) }}" {{ $isReq ? 'required' : '' }}>
+                                                @elseif ($field->field_type === 'Date')
+                                                    <input type="date" name="{{ $inputName }}" class="form-control" {{ $isReq ? 'required' : '' }}>
+                                                @elseif ($field->field_type === 'Dropdown')
+                                                    <select name="{{ $inputName }}" class="form-select" {{ $isReq ? 'required' : '' }}>
+                                                        <option value="">-- Select {{ $field->field_label }} --</option>
+                                                        @foreach ($options as $opt)
+                                                            @if(!empty($opt))
+                                                                <option value="{{ $opt }}">{{ $opt }}</option>
+                                                            @endif
+                                                        @endforeach
+                                                    </select>
+                                                @elseif ($field->field_type === 'Textarea')
+                                                    <textarea name="{{ $inputName }}" class="form-control" rows="2" placeholder="Enter {{ strtolower($field->field_label) }}" {{ $isReq ? 'required' : '' }}></textarea>
+                                                @elseif ($field->field_type === 'Checkbox')
+                                                    <div class="form-check pt-2">
+                                                        <input class="form-check-input" type="checkbox" name="{{ $inputName }}" value="1" id="cf_add_{{ $field->field_name }}">
+                                                        <label class="form-check-label" for="cf_add_{{ $field->field_name }}">{{ $field->field_label }}</label>
+                                                    </div>
+                                                @else
+                                                    <input type="text" name="{{ $inputName }}" class="form-control" placeholder="Enter {{ strtolower($field->field_label) }}" {{ $isReq ? 'required' : '' }}>
+                                                @endif
+
+                                                <div class="invalid-feedback"></div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
                         </div>
                     </div>
                     <div class="modal-footer gap-2">
@@ -400,6 +452,53 @@
                                 </select>
                                 <div class="invalid-feedback"></div>
                             </div>
+
+                            @if (isset($customFields) && count($customFields) > 0)
+                                <div class="col-12 border-top pt-3 mt-3">
+                                    <h6 class="fw-bold mb-3 text-primary"><i class="bx bx-list-plus me-1"></i> Additional Fields</h6>
+                                    <div class="row g-3">
+                                        @foreach ($customFields as $field)
+                                            @php
+                                                $isReq = $field->is_required === 'Yes';
+                                                $inputName = "custom_fields[{$field->field_name}]";
+                                                $options = array_map('trim', explode(',', $field->field_options ?? ''));
+                                            @endphp
+                                            <div class="col-md-6">
+                                                <label class="form-label">
+                                                    {{ $field->field_label }}
+                                                    @if ($isReq) <span class="text-danger">*</span> @endif
+                                                </label>
+
+                                                @if ($field->field_type === 'Number')
+                                                    <input type="number" step="any" name="{{ $inputName }}" id="edit_cf_{{ $field->field_name }}" class="form-control" placeholder="Enter {{ strtolower($field->field_label) }}" {{ $isReq ? 'required' : '' }}>
+                                                @elseif ($field->field_type === 'Date')
+                                                    <input type="date" name="{{ $inputName }}" id="edit_cf_{{ $field->field_name }}" class="form-control" {{ $isReq ? 'required' : '' }}>
+                                                @elseif ($field->field_type === 'Dropdown')
+                                                    <select name="{{ $inputName }}" id="edit_cf_{{ $field->field_name }}" class="form-select" {{ $isReq ? 'required' : '' }}>
+                                                        <option value="">-- Select {{ $field->field_label }} --</option>
+                                                        @foreach ($options as $opt)
+                                                            @if(!empty($opt))
+                                                                <option value="{{ $opt }}">{{ $opt }}</option>
+                                                            @endif
+                                                        @endforeach
+                                                    </select>
+                                                @elseif ($field->field_type === 'Textarea')
+                                                    <textarea name="{{ $inputName }}" id="edit_cf_{{ $field->field_name }}" class="form-control" rows="2" placeholder="Enter {{ strtolower($field->field_label) }}" {{ $isReq ? 'required' : '' }}></textarea>
+                                                @elseif ($field->field_type === 'Checkbox')
+                                                    <div class="form-check pt-2">
+                                                        <input class="form-check-input" type="checkbox" name="{{ $inputName }}" value="1" id="edit_cf_{{ $field->field_name }}">
+                                                        <label class="form-check-label" for="edit_cf_{{ $field->field_name }}">{{ $field->field_label }}</label>
+                                                    </div>
+                                                @else
+                                                    <input type="text" name="{{ $inputName }}" id="edit_cf_{{ $field->field_name }}" class="form-control" placeholder="Enter {{ strtolower($field->field_label) }}" {{ $isReq ? 'required' : '' }}>
+                                                @endif
+
+                                                <div class="invalid-feedback"></div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
                         </div>
                     </div>
                     <div class="modal-footer gap-2">
@@ -431,4 +530,8 @@
             </div>
         </div>
     </div>
+
+    <script>
+        window.customLeadFields = @json($customFields ?? []);
+    </script>
 @endsection

@@ -23,10 +23,15 @@ class Lead extends Model
         'priority',
         'expected_amount',
         'description',
+        'custom_fields',
         'next_followup_date',
         'status',
         'lost_reason_id',
         'created_by',
+    ];
+
+    protected $casts = [
+        'custom_fields' => 'array',
     ];
 
     protected static function booted()

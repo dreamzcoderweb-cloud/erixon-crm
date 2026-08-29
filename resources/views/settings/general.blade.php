@@ -37,7 +37,7 @@
                 @can('lead-settings.view')
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('admin.settings.lead') }}">
-                            <i class="bx bx-gift me-1"></i> Lead Setting
+                            <i class="bx bx-target-lock me-1"></i> Lead Setting
                         </a>
                     </li>
                 @endcan

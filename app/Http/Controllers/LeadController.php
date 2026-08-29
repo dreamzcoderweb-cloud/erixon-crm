@@ -29,6 +29,7 @@ class LeadController extends Controller
         $data['leadRequirements'] = LeadRequirement::where('status', 1)->orderBy('name')->get();
         $data['lostReasons']      = LostReason::where('status', 1)->orderBy('reason')->get();
         $data['leadTitles']       = Lead::forUser($user)->select('lead_title')->distinct()->whereNotNull('lead_title')->orderBy('lead_title')->pluck('lead_title');
+        $data['customFields']     = \App\Models\LeadCustomField::where('status', 1)->orderBy('sort_order', 'asc')->orderBy('id', 'asc')->get();
 
         if ($user->isSuperAdmin()) {
             $data['allStaffs'] = User::staffOnly()->orderBy('name')->get();
@@ -160,7 +161,9 @@ class LeadController extends Controller
         $user = Auth::user();
         $isAdmin = $user->isAdmin();
 
-        $validated = $request->validate([
+        [$customRules, $customAttributes] = $this->getCustomFieldsRules();
+
+        $baseRules = [
             'customer_id'         => ['required', 'exists:customers,customer_id'],
             'lead_title'          => ['required', 'string', 'max:255'],
             'lead_source_id'      => ['nullable', 'exists:lead_sources,lead_sources_id'],
@@ -173,7 +176,13 @@ class LeadController extends Controller
             'next_followup_date'  => ['nullable', 'date'],
             'status'              => ['required', 'in:0,1'],
             'lost_reason_id'      => ['nullable', 'exists:lost_reasons,lost_reason_id'],
-        ]);
+            'custom_fields'       => ['nullable', 'array'],
+        ];
+
+        $rules = array_merge($baseRules, $customRules);
+        $validated = $request->validate($rules, [], $customAttributes);
+
+        $validated['custom_fields'] = $this->processCustomFieldsPayload($validated['custom_fields'] ?? []);
 
         if (!$isAdmin && empty($validated['assigned_to'])) {
             $validated['assigned_to'] = $user->id;
@@ -219,7 +228,9 @@ class LeadController extends Controller
             ], 404);
         }
 
-        $validated = $request->validate([
+        [$customRules, $customAttributes] = $this->getCustomFieldsRules();
+
+        $baseRules = [
             'customer_id'         => ['required', 'exists:customers,customer_id'],
             'lead_title'          => ['required', 'string', 'max:255'],
             'lead_source_id'      => ['nullable', 'exists:lead_sources,lead_sources_id'],
@@ -232,7 +243,13 @@ class LeadController extends Controller
             'next_followup_date'  => ['nullable', 'date'],
             'status'              => ['required', 'in:0,1'],
             'lost_reason_id'      => ['nullable', 'exists:lost_reasons,lost_reason_id'],
-        ]);
+            'custom_fields'       => ['nullable', 'array'],
+        ];
+
+        $rules = array_merge($baseRules, $customRules);
+        $validated = $request->validate($rules, [], $customAttributes);
+
+        $validated['custom_fields'] = $this->processCustomFieldsPayload($validated['custom_fields'] ?? []);
 
         $lead->update($validated);
 
@@ -244,6 +261,66 @@ class LeadController extends Controller
             'message' => 'Lead updated successfully.',
             'data'    => $lead
         ]);
+    }
+
+    /**
+     * Build dynamic validation rules and attribute labels for custom fields
+     */
+    private function getCustomFieldsRules()
+    {
+        $customFields = \App\Models\LeadCustomField::where('status', 1)->get();
+        $rules = [];
+        $attributes = [];
+
+        foreach ($customFields as $cf) {
+            $fieldKey = 'custom_fields.' . $cf->field_name;
+            $fieldRules = [];
+
+            if ($cf->is_required === 'Yes') {
+                $fieldRules[] = 'required';
+            } else {
+                $fieldRules[] = 'nullable';
+            }
+
+            switch ($cf->field_type) {
+                case 'Number':
+                    $fieldRules[] = 'numeric';
+                    break;
+                case 'Date':
+                    $fieldRules[] = 'date';
+                    break;
+                case 'Dropdown':
+                case 'Text':
+                case 'Textarea':
+                case 'Checkbox':
+                default:
+                    $fieldRules[] = 'string';
+                    break;
+            }
+
+            $rules[$fieldKey] = $fieldRules;
+            $attributes[$fieldKey] = $cf->field_label;
+        }
+
+        return [$rules, $attributes];
+    }
+
+    /**
+     * Normalize custom field values (especially handling unchecked checkboxes as '0')
+     */
+    private function processCustomFieldsPayload(array $customFieldsData)
+    {
+        $allFields = \App\Models\LeadCustomField::where('status', 1)->get();
+        foreach ($allFields as $field) {
+            if ($field->field_type === 'Checkbox') {
+                if (isset($customFieldsData[$field->field_name]) && ($customFieldsData[$field->field_name] == 1 || $customFieldsData[$field->field_name] === '1' || $customFieldsData[$field->field_name] === 'Yes')) {
+                    $customFieldsData[$field->field_name] = '1';
+                } else {
+                    $customFieldsData[$field->field_name] = '0';
+                }
+            }
+        }
+        return $customFieldsData;
     }
 
     /**

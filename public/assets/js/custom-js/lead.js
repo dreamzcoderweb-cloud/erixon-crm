@@ -5,6 +5,158 @@ $(document).ready(function () {
         }
     });
 
+    let leadTableColumns = [
+        {
+            data: null,
+            className: 'text-center',
+            render: function (data, type, row, meta) {
+                return meta.row + 1;
+            }
+        },
+        {
+            data: 'lead_title',
+            render: function (data, type) {
+                if (type !== 'display') return data || '';
+                return `<strong>${data}</strong>`;
+            }
+        },
+        {
+            data: 'customer',
+            render: function (data, type) {
+                if (!data) return type !== 'display' ? 'N/A' : '<span class="text-muted">N/A</span>';
+                if (type !== 'display') return `${data.name} (${data.mobile})`;
+                return `<div><strong>${data.name}</strong><br><small class="text-muted">${data.mobile}</small></div>`;
+            }
+        },
+        {
+            data: 'lead_source',
+            render: function (data, type) {
+                if (!data) return type !== 'display' ? 'N/A' : '<span class="text-muted">N/A</span>';
+                if (type !== 'display') return data.name;
+                return `<span class="badge bg-label-info">${data.name}</span>`;
+            }
+        },
+        {
+            data: 'priority',
+            render: function (data, type) {
+                if (type !== 'display') return (data || '').toUpperCase();
+                let badgeClass = 'bg-label-secondary';
+                if (data === 'urgent') badgeClass = 'bg-label-danger';
+                else if (data === 'high') badgeClass = 'bg-label-warning';
+                else if (data === 'medium') badgeClass = 'bg-label-primary';
+                else if (data === 'low') badgeClass = 'bg-label-info';
+                return `<span class="badge ${badgeClass} text-uppercase">${data}</span>`;
+            }
+        },
+        {
+            data: 'expected_amount',
+            render: function (data, type) {
+                let formatted = data ? `₹${parseFloat(data).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '-';
+                if (type !== 'display') return data ? parseFloat(data).toFixed(2) : '-';
+                return data ? formatted : '<span class="text-muted">-</span>';
+            }
+        },
+        {
+            data: 'assigned_user',
+            render: function (data, type) {
+                if (!data) return type !== 'display' ? 'Unassigned' : '<span class="badge bg-label-secondary">Unassigned</span>';
+                return data.name;
+            }
+        },
+        {
+            data: 'next_followup_date',
+            render: function (data, type) {
+                if (type !== 'display') return data || '-';
+                return data ? `<span class="text-nowrap"><i class="bx bx-calendar me-1"></i>${formatDate(data)}</span>` : '<span class="text-muted">-</span>';
+            }
+        }
+    ];
+
+    if (window.customLeadFields && window.customLeadFields.length > 0) {
+        window.customLeadFields.forEach(function (cf) {
+            leadTableColumns.push({
+                data: null,
+                render: function (data, type, row) {
+                    let val = (row.custom_fields && row.custom_fields[cf.field_name] !== undefined && row.custom_fields[cf.field_name] !== null) ? row.custom_fields[cf.field_name] : null;
+                    if (type !== 'display') return val !== null ? val : '';
+                    if (val === null || val === undefined || val === '') return '<span class="text-muted">-</span>';
+
+                    if (cf.field_type === 'Checkbox') {
+                        if (val == 1 || val === true || val === '1' || val === 'Yes') {
+                            return '<span class="badge bg-label-success">Yes</span>';
+                        } else {
+                            return '<span class="badge bg-label-secondary">No</span>';
+                        }
+                    }
+                    if (cf.field_type === 'Date') {
+                        return `<span class="text-nowrap">${formatDate(val)}</span>`;
+                    }
+                    return val;
+                }
+            });
+        });
+    }
+
+    leadTableColumns.push(
+        {
+            data: 'created_at',
+            className: 'text-center',
+            render: function (data, type) {
+                if (type !== 'display') return data || '-';
+                return data ? `<span class="text-nowrap">${formatDate(data)}</span>` : '<span class="text-muted">-</span>';
+            }
+        },
+        {
+            data: 'creator',
+            className: 'text-center',
+            render: function (data, type, row) {
+                let creatorName = data && data.name ? data.name : (row.created_by ? 'User #' + row.created_by : 'N/A');
+                if (type !== 'display') return creatorName;
+                return data && data.name ? `<span>${data.name}</span>` : (row.created_by ? `<span class="text-muted">User #${row.created_by}</span>` : '<span class="text-muted">N/A</span>');
+            }
+        },
+        {
+            data: 'status',
+            className: 'text-center',
+            render: function (data, type, row) {
+                let statusText = data == 1 ? 'Active' : 'Closed';
+                if (type !== 'display') return statusText;
+                let isChecked = data == 1 ? 'checked' : '';
+                let statusLabel = data == 1 ? '<span class="badge bg-label-success">Active</span>' : '<span class="badge bg-label-secondary">Closed</span>';
+                return `
+                    <div class="d-flex align-items-center justify-content-center gap-2">
+                        ${statusLabel}
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input btn-toggle-lead-status" type="checkbox" data-id="${row.lead_id}" ${isChecked}>
+                        </div>
+                    </div>
+                `;
+            }
+        },
+        {
+            data: null,
+            orderable: false,
+            className: 'text-center',
+            render: function (data, type, row) {
+                return `
+                    <div class="dropdown">
+                        <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                            <i class="bx bx-dots-vertical-rounded"></i>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end">
+                            <a class="dropdown-item btn-edit-lead" href="javascript:void(0);" data-id="${row.lead_id}">
+                                <i class="bx bx-edit-alt me-1"></i> Edit
+                            </a>
+                            <a class="dropdown-item text-danger btn-delete-lead" href="javascript:void(0);" data-id="${row.lead_id}" data-title="${row.lead_title}">
+                                <i class="bx bx-trash me-1"></i> Delete
+                            </a>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+    );
+
     let leadTable = $('#leads-table').DataTable({
         ajax: {
             url: APP_URL + '/admin/leads/data',
@@ -30,129 +182,7 @@ $(document).ready(function () {
                 return json.data || [];
             }
         },
-        columns: [
-            {
-                data: null,
-                className: 'text-center',
-                render: function (data, type, row, meta) {
-                    return meta.row + 1;
-                }
-            },
-            {
-                data: 'lead_title',
-                render: function (data, type) {
-                    if (type !== 'display') return data || '';
-                    return `<strong>${data}</strong>`;
-                }
-            },
-            {
-                data: 'customer',
-                render: function (data, type) {
-                    if (!data) return type !== 'display' ? 'N/A' : '<span class="text-muted">N/A</span>';
-                    if (type !== 'display') return `${data.name} (${data.mobile})`;
-                    return `<div><strong>${data.name}</strong><br><small class="text-muted">${data.mobile}</small></div>`;
-                }
-            },
-            {
-                data: 'lead_source',
-                render: function (data, type) {
-                    if (!data) return type !== 'display' ? 'N/A' : '<span class="text-muted">N/A</span>';
-                    if (type !== 'display') return data.name;
-                    return `<span class="badge bg-label-info">${data.name}</span>`;
-                }
-            },
-            {
-                data: 'priority',
-                render: function (data, type) {
-                    if (type !== 'display') return (data || '').toUpperCase();
-                    let badgeClass = 'bg-label-secondary';
-                    if (data === 'urgent') badgeClass = 'bg-label-danger';
-                    else if (data === 'high') badgeClass = 'bg-label-warning';
-                    else if (data === 'medium') badgeClass = 'bg-label-primary';
-                    else if (data === 'low') badgeClass = 'bg-label-info';
-                    return `<span class="badge ${badgeClass} text-uppercase">${data}</span>`;
-                }
-            },
-            {
-                data: 'expected_amount',
-                render: function (data, type) {
-                    let formatted = data ? `₹${parseFloat(data).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '-';
-                    if (type !== 'display') return data ? parseFloat(data).toFixed(2) : '-';
-                    return data ? formatted : '<span class="text-muted">-</span>';
-                }
-            },
-            {
-                data: 'assigned_user',
-                render: function (data, type) {
-                    if (!data) return type !== 'display' ? 'Unassigned' : '<span class="badge bg-label-secondary">Unassigned</span>';
-                    return data.name;
-                }
-            },
-            {
-                data: 'next_followup_date',
-                render: function (data, type) {
-                    if (type !== 'display') return data || '-';
-                    return data ? `<span class="text-nowrap"><i class="bx bx-calendar me-1"></i>${formatDate(data)}</span>` : '<span class="text-muted">-</span>';
-                }
-            },
-            {
-                data: 'created_at',
-                className: 'text-center',
-                render: function (data, type) {
-                    if (type !== 'display') return data || '-';
-                    return data ? `<span class="text-nowrap">${formatDate(data)}</span>` : '<span class="text-muted">-</span>';
-                }
-            },
-            {
-                data: 'creator',
-                className: 'text-center',
-                render: function (data, type, row) {
-                    let creatorName = data && data.name ? data.name : (row.created_by ? 'User #' + row.created_by : 'N/A');
-                    if (type !== 'display') return creatorName;
-                    return data && data.name ? `<span>${data.name}</span>` : (row.created_by ? `<span class="text-muted">User #${row.created_by}</span>` : '<span class="text-muted">N/A</span>');
-                }
-            },
-            {
-                data: 'status',
-                className: 'text-center',
-                render: function (data, type, row) {
-                    let statusText = data == 1 ? 'Active' : 'Closed';
-                    if (type !== 'display') return statusText;
-                    let isChecked = data == 1 ? 'checked' : '';
-                    let statusLabel = data == 1 ? '<span class="badge bg-label-success">Active</span>' : '<span class="badge bg-label-secondary">Closed</span>';
-                    return `
-                        <div class="d-flex align-items-center justify-content-center gap-2">
-                            ${statusLabel}
-                            <div class="form-check form-switch mb-0">
-                                <input class="form-check-input btn-toggle-lead-status" type="checkbox" data-id="${row.lead_id}" ${isChecked}>
-                            </div>
-                        </div>
-                    `;
-                }
-            },
-            {
-                data: null,
-                orderable: false,
-                className: 'text-center',
-                render: function (data, type, row) {
-                    return `
-                        <div class="dropdown">
-                            <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
-                                <i class="bx bx-dots-vertical-rounded"></i>
-                            </button>
-                            <div class="dropdown-menu dropdown-menu-end">
-                                <a class="dropdown-item btn-edit-lead" href="javascript:void(0);" data-id="${row.lead_id}">
-                                    <i class="bx bx-edit-alt me-1"></i> Edit
-                                </a>
-                                <a class="dropdown-item text-danger btn-delete-lead" href="javascript:void(0);" data-id="${row.lead_id}" data-title="${row.lead_title}">
-                                    <i class="bx bx-trash me-1"></i> Delete
-                                </a>
-                            </div>
-                        </div>
-                    `;
-                }
-            }
-        ],
+        columns: leadTableColumns,
         layout: {
             topStart: [
                 'pageLength',
@@ -203,7 +233,12 @@ $(document).ready(function () {
     function showValidationErrors(form, errors) {
         clearValidationErrors(form);
         $.each(errors, function (field, messages) {
-            let input = form.find(`[name="${field}"]`);
+            let inputName = field;
+            if (field.indexOf('.') !== -1) {
+                let parts = field.split('.');
+                inputName = parts[0] + '[' + parts.slice(1).join('][') + ']';
+            }
+            let input = form.find(`[name="${inputName}"]`);
             if (input.length) {
                 input.addClass('is-invalid');
                 let errorDiv = input.siblings('.invalid-feedback');
@@ -289,6 +324,23 @@ $(document).ready(function () {
                     $('#edit_lead_next_followup_date').val(lead.next_followup_date || '');
                     $('#edit_lead_description').val(lead.description || '');
                     $('#edit_lead_status').val(lead.status);
+
+                    // Reset and populate custom fields
+                    form.find('[name^="custom_fields["]').val('');
+                    form.find('input[type="checkbox"][name^="custom_fields["]').prop('checked', false);
+
+                    if (lead.custom_fields && typeof lead.custom_fields === 'object') {
+                        $.each(lead.custom_fields, function (cfKey, cfVal) {
+                            let cfInput = form.find(`[name="custom_fields[${cfKey}]"]`);
+                            if (cfInput.length) {
+                                if (cfInput.is(':checkbox')) {
+                                    cfInput.prop('checked', cfVal == 1 || cfVal === true || cfVal === '1');
+                                } else {
+                                    cfInput.val(cfVal);
+                                }
+                            }
+                        });
+                    }
 
                     $('#editLeadModal').modal('show');
                 }

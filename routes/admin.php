@@ -211,6 +211,20 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
         ->middleware('permission:lead-settings.edit')
         ->name('settings.lead.update');
 
+    // Lead Additional Custom Fields routes
+    Route::post('settings/lead/custom-fields/store', [LeadSettingController::class, 'storeCustomField'])
+        ->middleware('permission:lead-settings.edit')
+        ->name('settings.lead.custom-fields.store');
+    Route::get('settings/lead/custom-fields/edit/{id}', [LeadSettingController::class, 'editCustomField'])
+        ->middleware('permission:lead-settings.view')
+        ->name('settings.lead.custom-fields.edit');
+    Route::post('settings/lead/custom-fields/update/{id}', [LeadSettingController::class, 'updateCustomField'])
+        ->middleware('permission:lead-settings.edit')
+        ->name('settings.lead.custom-fields.update');
+    Route::delete('settings/lead/custom-fields/delete/{id}', [LeadSettingController::class, 'destroyCustomField'])
+        ->middleware('permission:lead-settings.edit')
+        ->name('settings.lead.custom-fields.destroy');
+
     // Lead Documents routes
     Route::get('lead-documents', [LeadDocumentController::class, 'index'])
         ->middleware('permission:lead-documents.view')
