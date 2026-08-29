@@ -8,6 +8,8 @@ use App\Models\GeneralSetting;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Schema;
 
+use Illuminate\Support\Facades\Gate;
+
 class AppServiceProvider extends ServiceProvider
 {
     /**
@@ -25,6 +27,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Implicitly grant Super Admin all permissions
+        Gate::before(function ($user, $ability) {
+            if ($user && method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) {
+                return true;
+            }
+            if ($user && method_exists($user, 'hasAnyRole') && $user->hasAnyRole(['Super Admin', 'super admin', 'super-admin', 'Super-Admin'])) {
+                return true;
+            }
+        });
+
         if (Schema::hasTable('general_settings')) {
             View::share('generalSetting', GeneralSetting::getSettings());
         }

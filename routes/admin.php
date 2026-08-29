@@ -230,6 +230,28 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
         ->middleware('permission:lead-settings.edit')
         ->name('settings.lead.list-columns.save');
 
+    // Customer Settings routes
+    Route::get('settings/customer', [\App\Http\Controllers\CustomerSettingController::class, 'index'])
+        ->middleware('permission:customer-settings.view')
+        ->name('settings.customer');
+
+    Route::post('settings/customer/custom-fields/store', [\App\Http\Controllers\CustomerSettingController::class, 'storeCustomField'])
+        ->middleware('permission:customer-settings.edit')
+        ->name('settings.customer.custom-fields.store');
+    Route::get('settings/customer/custom-fields/edit/{id}', [\App\Http\Controllers\CustomerSettingController::class, 'editCustomField'])
+        ->middleware('permission:customer-settings.view')
+        ->name('settings.customer.custom-fields.edit');
+    Route::post('settings/customer/custom-fields/update/{id}', [\App\Http\Controllers\CustomerSettingController::class, 'updateCustomField'])
+        ->middleware('permission:customer-settings.edit')
+        ->name('settings.customer.custom-fields.update');
+    Route::delete('settings/customer/custom-fields/delete/{id}', [\App\Http\Controllers\CustomerSettingController::class, 'destroyCustomField'])
+        ->middleware('permission:customer-settings.edit')
+        ->name('settings.customer.custom-fields.destroy');
+
+    Route::post('settings/customer/list-columns/save', [\App\Http\Controllers\CustomerSettingController::class, 'saveCustomerListColumns'])
+        ->middleware('permission:customer-settings.edit')
+        ->name('settings.customer.list-columns.save');
+
     // Lead Documents routes
     Route::get('lead-documents', [LeadDocumentController::class, 'index'])
         ->middleware('permission:lead-documents.view')

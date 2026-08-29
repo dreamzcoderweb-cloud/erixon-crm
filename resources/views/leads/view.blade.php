@@ -285,15 +285,19 @@
                                                 $options = array_map('trim', explode(',', $field->field_options ?? ''));
                                             @endphp
                                             <div class="col-md-6">
-                                                <label class="form-label">
-                                                    {{ $field->field_label }}
-                                                    @if ($isReq) <span class="text-danger">*</span> @endif
-                                                </label>
+                                                @if ($field->field_type !== 'Checkbox')
+                                                    <label class="form-label">
+                                                        {{ $field->field_label }}
+                                                        @if ($isReq) <span class="text-danger">*</span> @endif
+                                                    </label>
+                                                @endif
 
                                                 @if ($field->field_type === 'Number')
                                                     <input type="number" step="any" name="{{ $inputName }}" class="form-control" placeholder="Enter {{ strtolower($field->field_label) }}" {{ $isReq ? 'required' : '' }}>
+                                                    <div class="invalid-feedback"></div>
                                                 @elseif ($field->field_type === 'Date')
                                                     <input type="date" name="{{ $inputName }}" class="form-control" {{ $isReq ? 'required' : '' }}>
+                                                    <div class="invalid-feedback"></div>
                                                 @elseif ($field->field_type === 'Dropdown')
                                                     <select name="{{ $inputName }}" class="form-select" {{ $isReq ? 'required' : '' }}>
                                                         <option value="">-- Select {{ $field->field_label }} --</option>
@@ -303,18 +307,20 @@
                                                             @endif
                                                         @endforeach
                                                     </select>
+                                                    <div class="invalid-feedback"></div>
                                                 @elseif ($field->field_type === 'Textarea')
                                                     <textarea name="{{ $inputName }}" class="form-control" rows="2" placeholder="Enter {{ strtolower($field->field_label) }}" {{ $isReq ? 'required' : '' }}></textarea>
+                                                    <div class="invalid-feedback"></div>
                                                 @elseif ($field->field_type === 'Checkbox')
                                                     <div class="form-check pt-2">
                                                         <input class="form-check-input" type="checkbox" name="{{ $inputName }}" value="1" id="cf_add_{{ $field->field_name }}">
-                                                        <label class="form-check-label" for="cf_add_{{ $field->field_name }}">{{ $field->field_label }}</label>
+                                                        <label class="form-check-label fw-medium" for="cf_add_{{ $field->field_name }}">{{ $field->field_label }} @if ($isReq) <span class="text-danger">*</span> @endif</label>
+                                                        <div class="invalid-feedback"></div>
                                                     </div>
                                                 @else
                                                     <input type="text" name="{{ $inputName }}" class="form-control" placeholder="Enter {{ strtolower($field->field_label) }}" {{ $isReq ? 'required' : '' }}>
+                                                    <div class="invalid-feedback"></div>
                                                 @endif
-
-                                                <div class="invalid-feedback"></div>
                                             </div>
                                         @endforeach
                                     </div>
@@ -456,15 +462,19 @@
                                                 $options = array_map('trim', explode(',', $field->field_options ?? ''));
                                             @endphp
                                             <div class="col-md-6">
-                                                <label class="form-label">
-                                                    {{ $field->field_label }}
-                                                    @if ($isReq) <span class="text-danger">*</span> @endif
-                                                </label>
+                                                @if ($field->field_type !== 'Checkbox')
+                                                    <label class="form-label">
+                                                        {{ $field->field_label }}
+                                                        @if ($isReq) <span class="text-danger">*</span> @endif
+                                                    </label>
+                                                @endif
 
                                                 @if ($field->field_type === 'Number')
                                                     <input type="number" step="any" name="{{ $inputName }}" id="edit_cf_{{ $field->field_name }}" class="form-control" placeholder="Enter {{ strtolower($field->field_label) }}" {{ $isReq ? 'required' : '' }}>
+                                                    <div class="invalid-feedback"></div>
                                                 @elseif ($field->field_type === 'Date')
                                                     <input type="date" name="{{ $inputName }}" id="edit_cf_{{ $field->field_name }}" class="form-control" {{ $isReq ? 'required' : '' }}>
+                                                    <div class="invalid-feedback"></div>
                                                 @elseif ($field->field_type === 'Dropdown')
                                                     <select name="{{ $inputName }}" id="edit_cf_{{ $field->field_name }}" class="form-select" {{ $isReq ? 'required' : '' }}>
                                                         <option value="">-- Select {{ $field->field_label }} --</option>
@@ -474,18 +484,20 @@
                                                             @endif
                                                         @endforeach
                                                     </select>
+                                                    <div class="invalid-feedback"></div>
                                                 @elseif ($field->field_type === 'Textarea')
                                                     <textarea name="{{ $inputName }}" id="edit_cf_{{ $field->field_name }}" class="form-control" rows="2" placeholder="Enter {{ strtolower($field->field_label) }}" {{ $isReq ? 'required' : '' }}></textarea>
+                                                    <div class="invalid-feedback"></div>
                                                 @elseif ($field->field_type === 'Checkbox')
                                                     <div class="form-check pt-2">
                                                         <input class="form-check-input" type="checkbox" name="{{ $inputName }}" value="1" id="edit_cf_{{ $field->field_name }}">
-                                                        <label class="form-check-label" for="edit_cf_{{ $field->field_name }}">{{ $field->field_label }}</label>
+                                                        <label class="form-check-label fw-medium" for="edit_cf_{{ $field->field_name }}">{{ $field->field_label }} @if ($isReq) <span class="text-danger">*</span> @endif</label>
+                                                        <div class="invalid-feedback"></div>
                                                     </div>
                                                 @else
                                                     <input type="text" name="{{ $inputName }}" id="edit_cf_{{ $field->field_name }}" class="form-control" placeholder="Enter {{ strtolower($field->field_label) }}" {{ $isReq ? 'required' : '' }}>
+                                                    <div class="invalid-feedback"></div>
                                                 @endif
-
-                                                <div class="invalid-feedback"></div>
                                             </div>
                                         @endforeach
                                     </div>

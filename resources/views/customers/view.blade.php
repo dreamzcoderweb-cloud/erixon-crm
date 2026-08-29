@@ -130,17 +130,13 @@
                     <thead class="table-light">
                         <tr>
                             <th class="text-center">#</th>
-                            <th>Customer Type</th>
-                            <th>Name</th>
-                            <th>Company</th>
-                            <th>Mobile</th>
-                            <th>Email</th>
-                            <th>City / State</th>
-                            <th>Created Date</th>
-                            <th>Created By</th>
-                            <th>Owner By</th>
-                            <th>Assign By</th>
-                            <th class="text-center">Status</th>
+                            @if (isset($visibleColumns) && count($visibleColumns) > 0)
+                                @foreach ($visibleColumns as $col)
+                                    <th class="{{ in_array($col['key'], ['status']) ? 'text-center' : '' }}">
+                                        {{ $col['label'] }}
+                                    </th>
+                                @endforeach
+                            @endif
                             <th class="text-center">Actions</th>
                         </tr>
                     </thead>
@@ -254,6 +250,55 @@
                                 </select>
                                 <div class="invalid-feedback"></div>
                             </div>
+
+                            @if (isset($customFields) && count($customFields) > 0)
+                                <div class="col-12 border-top pt-3 mt-3">
+                                    <h6 class="fw-bold mb-3 text-primary"><i class="bx bx-list-plus me-1"></i> Additional Fields</h6>
+                                    <div class="row g-3">
+                                        @foreach ($customFields as $field)
+                                            @php
+                                                $reqAttr = $field->is_required === 'Yes' ? 'required' : '';
+                                                $reqStar = $field->is_required === 'Yes' ? '<span class="text-danger">*</span>' : '';
+                                                $inputName = "custom_fields[{$field->field_name}]";
+                                            @endphp
+                                            <div class="col-md-6">
+                                                @if ($field->field_type !== 'Checkbox')
+                                                    <label class="form-label">{{ $field->field_label }} {!! $reqStar !!}</label>
+                                                @endif
+
+                                                @if ($field->field_type === 'Text')
+                                                    <input type="text" class="form-control" name="{{ $inputName }}" placeholder="Enter {{ $field->field_label }}" {{ $reqAttr }}>
+                                                    <div class="invalid-feedback"></div>
+                                                @elseif ($field->field_type === 'Number')
+                                                    <input type="number" class="form-control" name="{{ $inputName }}" placeholder="Enter {{ $field->field_label }}" {{ $reqAttr }}>
+                                                    <div class="invalid-feedback"></div>
+                                                @elseif ($field->field_type === 'Date')
+                                                    <input type="date" class="form-control" name="{{ $inputName }}" {{ $reqAttr }}>
+                                                    <div class="invalid-feedback"></div>
+                                                @elseif ($field->field_type === 'Textarea')
+                                                    <textarea class="form-control" name="{{ $inputName }}" rows="2" placeholder="Enter {{ $field->field_label }}" {{ $reqAttr }}></textarea>
+                                                    <div class="invalid-feedback"></div>
+                                                @elseif ($field->field_type === 'Dropdown')
+                                                    @php $opts = array_filter(array_map('trim', explode(',', $field->field_options ?? ''))); @endphp
+                                                    <select class="form-select" name="{{ $inputName }}" {{ $reqAttr }}>
+                                                        <option value="">-- Select {{ $field->field_label }} --</option>
+                                                        @foreach ($opts as $opt)
+                                                            <option value="{{ $opt }}">{{ $opt }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                    <div class="invalid-feedback"></div>
+                                                @elseif ($field->field_type === 'Checkbox')
+                                                    <div class="form-check pt-2">
+                                                        <input class="form-check-input" type="checkbox" name="{{ $inputName }}" value="1" id="cf_cust_add_{{ $field->field_name }}">
+                                                        <label class="form-check-label fw-medium" for="cf_cust_add_{{ $field->field_name }}">{{ $field->field_label }} {!! $reqStar !!}</label>
+                                                        <div class="invalid-feedback"></div>
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
                         </div>
                     </div>
                     <div class="modal-footer gap-2">
@@ -370,6 +415,55 @@
                                 </select>
                                 <div class="invalid-feedback"></div>
                             </div>
+
+                            @if (isset($customFields) && count($customFields) > 0)
+                                <div class="col-12 border-top pt-3 mt-3">
+                                    <h6 class="fw-bold mb-3 text-primary"><i class="bx bx-list-plus me-1"></i> Additional Fields</h6>
+                                    <div class="row g-3">
+                                        @foreach ($customFields as $field)
+                                            @php
+                                                $reqAttr = $field->is_required === 'Yes' ? 'required' : '';
+                                                $reqStar = $field->is_required === 'Yes' ? '<span class="text-danger">*</span>' : '';
+                                                $inputName = "custom_fields[{$field->field_name}]";
+                                            @endphp
+                                            <div class="col-md-6">
+                                                @if ($field->field_type !== 'Checkbox')
+                                                    <label class="form-label">{{ $field->field_label }} {!! $reqStar !!}</label>
+                                                @endif
+
+                                                @if ($field->field_type === 'Text')
+                                                    <input type="text" class="form-control" name="{{ $inputName }}" id="edit_cf_cust_{{ $field->field_name }}" placeholder="Enter {{ $field->field_label }}" {{ $reqAttr }}>
+                                                    <div class="invalid-feedback"></div>
+                                                @elseif ($field->field_type === 'Number')
+                                                    <input type="number" class="form-control" name="{{ $inputName }}" id="edit_cf_cust_{{ $field->field_name }}" placeholder="Enter {{ $field->field_label }}" {{ $reqAttr }}>
+                                                    <div class="invalid-feedback"></div>
+                                                @elseif ($field->field_type === 'Date')
+                                                    <input type="date" class="form-control" name="{{ $inputName }}" id="edit_cf_cust_{{ $field->field_name }}" {{ $reqAttr }}>
+                                                    <div class="invalid-feedback"></div>
+                                                @elseif ($field->field_type === 'Textarea')
+                                                    <textarea class="form-control" name="{{ $inputName }}" id="edit_cf_cust_{{ $field->field_name }}" rows="2" placeholder="Enter {{ $field->field_label }}" {{ $reqAttr }}></textarea>
+                                                    <div class="invalid-feedback"></div>
+                                                @elseif ($field->field_type === 'Dropdown')
+                                                    @php $opts = array_filter(array_map('trim', explode(',', $field->field_options ?? ''))); @endphp
+                                                    <select class="form-select" name="{{ $inputName }}" id="edit_cf_cust_{{ $field->field_name }}" {{ $reqAttr }}>
+                                                        <option value="">-- Select {{ $field->field_label }} --</option>
+                                                        @foreach ($opts as $opt)
+                                                            <option value="{{ $opt }}">{{ $opt }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                    <div class="invalid-feedback"></div>
+                                                @elseif ($field->field_type === 'Checkbox')
+                                                    <div class="form-check pt-2">
+                                                        <input class="form-check-input" type="checkbox" name="{{ $inputName }}" value="1" id="edit_cf_cust_{{ $field->field_name }}">
+                                                        <label class="form-check-label fw-medium" for="edit_cf_cust_{{ $field->field_name }}">{{ $field->field_label }} {!! $reqStar !!}</label>
+                                                        <div class="invalid-feedback"></div>
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
                         </div>
                     </div>
                     <div class="modal-footer gap-2">
@@ -463,4 +557,8 @@
         });
     </script>
     @endpush
+    <script>
+        window.customCustomerFields = @json($customFields ?? []);
+        window.configuredCustomerColumns = @json($visibleColumns ?? []);
+    </script>
 @endsection

@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use App\Models\User;
+use App\Models\CustomerCustomField;
+use App\Models\LeadSetting;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -28,8 +30,62 @@ class CustomerController extends Controller
         }
 
         $allUsers = User::orderBy('name')->get();
+        $customFields = CustomerCustomField::where('status', 1)->orderBy('sort_order', 'asc')->orderBy('id', 'asc')->get();
 
-        return view('customers.view', compact('staffs', 'allUsers'));
+        $standardFields = [
+            'customer_type'    => 'Type',
+            'name'             => 'Name',
+            'company_name'     => 'Company Name',
+            'mobile'           => 'Mobile',
+            'email'            => 'Email',
+            'alternate_mobile' => 'Alternate Mobile',
+            'address'          => 'Address',
+            'city'             => 'City',
+            'state'            => 'State',
+            'country'          => 'Country',
+            'pincode'          => 'Pincode',
+            'created_at'       => 'Created At',
+            'created_by'       => 'Created By',
+            'status'           => 'Status',
+        ];
+
+        $allAvailableFieldsMap = [];
+        foreach ($standardFields as $key => $label) {
+            $allAvailableFieldsMap[$key] = [
+                'key'   => $key,
+                'label' => $label,
+                'type'  => 'standard',
+            ];
+        }
+
+        foreach ($customFields as $cf) {
+            $allAvailableFieldsMap[$cf->field_name] = [
+                'key'   => $cf->field_name,
+                'label' => $cf->field_label,
+                'type'  => 'custom',
+                'field' => $cf,
+            ];
+        }
+
+        $setting = LeadSetting::getSettings();
+        $savedColumns = $setting->customer_list_columns;
+
+        if (empty($savedColumns) || !is_array($savedColumns)) {
+            $savedColumns = array_keys($allAvailableFieldsMap);
+        } else {
+            $savedColumns = array_values(array_filter($savedColumns, function ($key) use ($allAvailableFieldsMap) {
+                return isset($allAvailableFieldsMap[$key]);
+            }));
+        }
+
+        $visibleColumns = [];
+        foreach ($savedColumns as $colKey) {
+            if (isset($allAvailableFieldsMap[$colKey])) {
+                $visibleColumns[] = $allAvailableFieldsMap[$colKey];
+            }
+        }
+
+        return view('customers.view', compact('staffs', 'allUsers', 'customFields', 'visibleColumns'));
     }
 
     public function listData(Request $request = null)
@@ -127,24 +183,30 @@ class CustomerController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'customer_type' => ['required', 'in:user,reseller'],
-            'name'          => ['required', 'string', 'max:255'],
-            'company_name'  => ['nullable', 'string', 'max:255'],
-            'mobile'        => ['required', 'string', 'max:20', Rule::unique('customers', 'mobile')->withoutTrashed()],
-            'email'         => ['nullable', 'email', 'max:255'],
+        [$customRules, $customAttributes] = $this->getCustomFieldsRules();
+
+        $baseRules = [
+            'customer_type'    => ['required', 'in:user,reseller'],
+            'name'             => ['required', 'string', 'max:255'],
+            'company_name'     => ['nullable', 'string', 'max:255'],
+            'mobile'           => ['required', 'string', 'max:20', Rule::unique('customers', 'mobile')->withoutTrashed()],
+            'email'            => ['nullable', 'email', 'max:255'],
             'alternate_mobile' => ['nullable', 'string', 'max:20'],
-            'address'       => ['nullable', 'string'],
-            'city'          => ['nullable', 'string', 'max:100'],
-            'state'         => ['nullable', 'string', 'max:100'],
-            'country'       => ['nullable', 'string', 'max:100'],
+            'address'          => ['nullable', 'string'],
+            'city'             => ['nullable', 'string', 'max:100'],
+            'state'            => ['nullable', 'string', 'max:100'],
+            'country'          => ['nullable', 'string', 'max:100'],
             'pincode'          => ['nullable', 'string', 'max:20'],
             'owner_by'         => ['nullable', 'exists:users,id'],
             'assign_by'        => ['nullable', 'exists:users,id'],
             'status'           => ['required', 'in:0,1'],
-        ]);
+        ];
 
-        $validated['created_by'] = Auth::id();
+        $rules = array_merge($baseRules, $customRules);
+        $validated = $request->validate($rules, [], $customAttributes);
+
+        $validated['created_by']    = Auth::id();
+        $validated['custom_fields'] = $this->processCustomFieldsPayload($validated['custom_fields'] ?? []);
 
         $customer = Customer::create($validated);
 
@@ -181,7 +243,9 @@ class CustomerController extends Controller
             ], 404);
         }
 
-        $validated = $request->validate([
+        [$customRules, $customAttributes] = $this->getCustomFieldsRules();
+
+        $baseRules = [
             'customer_type'    => ['required', 'in:user,reseller'],
             'name'             => ['required', 'string', 'max:255'],
             'company_name'     => ['nullable', 'string', 'max:255'],
@@ -196,7 +260,12 @@ class CustomerController extends Controller
             'owner_by'         => ['nullable', 'exists:users,id'],
             'assign_by'        => ['nullable', 'exists:users,id'],
             'status'           => ['required', 'in:0,1'],
-        ]);
+        ];
+
+        $rules = array_merge($baseRules, $customRules);
+        $validated = $request->validate($rules, [], $customAttributes);
+
+        $validated['custom_fields'] = $this->processCustomFieldsPayload($validated['custom_fields'] ?? []);
 
         $customer->update($validated);
 
@@ -250,20 +319,25 @@ class CustomerController extends Controller
      */
     public function search(Request $request)
     {
-        $term = trim($request->input('term', $request->input('q', '')));
+        $query = $request->input('q', '');
 
-        $query = Customer::forUser(Auth::user())->where('status', 1);
-
-        if (!empty($term)) {
-            $query->where(function ($q) use ($term) {
-                $q->where('name', 'LIKE', "%{$term}%")
-                  ->orWhere('mobile', 'LIKE', "%{$term}%")
-                  ->orWhere('email', 'LIKE', "%{$term}%")
-                  ->orWhere('company_name', 'LIKE', "%{$term}%");
-            });
+        if (strlen($query) < 1) {
+            return response()->json([
+                'status' => true,
+                'data'   => []
+            ]);
         }
 
-        $customers = $query->orderBy('name', 'ASC')->limit(20)->get();
+        $customers = Customer::forUser(Auth::user())
+            ->where(function ($q) use ($query) {
+                $q->where('name', 'LIKE', "%{$query}%")
+                  ->orWhere('mobile', 'LIKE', "%{$query}%")
+                  ->orWhere('email', 'LIKE', "%{$query}%")
+                  ->orWhere('company_name', 'LIKE', "%{$query}%");
+            })
+            ->where('status', 1)
+            ->limit(20)
+            ->get(['customer_id', 'name', 'mobile', 'email', 'company_name', 'customer_type']);
 
         return response()->json([
             'status' => true,
@@ -272,128 +346,151 @@ class CustomerController extends Controller
     }
 
     /**
-     * Requirement 14: Import Customer Data Option (Excel / CSV)
+     * Export Customers to Excel (.xlsx)
      */
-    public function import(Request $request)
+    public function export(Request $request)
     {
-        $file = $request->file('excel_file') ?? $request->file('csv_file');
+        $query = Customer::forUser(Auth::user());
 
-        if (!$file) {
-            return response()->json(['status' => false, 'message' => 'Please upload an Excel or CSV file.'], 422);
+        if ($request->filled('customer_type')) {
+            $query->where('customer_type', $request->input('customer_type'));
         }
 
-        try {
-            $spreadsheet = IOFactory::load($file->getRealPath());
-            $worksheet   = $spreadsheet->getActiveSheet();
-            $rows        = $worksheet->toArray(null, true, true, true);
-        } catch (\Exception $e) {
-            return response()->json(['status' => false, 'message' => 'Unable to parse uploaded file: ' . $e->getMessage()], 422);
+        if ($request->filled('status') && $request->input('status') !== '') {
+            $query->where('status', $request->input('status'));
         }
 
-        if (empty($rows)) {
-            return response()->json(['status' => false, 'message' => 'Uploaded file is empty.'], 422);
+        if ($request->filled('created_by')) {
+            $query->where('created_by', $request->input('created_by'));
         }
 
-        // Header row
-        $headerRow = array_shift($rows);
-        $headerMap = [];
-        foreach ($headerRow as $colLetter => $colName) {
-            if (!empty($colName)) {
-                $normalized = strtolower(trim(str_replace([' ', '_', '-'], '', (string)$colName)));
-                $headerMap[$normalized] = $colLetter;
-            }
-        }
+        $filterType = $request->input('filter_type');
+        $date       = $request->input('date');
+        $month      = $request->input('month');
+        $startDate  = $request->input('start_date');
+        $endDate    = $request->input('end_date');
 
-        $importedCount = 0;
-        $skippedCount  = 0;
-        $errors        = [];
-        $rowNum        = 1;
-
-        foreach ($rows as $row) {
-            $rowNum++;
-
-            $name            = isset($headerMap['name']) ? trim((string)($row[$headerMap['name']] ?? '')) : '';
-            $mobile          = isset($headerMap['mobile']) ? trim((string)($row[$headerMap['mobile']] ?? '')) : '';
-            $email           = isset($headerMap['email']) ? trim((string)($row[$headerMap['email']] ?? '')) : '';
-            $companyName     = isset($headerMap['companyname']) ? trim((string)($row[$headerMap['companyname']] ?? '')) : '';
-            $customerType    = isset($headerMap['customertype']) ? strtolower(trim((string)($row[$headerMap['customertype']] ?? 'user'))) : 'user';
-            $alternateMobile = isset($headerMap['alternatemobile']) ? trim((string)($row[$headerMap['alternatemobile']] ?? '')) : '';
-            $address         = isset($headerMap['address']) ? trim((string)($row[$headerMap['address']] ?? '')) : '';
-            $city            = isset($headerMap['city']) ? trim((string)($row[$headerMap['city']] ?? '')) : '';
-            $state           = isset($headerMap['state']) ? trim((string)($row[$headerMap['state']] ?? '')) : '';
-            $country         = isset($headerMap['country']) ? trim((string)($row[$headerMap['country']] ?? '')) : '';
-            $pincode         = isset($headerMap['pincode']) ? trim((string)($row[$headerMap['pincode']] ?? '')) : '';
-
-            if (empty($name) && empty($mobile)) {
-                continue; // Skip blank rows
-            }
-
-            if (empty($name) || empty($mobile)) {
-                $skippedCount++;
-                $errors[] = "Row {$rowNum}: Missing name or mobile number.";
-                continue;
-            }
-
-            // Check duplicate by mobile
-            $existing = Customer::where('mobile', $mobile)->withTrashed()->first();
-            if ($existing) {
-                $skippedCount++;
-                $errors[] = "Row {$rowNum}: Customer with mobile '{$mobile}' already exists.";
-                continue;
-            }
-
-            if (!in_array($customerType, ['user', 'reseller'])) {
-                $customerType = 'user';
-            }
-
-            Customer::create([
-                'customer_type'    => $customerType,
-                'name'             => $name,
-                'mobile'           => $mobile,
-                'email'            => !empty($email) ? $email : null,
-                'company_name'     => !empty($companyName) ? $companyName : null,
-                'alternate_mobile' => !empty($alternateMobile) ? $alternateMobile : null,
-                'address'          => !empty($address) ? $address : null,
-                'city'             => !empty($city) ? $city : null,
-                'state'            => !empty($state) ? $state : null,
-                'country'          => !empty($country) ? $country : null,
-                'pincode'          => !empty($pincode) ? $pincode : null,
-                'status'           => 1,
-                'created_by'       => Auth::id(),
+        if ($filterType === 'daily' && !empty($date)) {
+            $query->whereDate('created_at', $date);
+        } elseif ($filterType === 'weekly') {
+            $refDate = !empty($startDate) ? Carbon::parse($startDate) : Carbon::today();
+            $query->whereBetween('created_at', [
+                $refDate->copy()->startOfWeek(),
+                $refDate->copy()->endOfWeek(),
             ]);
-
-            $importedCount++;
+        } elseif ($filterType === 'monthly' && !empty($month)) {
+            [$year, $selectedMonth] = array_pad(explode('-', $month), 2, null);
+            $query->whereYear('created_at', $year ?: date('Y'))
+                ->whereMonth('created_at', $selectedMonth ?: date('m'));
+        } elseif ($filterType === 'custom') {
+            if (!empty($startDate)) {
+                $query->whereDate('created_at', '>=', $startDate);
+            }
+            if (!empty($endDate)) {
+                $query->whereDate('created_at', '<=', $endDate);
+            }
         }
 
-        return response()->json([
-            'status'         => true,
-            'message'        => "Customer import complete. Imported: {$importedCount}, Skipped: {$skippedCount}.",
-            'imported_count' => $importedCount,
-            'skipped_count'  => $skippedCount,
-            'errors'         => $errors,
-        ]);
-    }
+        $customers = $query->with(['creator:id,name', 'owner:id,name', 'assignedBy:id,name'])
+            ->orderBy('customer_id', 'DESC')
+            ->get();
 
-    public function downloadSampleCsv()
-    {
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Customers');
 
-        $headers = ['Name', 'Mobile', 'Email', 'Company Name', 'Customer Type', 'Alternate Mobile', 'Address', 'City', 'State', 'Country', 'Pincode'];
-        $sheet->fromArray([$headers], null, 'A1');
-
-        $sampleData = [
-            ['John Doe', '9876543210', 'john@example.com', 'Acme Corp', 'user', '9876543211', '123 Main St', 'Chennai', 'Tamil Nadu', 'India', '600001'],
-            ['Jane Smith', '9123456789', 'jane@example.com', 'Global Resellers', 'reseller', '', '456 Tech Park', 'Bangalore', 'Karnataka', 'India', '560001']
+        $headers = [
+            'S.No', 'Customer Type', 'Name', 'Company Name', 'Mobile',
+            'Email', 'Alternate Mobile', 'Address', 'City', 'State',
+            'Country', 'Pincode', 'Status', 'Created By', 'Created At'
         ];
-        $sheet->fromArray($sampleData, null, 'A2');
 
+        $sheet->fromArray($headers, null, 'A1');
+
+        $rowNum = 2;
+        foreach ($customers as $index => $c) {
+            $sheet->fromArray([
+                $index + 1,
+                ucfirst($c->customer_type),
+                $c->name,
+                $c->company_name ?? '-',
+                $c->mobile,
+                $c->email ?? '-',
+                $c->alternate_mobile ?? '-',
+                $c->address ?? '-',
+                $c->city ?? '-',
+                $c->state ?? '-',
+                $c->country ?? '-',
+                $c->pincode ?? '-',
+                $c->status == 1 ? 'Active' : 'Inactive',
+                $c->creator ? $c->creator->name : '-',
+                $c->created_at ? $c->created_at->format('d-m-Y H:i') : '-'
+            ], null, "A{$rowNum}");
+            $rowNum++;
+        }
+
+        $fileName = 'customers_export_' . date('Y_m_d_H_i_s') . '.xlsx';
         $writer = new Xlsx($spreadsheet);
 
         return response()->streamDownload(function () use ($writer) {
             $writer->save('php://output');
-        }, 'customer_import_sample.xlsx', [
+        }, $fileName, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Cache-Control' => 'max-age=0',
         ]);
+    }
+
+    private function getCustomFieldsRules()
+    {
+        $customFields = CustomerCustomField::where('status', 1)->get();
+        $rules = [];
+        $attributes = [];
+
+        foreach ($customFields as $cf) {
+            $key = 'custom_fields.' . $cf->field_name;
+            $fieldRules = [];
+
+            if ($cf->is_required === 'Yes') {
+                $fieldRules[] = 'required';
+            } else {
+                $fieldRules[] = 'nullable';
+            }
+
+            switch ($cf->field_type) {
+                case 'Number':
+                    $fieldRules[] = 'numeric';
+                    break;
+                case 'Date':
+                    $fieldRules[] = 'date';
+                    break;
+                case 'Dropdown':
+                case 'Text':
+                case 'Textarea':
+                case 'Checkbox':
+                default:
+                    $fieldRules[] = 'string';
+                    break;
+            }
+
+            $rules[$key] = $fieldRules;
+            $attributes[$key] = $cf->field_label;
+        }
+
+        return [$rules, $attributes];
+    }
+
+    private function processCustomFieldsPayload(array $customFieldsData = [])
+    {
+        $allFields = CustomerCustomField::where('status', 1)->get();
+        foreach ($allFields as $field) {
+            if ($field->field_type === 'Checkbox') {
+                if (isset($customFieldsData[$field->field_name]) && ($customFieldsData[$field->field_name] == 1 || $customFieldsData[$field->field_name] === '1' || $customFieldsData[$field->field_name] === 'Yes')) {
+                    $customFieldsData[$field->field_name] = '1';
+                } else {
+                    $customFieldsData[$field->field_name] = '0';
+                }
+            }
+        }
+        return $customFieldsData;
     }
 }

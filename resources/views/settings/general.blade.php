@@ -41,6 +41,13 @@
                         </a>
                     </li>
                 @endcan
+                @can('customer-settings.view')
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('admin.settings.customer') }}">
+                            <i class="bx bx-user me-1"></i> Customer Setting
+                        </a>
+                    </li>
+                @endcan
             </ul>
         </div>
     </div>

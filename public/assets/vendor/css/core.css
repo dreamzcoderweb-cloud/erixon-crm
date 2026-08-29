@@ -9665,9 +9665,9 @@ form select.selectpicker.is-invalid ~ .btn {
 .modal-footer > *:last-child {
   margin-left: 0;
 }
-.modal-footer > *:first-child {
+/* .modal-footer > *:first-child {
   margin-right: 0;
-}
+} */
 
 .modal-dialog-scrollable .btn-close,
 .modal-fullscreen .btn-close,

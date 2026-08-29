@@ -5,6 +5,187 @@ $(document).ready(function () {
         }
     });
 
+    let customerTableColumns = [
+        {
+            data: null,
+            className: 'text-center',
+            render: function (data, type, row, meta) {
+                return meta.row + 1;
+            }
+        }
+    ];
+
+    if (window.configuredCustomerColumns && window.configuredCustomerColumns.length > 0) {
+        window.configuredCustomerColumns.forEach(function (col) {
+            let key = col.key;
+            if (key === 'customer_type') {
+                customerTableColumns.push({
+                    data: 'customer_type',
+                    render: function (data, type) {
+                        if (type !== 'display') return (data || 'user').toUpperCase();
+                        let badgeClass = data === 'reseller' ? 'bg-label-info' : 'bg-label-primary';
+                        return `<span class="badge ${badgeClass} text-uppercase">${data || 'user'}</span>`;
+                    }
+                });
+            } else if (key === 'name') {
+                customerTableColumns.push({
+                    data: 'name',
+                    render: function (data, type) {
+                        if (type !== 'display') return data || '';
+                        return `<strong>${data}</strong>`;
+                    }
+                });
+            } else if (key === 'company_name') {
+                customerTableColumns.push({
+                    data: 'company_name',
+                    render: function (data, type) {
+                        if (type !== 'display') return data || 'N/A';
+                        return data ? data : '<span class="text-muted">N/A</span>';
+                    }
+                });
+            } else if (key === 'mobile') {
+                customerTableColumns.push({ data: 'mobile' });
+            } else if (key === 'email') {
+                customerTableColumns.push({
+                    data: 'email',
+                    render: function (data, type) {
+                        if (type !== 'display') return data || 'N/A';
+                        return data ? data : '<span class="text-muted">N/A</span>';
+                    }
+                });
+            } else if (key === 'alternate_mobile') {
+                customerTableColumns.push({
+                    data: 'alternate_mobile',
+                    render: function (data, type) {
+                        if (type !== 'display') return data || 'N/A';
+                        return data ? data : '<span class="text-muted">N/A</span>';
+                    }
+                });
+            } else if (key === 'address') {
+                customerTableColumns.push({
+                    data: 'address',
+                    render: function (data, type) {
+                        if (type !== 'display') return data || 'N/A';
+                        return data ? data : '<span class="text-muted">N/A</span>';
+                    }
+                });
+            } else if (key === 'city') {
+                customerTableColumns.push({
+                    data: 'city',
+                    render: function (data, type) {
+                        if (type !== 'display') return data || 'N/A';
+                        return data ? data : '<span class="text-muted">N/A</span>';
+                    }
+                });
+            } else if (key === 'state') {
+                customerTableColumns.push({
+                    data: 'state',
+                    render: function (data, type) {
+                        if (type !== 'display') return data || 'N/A';
+                        return data ? data : '<span class="text-muted">N/A</span>';
+                    }
+                });
+            } else if (key === 'country') {
+                customerTableColumns.push({
+                    data: 'country',
+                    render: function (data, type) {
+                        if (type !== 'display') return data || 'N/A';
+                        return data ? data : '<span class="text-muted">N/A</span>';
+                    }
+                });
+            } else if (key === 'pincode') {
+                customerTableColumns.push({
+                    data: 'pincode',
+                    render: function (data, type) {
+                        if (type !== 'display') return data || 'N/A';
+                        return data ? data : '<span class="text-muted">N/A</span>';
+                    }
+                });
+            } else if (key === 'created_at') {
+                customerTableColumns.push({
+                    data: 'created_at',
+                    render: function (data, type) {
+                        if (type !== 'display') return formatDate(data) || 'N/A';
+                        return data ? formatDate(data) : '<span class="text-muted">N/A</span>';
+                    }
+                });
+            } else if (key === 'created_by') {
+                customerTableColumns.push({
+                    data: 'creator',
+                    render: function (data, type, row) {
+                        let creatorName = data && data.name ? data.name : (row.created_by ? 'User #' + row.created_by : 'N/A');
+                        if (type !== 'display') return creatorName;
+                        return data && data.name ? `<span>${data.name}</span>` : (row.created_by ? `<span class="text-muted">User #${row.created_by}</span>` : '<span class="text-muted">N/A</span>');
+                    }
+                });
+            } else if (key === 'status') {
+                customerTableColumns.push({
+                    data: 'status',
+                    className: 'text-center',
+                    render: function (data, type, row) {
+                        let statusText = data == 1 ? 'Active' : 'Inactive';
+                        if (type !== 'display') return statusText;
+                        let isChecked = data == 1 ? 'checked' : '';
+                        let statusLabel = data == 1 ? '<span class="badge bg-label-success">Active</span>' : '<span class="badge bg-label-secondary">Inactive</span>';
+                        return `
+                            <div class="d-flex align-items-center justify-content-center gap-2">
+                                ${statusLabel}
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input btn-toggle-status" type="checkbox" data-id="${row.customer_id}" ${isChecked}>
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+            } else {
+                customerTableColumns.push({
+                    data: null,
+                    render: function (data, type, row) {
+                        let val = (row.custom_fields && row.custom_fields[key] !== undefined && row.custom_fields[key] !== null) ? row.custom_fields[key] : null;
+                        if (type !== 'display') return val !== null ? val : '';
+                        if (val === null || val === undefined || val === '') return '<span class="text-muted">-</span>';
+
+                        let fieldType = col.field ? col.field.field_type : '';
+                        if (fieldType === 'Checkbox') {
+                            if (val == 1 || val === true || val === '1' || val === 'Yes') {
+                                return '<span class="badge bg-label-success">Yes</span>';
+                            } else {
+                                return '<span class="badge bg-label-secondary">No</span>';
+                            }
+                        }
+                        if (fieldType === 'Date') {
+                            return `<span class="text-nowrap">${formatDate(val)}</span>`;
+                        }
+                        return val;
+                    }
+                });
+            }
+        });
+    }
+
+    customerTableColumns.push({
+        data: null,
+        orderable: false,
+        className: 'text-center',
+        render: function (data, type, row) {
+            return `
+                <div class="dropdown">
+                    <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                        <i class="bx bx-dots-vertical-rounded"></i>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end">
+                        <a class="dropdown-item btn-edit-customer" href="javascript:void(0);" data-id="${row.customer_id}">
+                            <i class="bx bx-edit-alt me-1"></i> Edit
+                        </a>
+                        <a class="dropdown-item text-danger btn-delete-customer" href="javascript:void(0);" data-id="${row.customer_id}" data-name="${row.name}">
+                            <i class="bx bx-trash me-1"></i> Delete
+                        </a>
+                    </div>
+                </div>
+            `;
+        }
+    });
+
     let customerTable = $('#customers-table').DataTable({
         ajax: {
             url: APP_URL + '/admin/customers/data',
@@ -31,124 +212,7 @@ $(document).ready(function () {
                 return json.data || [];
             }
         },
-        columns: [
-            {
-                data: null,
-                className: 'text-center',
-                render: function (data, type, row, meta) {
-                    return meta.row + 1;
-                }
-            },
-            {
-                data: 'customer_type',
-                render: function (data, type) {
-                    if (type !== 'display') return (data || 'user').toUpperCase();
-                    let badgeClass = data === 'reseller' ? 'bg-label-info' : 'bg-label-primary';
-                    return `<span class="badge ${badgeClass} text-uppercase">${data || 'user'}</span>`;
-                }
-            },
-            {
-                data: 'name',
-                render: function (data, type) {
-                    if (type !== 'display') return data || '';
-                    return `<strong>${data}</strong>`;
-                }
-            },
-            {
-                data: 'company_name',
-                render: function (data, type) {
-                    if (type !== 'display') return data || 'N/A';
-                    return data ? data : '<span class="text-muted">N/A</span>';
-                }
-            },
-            { data: 'mobile' },
-            {
-                data: 'email',
-                render: function (data, type) {
-                    if (type !== 'display') return data || 'N/A';
-                    return data ? data : '<span class="text-muted">N/A</span>';
-                }
-            },
-            {
-                data: null,
-                render: function (data, type, row) {
-                    let location = [row.city, row.state].filter(Boolean).join(', ');
-                    if (type !== 'display') return location || 'N/A';
-                    return location ? location : '<span class="text-muted">N/A</span>';
-                }
-            },
-            {
-                data: 'created_at',
-                render: function (data, type) {
-                    if (type !== 'display') return formatDate(data) || 'N/A';
-                    return data ? formatDate(data) : '<span class="text-muted">N/A</span>';
-                }
-            },
-            {
-                data: 'creator',
-                render: function (data, type, row) {
-                    let creatorName = data && data.name ? data.name : (row.created_by ? 'User #' + row.created_by : 'N/A');
-                    if (type !== 'display') return creatorName;
-                    return data && data.name ? `<span>${data.name}</span>` : (row.created_by ? `<span class="text-muted">User #${row.created_by}</span>` : '<span class="text-muted">N/A</span>');
-                }
-            },
-            {
-                data: 'owner',
-                render: function (data, type, row) {
-                    let ownerName = data && data.name ? data.name : (row.owner_by ? 'User #' + row.owner_by : '-');
-                    if (type !== 'display') return ownerName;
-                    return data && data.name ? `<span class="badge bg-label-primary">${data.name}</span>` : '<span class="text-muted">-</span>';
-                }
-            },
-            {
-                data: 'assigned_by',
-                render: function (data, type, row) {
-                    let assignName = data && data.name ? data.name : (row.assign_by ? 'User #' + row.assign_by : '-');
-                    if (type !== 'display') return assignName;
-                    return data && data.name ? `<span class="badge bg-label-info">${data.name}</span>` : '<span class="text-muted">-</span>';
-                }
-            },
-            {
-                data: 'status',
-                className: 'text-center',
-                render: function (data, type, row) {
-                    let statusText = data == 1 ? 'Active' : 'Inactive';
-                    if (type !== 'display') return statusText;
-                    let isChecked = data == 1 ? 'checked' : '';
-                    let statusLabel = data == 1 ? '<span class="badge bg-label-success">Active</span>' : '<span class="badge bg-label-secondary">Inactive</span>';
-                    return `
-                        <div class="d-flex align-items-center justify-content-center gap-2">
-                            ${statusLabel}
-                            <div class="form-check form-switch mb-0">
-                                <input class="form-check-input btn-toggle-status" type="checkbox" data-id="${row.customer_id}" ${isChecked}>
-                            </div>
-                        </div>
-                    `;
-                }
-            },
-            {
-                data: null,
-                orderable: false,
-                className: 'text-center',
-                render: function (data, type, row) {
-                    return `
-                        <div class="dropdown">
-                            <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
-                                <i class="bx bx-dots-vertical-rounded"></i>
-                            </button>
-                            <div class="dropdown-menu dropdown-menu-end">
-                                <a class="dropdown-item btn-edit-customer" href="javascript:void(0);" data-id="${row.customer_id}">
-                                    <i class="bx bx-edit-alt me-1"></i> Edit
-                                </a>
-                                <a class="dropdown-item text-danger btn-delete-customer" href="javascript:void(0);" data-id="${row.customer_id}" data-name="${row.name}">
-                                    <i class="bx bx-trash me-1"></i> Delete
-                                </a>
-                            </div>
-                        </div>
-                    `;
-                }
-            }
-        ],
+        columns: customerTableColumns,
         layout: {
             topStart: [
                 'pageLength',
@@ -231,7 +295,16 @@ $(document).ready(function () {
         clearValidationErrors(form);
 
         $.each(errors, function (field, messages) {
-            const input = form.find(`[name="${field}"]`);
+            let inputName = field;
+            if (field.indexOf('.') !== -1) {
+                let parts = field.split('.');
+                inputName = parts[0] + '[' + parts.slice(1).join('][') + ']';
+            }
+
+            let input = form.find(`[name="${inputName}"]`);
+            if (!input.length) {
+                input = form.find(`[name="${field}"]`);
+            }
 
             if (!input.length) {
                 return;
@@ -239,13 +312,16 @@ $(document).ready(function () {
 
             input.addClass('is-invalid');
 
-            const errorDiv = input
-                .siblings('.invalid-feedback')
-                .first();
-
-            if (errorDiv.length) {
-                errorDiv.text(messages[0]).show();
+            let errorDiv = input.siblings('.invalid-feedback').first();
+            if (!errorDiv.length) {
+                errorDiv = input.parent().find('.invalid-feedback').first();
             }
+            if (!errorDiv.length) {
+                errorDiv = $('<div class="invalid-feedback"></div>');
+                input.after(errorDiv);
+            }
+
+            errorDiv.text(messages[0]).css('display', 'block');
         });
     }
 
@@ -321,6 +397,20 @@ $(document).ready(function () {
                     $('#edit_owner_by').val(customer.owner_by || '');
                     $('#edit_assign_by').val(customer.assign_by || '');
                     $('#edit_status').val(customer.status);
+
+                    if (window.customCustomerFields && window.customCustomerFields.length > 0 && customer.custom_fields) {
+                        window.customCustomerFields.forEach(function (cf) {
+                            let val = customer.custom_fields[cf.field_name];
+                            let el = $('#edit_cf_cust_' + cf.field_name);
+                            if (el.length) {
+                                if (cf.field_type === 'Checkbox') {
+                                    el.prop('checked', val == 1 || val === true || val === '1' || val === 'Yes');
+                                } else {
+                                    el.val(val !== undefined && val !== null ? val : '');
+                                }
+                            }
+                        });
+                    }
 
                     $('#editCustomerModal').modal('show');
                 }

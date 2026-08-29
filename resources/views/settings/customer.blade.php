@@ -1,6 +1,6 @@
 @extends('layouts.master')
 
-@section('title', 'Lead Settings - Settings')
+@section('title', 'Customer Settings - Settings')
 
 @section('content')
 <div class="container-xxl flex-grow-1 container-p-y">
@@ -38,14 +38,14 @@
                 @endcan
                 @can('lead-settings.view')
                     <li class="nav-item">
-                        <a class="nav-link active" href="{{ route('admin.settings.lead') }}">
+                        <a class="nav-link" href="{{ route('admin.settings.lead') }}">
                             <i class="bx bx-target-lock me-1"></i> Lead Setting
                         </a>
                     </li>
                 @endcan
                 @can('customer-settings.view')
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('admin.settings.customer') }}">
+                        <a class="nav-link active" href="{{ route('admin.settings.customer') }}">
                             <i class="bx bx-user me-1"></i> Customer Setting
                         </a>
                     </li>
@@ -54,7 +54,7 @@
         </div>
     </div>
 
-    <!-- Lead Settings Vertical Layout -->
+    <!-- Customer Settings Vertical Layout -->
     <div class="row">
         <!-- Left Sidebar Navigation Menu -->
         <div class="col-md-3 mb-4 mb-md-0">
@@ -62,10 +62,10 @@
                 <div class="card-body p-3">
                     <div class="nav flex-column nav-pills custom-lead-nav gap-1" id="v-pills-tab" role="tablist" aria-orientation="vertical">
                         <button class="nav-link text-start py-2 px-3 fw-medium active" id="v-pills-additional-fields-tab" data-bs-toggle="pill" data-bs-target="#v-pills-additional-fields" type="button" role="tab">
-                            <i class="bx bx-list-plus me-2"></i> Additional Lead Fields
+                            <i class="bx bx-list-plus me-2"></i> Additional Customer Fields
                         </button>
                         <button class="nav-link text-start py-2 px-3 fw-medium" id="v-pills-site-customization-tab" data-bs-toggle="pill" data-bs-target="#v-pills-site-customization" type="button" role="tab">
-                            <i class="bx bx-customize me-2"></i> Lead List Customization
+                            <i class="bx bx-customize me-2"></i> Customer List Customization
                         </button>
                     </div>
                 </div>
@@ -76,16 +76,16 @@
         <div class="col-md-9">
             <div class="tab-content p-0 shadow-none bg-transparent" id="v-pills-tabContent">
 
-                <!-- Additional Lead Fields (Default Active) -->
+                <!-- Additional Customer Fields (Default Active) -->
                 <div class="tab-pane fade show active" id="v-pills-additional-fields" role="tabpanel">
                     <div class="card shadow-sm border-0">
                         <div class="card-header border-bottom d-flex align-items-center justify-content-between py-3">
                             <div>
-                                <h5 class="card-title mb-0 fw-bold text-dark">Custom Lead Fields</h5>
-                                <span class="text-muted small">Additional Lead Fields</span>
+                                <h5 class="card-title mb-0 fw-bold text-dark">Custom Customer Fields</h5>
+                                <span class="text-muted small">Additional Customer Fields</span>
                             </div>
-                            @can('lead-settings.edit')
-                                <button type="button" class="btn btn-primary btn-sm px-3" data-bs-toggle="modal" data-bs-target="#createFieldModal" >
+                            @can('customer-settings.edit')
+                                <button type="button" class="btn btn-primary btn-sm px-3" data-bs-toggle="modal" data-bs-target="#createFieldModal">
                                     <i class="bx bx-plus me-1"></i> Create Field
                                 </button>
                             @endcan
@@ -141,13 +141,13 @@
                     </div>
                 </div>
 
-                <!-- Lead List Customization -->
+                <!-- Customer List Customization -->
                 <div class="tab-pane fade" id="v-pills-site-customization" role="tabpanel">
                     <div class="card shadow-sm border-0 rounded-3">
                         <div class="card-header border-bottom bg-white d-flex align-items-center justify-content-between py-3 px-4">
-                            <h5 class="card-title mb-0 fw-bold text-dark fs-5">Lead List Customization</h5>
-                            @can('lead-settings.edit')
-                                <button type="button" class="btn btn-primary fw-semibold shadow-sm" id="saveLeadListColumnsBtn"
+                            <h5 class="card-title mb-0 fw-bold text-dark fs-5">Customer List Customization</h5>
+                            @can('customer-settings.edit')
+                                <button type="button" class="btn btn-primary fw-semibold shadow-sm" id="saveCustomerListColumnsBtn">
                                     <span class="spinner-border spinner-border-sm d-none me-1" role="status"></span>
                                     Save
                                 </button>
@@ -211,7 +211,7 @@
                 <div class="modal-body py-4">
                     <div class="mb-3">
                         <label for="field_label" class="form-label fw-semibold">Field Label <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" name="field_label" id="field_label" placeholder="e.g. GST Number, Alternate Phone" required>
+                        <input type="text" class="form-control" name="field_label" id="field_label" placeholder="e.g. GST Number, Tax ID" required>
                         <div class="invalid-feedback"></div>
                     </div>
                     <div class="mb-3">
@@ -451,7 +451,7 @@
             clearModalErrors(form);
 
             $.ajax({
-                url: "{{ route('admin.settings.lead.custom-fields.store') }}",
+                url: "{{ route('admin.settings.customer.custom-fields.store') }}",
                 type: "POST",
                 data: form.serialize(),
                 success: function (response) {
@@ -484,7 +484,7 @@
             clearModalErrors(form);
 
             $.ajax({
-                url: APP_URL + '/admin/settings/lead/custom-fields/edit/' + fieldId,
+                url: APP_URL + '/admin/settings/customer/custom-fields/edit/' + fieldId,
                 type: 'GET',
                 success: function (response) {
                     if (response.status) {
@@ -520,7 +520,7 @@
             clearModalErrors(form);
 
             $.ajax({
-                url: APP_URL + '/admin/settings/lead/custom-fields/update/' + fieldId,
+                url: APP_URL + '/admin/settings/customer/custom-fields/update/' + fieldId,
                 type: 'POST',
                 data: form.serialize(),
                 success: function (response) {
@@ -566,7 +566,7 @@
             spinner.removeClass('d-none');
 
             $.ajax({
-                url: APP_URL + '/admin/settings/lead/custom-fields/delete/' + deleteFieldId,
+                url: APP_URL + '/admin/settings/customer/custom-fields/delete/' + deleteFieldId,
                 type: 'DELETE',
                 success: function (response) {
                     if (response.status) {
@@ -588,7 +588,7 @@
             });
         });
 
-        /* --- Lead List Customization (Drag & Drop Horizontal Chips + 2-Col Checkboxes) --- */
+        /* --- Customer List Customization (Drag & Drop Horizontal Chips + 2-Col Checkboxes) --- */
         let dragItem = null;
 
         $('#selectedFieldsContainer').on('dragstart', '.selected-field-chip', function (e) {
@@ -647,7 +647,7 @@
         });
 
         // Save Customization Order
-        $('#saveLeadListColumnsBtn').on('click', function () {
+        $('#saveCustomerListColumnsBtn').on('click', function () {
             let columns = [];
             $('#selectedFieldsContainer .selected-field-chip').each(function () {
                 columns.push($(this).data('key'));
@@ -659,7 +659,7 @@
             spinner.removeClass('d-none');
 
             $.ajax({
-                url: "{{ route('admin.settings.lead.list-columns.save') }}",
+                url: "{{ route('admin.settings.customer.list-columns.save') }}",
                 type: "POST",
                 data: {
                     _token: $('meta[name="csrf-token"]').attr('content'),
@@ -671,7 +671,7 @@
                     }
                 },
                 error: function () {
-                    showSettingsAlert('danger', 'Failed to save Lead List customization.');
+                    showSettingsAlert('danger', 'Failed to save Customer List customization.');
                 },
                 complete: function () {
                     btn.prop('disabled', false);

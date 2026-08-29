@@ -37,10 +37,12 @@ class Customer extends Authenticatable
         'credit_balance',
         'password',
         'reference_code',
+        'custom_fields',
     ];
 
     protected $casts = [
         'credit_balance' => 'decimal:2',
+        'custom_fields'  => 'array',
     ];
 
     /**
