@@ -27,19 +27,33 @@ $(document).ready(function () {
     function showValidationErrors(form, errors) {
         clearValidationErrors(form);
         $.each(errors, function (field, messages) {
-            let input = form.find(`[name="${field}"]`);
-            if (input.length) {
-                input.addClass('is-invalid');
-                let errorDiv = input.siblings('.invalid-feedback');
-                if (!errorDiv.length) {
-                    errorDiv = input.parent().find('.invalid-feedback');
-                }
-                if (!errorDiv.length) {
-                    errorDiv = $('<div class="invalid-feedback"></div>');
-                    input.after(errorDiv);
-                }
-                errorDiv.text(messages[0]).css('display', 'block');
+            let inputName = field;
+            if (field.indexOf('.') !== -1) {
+                let parts = field.split('.');
+                inputName = parts[0] + '[' + parts.slice(1).join('][') + ']';
             }
+
+            let input = form.find(`[name="${inputName}"]`);
+            if (!input.length) {
+                input = form.find(`[name="${field}"]`);
+            }
+
+            if (!input.length) {
+                return;
+            }
+
+            input.addClass('is-invalid');
+
+            let errorDiv = input.siblings('.invalid-feedback').first();
+            if (!errorDiv.length) {
+                errorDiv = input.parent().find('.invalid-feedback').first();
+            }
+            if (!errorDiv.length) {
+                errorDiv = $('<div class="invalid-feedback"></div>');
+                input.after(errorDiv);
+            }
+
+            errorDiv.text(messages[0]).css('display', 'block');
         });
     }
 
@@ -82,47 +96,19 @@ $(document).ready(function () {
     // Initialize Follow-ups DataTable if present on page
     let followupTable = null;
     if ($('#followups-table').length) {
-        followupTable = $('#followups-table').DataTable({
-            ajax: {
-                url: APP_URL + '/admin/followups/data',
-                type: 'GET',
-                data: function (d) {
-                    d.filter_type = $('#filter_type_input').val();
-                    d.staff_id    = $('#filter_staff_id').val();
-                    d.date        = $('#filter_custom_date').val();
-                    d.month       = $('#followup_filter_month').val();
-                    d.start_date  = $('#followup_filter_start_date').val();
-                    d.end_date    = $('#followup_filter_end_date').val();
-                    d.lead_id     = $('#followup_filter_lead_id').val();
-                    d.customer_id = $('#followup_filter_customer_id').val();
-                    d.lead_source_id = $('#followup_filter_source_id').val();
-                    d.created_by  = $('#filter_staff_id').val();
-                    d.status      = $('#followup_filter_status').val();
-                },
-                dataSrc: function (json) {
-                    if (json.counts) {
-                        $('#badge_count_all').text(json.counts.all || 0);
-                        $('#badge_count_today').text(json.counts.today || 0);
-                        $('#badge_count_upcoming').text(json.counts.upcoming || 0);
-                        $('#badge_count_overdue').text(json.counts.overdue || 0);
-                    }
-                    if (json.total_followups !== undefined) {
-                        $('#kpi_total_followups').text(json.total_followups);
-                    }
-                    if (json.staff_created_count !== undefined) {
-                        $('#kpi_staff_created_followups').text(json.staff_created_count);
-                    }
-                    return json.data || [];
+        let visibleCols = window.visibleFollowupColumns || [];
+        let followupTableColumns = [
+            {
+                data: null,
+                className: 'text-center',
+                render: function (data, type, row, meta) {
+                    return meta.row + 1;
                 }
-            },
-            columns: [
-                {
-                    data: null,
-                    className: 'text-center',
-                    render: function (data, type, row, meta) {
-                        return meta.row + 1;
-                    }
-                },
+            }
+        ];
+
+        if (!visibleCols.length) {
+            followupTableColumns.push(
                 {
                     data: null,
                     render: function (data, type, row) {
@@ -211,39 +197,201 @@ $(document).ready(function () {
                         if (type !== 'display') return data || '';
                         return data ? `<span title="${data}">${data.length > 30 ? data.substring(0, 30) + '...' : data}</span>` : '<span class="text-muted">-</span>';
                     }
-                },
-                {
-                    data: null,
-                    orderable: false,
-                    className: 'text-center',
-                    render: function (data, type, row) {
-                        let reassignBtn = '';
-                        if (row.followup_status === 'Pending') {
-                            reassignBtn = `
-                                <a class="dropdown-item btn-reassign-followup" href="javascript:void(0);" data-id="${row.followups_id}" data-staff="${row.forward_to_user ? row.forward_to_user.name : 'Unassigned'}">
-                                    <i class="bx bx-user-voice me-1"></i> Reassign Staff
-                                </a>
-                            `;
-                        }
-                        return `
-                            <div class="dropdown">
-                                <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
-                                    <i class="bx bx-dots-vertical-rounded"></i>
-                                </button>
-                                <div class="dropdown-menu dropdown-menu-end">
-                                    ${reassignBtn}
-                                    <a class="dropdown-item btn-edit-followup" href="javascript:void(0);" data-id="${row.followups_id}">
-                                        <i class="bx bx-edit-alt me-1"></i> Edit
-                                    </a>
-                                    <a class="dropdown-item text-danger btn-delete-followup" href="javascript:void(0);" data-id="${row.followups_id}">
-                                        <i class="bx bx-trash me-1"></i> Delete
-                                    </a>
-                                </div>
-                            </div>
-                        `;
-                    }
                 }
-            ],
+            );
+        } else {
+            $.each(visibleCols, function (idx, col) {
+                let key = col.key;
+                if (key === 'lead_info') {
+                    followupTableColumns.push({
+                        data: null,
+                        render: function (data, type, row) {
+                            let title = row.lead ? row.lead.lead_title : 'N/A';
+                            let customerName = (row.lead && row.lead.customer) ? row.lead.customer.name : '';
+                            let mobile = (row.lead && row.lead.customer && row.lead.customer.mobile) ? row.lead.customer.mobile : '';
+                            if (type !== 'display') return title + ' (' + customerName + ')';
+                            return `<div><strong>${title}</strong><br><small class="text-muted">${customerName ? '<i class="bx bx-user me-1"></i>' + customerName : ''} ${mobile ? ' (' + mobile + ')' : ''}</small></div>`;
+                        }
+                    });
+                } else if (key === 'followup_type') {
+                    followupTableColumns.push({
+                        data: 'followup_type',
+                        render: function (data, type) {
+                            if (type !== 'display') return data || 'N/A';
+                            let badgeClass = 'bg-label-primary';
+                            if (data === 'Call') badgeClass = 'bg-label-info';
+                            else if (data === 'Meeting') badgeClass = 'bg-label-warning';
+                            else if (data === 'WhatsApp') badgeClass = 'bg-label-success';
+                            else if (data === 'Email') badgeClass = 'bg-label-secondary';
+                            return `<span class="badge ${badgeClass}">${data || 'N/A'}</span>`;
+                        }
+                    });
+                } else if (key === 'duration') {
+                    followupTableColumns.push({
+                        data: 'duration',
+                        className: 'text-center',
+                        render: function (data, type, row) {
+                            if (type !== 'display') return data || '-';
+                            if (row.followup_type === 'Call' && data) {
+                                return `<span class="badge bg-label-info"><i class="bx bx-time-five me-1"></i>${data}</span>`;
+                            }
+                            return '<span class="text-muted">-</span>';
+                        }
+                    });
+                } else if (key === 'next_followup_date') {
+                    followupTableColumns.push({
+                        data: 'next_followup_date',
+                        render: function (data, type) {
+                            if (!data) return type === 'display' ? '<span class="text-muted">N/A</span>' : '';
+                            if (type !== 'display') return data;
+                            let formatted = formatDateTime(data);
+                            return `<span class="badge bg-label-dark"><i class="bx bx-calendar me-1"></i>${formatted}</span>`;
+                        }
+                    });
+                } else if (key === 'status') {
+                    followupTableColumns.push({
+                        data: 'followup_status',
+                        className: 'text-center',
+                        render: function (data, type) {
+                            if (type !== 'display') return data || 'Pending';
+                            let badgeClass = 'bg-label-warning';
+                            if (data === 'Completed') badgeClass = 'bg-label-success';
+                            else if (data === 'Cancelled') badgeClass = 'bg-label-danger';
+                            return `<span class="badge ${badgeClass}">${data || 'Pending'}</span>`;
+                        }
+                    });
+                } else if (key === 'forward_to') {
+                    followupTableColumns.push({
+                        data: 'forward_to_user',
+                        render: function (data, type, row) {
+                            let name = row.forward_to_user ? row.forward_to_user.name : null;
+                            let isOnLeave = row.forward_to_user ? row.forward_to_user.is_on_leave : false;
+                            if (type !== 'display') return name || 'N/A';
+                            if (!name) return '<span class="text-muted">N/A</span>';
+                            if (isOnLeave) {
+                                return `<span class="badge bg-label-danger"><i class="bx bx-user-x me-1"></i>${name} (On Leave)</span>`;
+                            }
+                            return `<span class="badge bg-label-info">${name}</span>`;
+                        }
+                    });
+                } else if (key === 'created_by') {
+                    followupTableColumns.push({
+                        data: 'creator',
+                        render: function (data, type, row) {
+                            let name = row.creator ? row.creator.name : null;
+                            if (type !== 'display') return name || 'System';
+                            return name ? name : '<span class="text-muted">System</span>';
+                        }
+                    });
+                } else if (key === 'created_at') {
+                    followupTableColumns.push({
+                        data: 'created_at',
+                        render: function (data, type, row) {
+                            let formatted = row.created_at ? formatDate(row.created_at) : '';
+                            if (type !== 'display') return formatted || 'N/A';
+                            return row.created_at ? `<small class="text-muted">${formatted}</small>` : '<span class="text-muted">N/A</span>';
+                        }
+                    });
+                } else if (key === 'remarks') {
+                    followupTableColumns.push({
+                        data: 'remarks',
+                        render: function (data, type) {
+                            if (type !== 'display') return data || '';
+                            return data ? `<span title="${data}">${data.length > 30 ? data.substring(0, 30) + '...' : data}</span>` : '<span class="text-muted">-</span>';
+                        }
+                    });
+                } else {
+                    followupTableColumns.push({
+                        data: null,
+                        render: function (data, type, row) {
+                            let val = (row.custom_fields && row.custom_fields[key] !== undefined && row.custom_fields[key] !== null) ? row.custom_fields[key] : null;
+                            if (type !== 'display') return val !== null ? val : '';
+                            if (val === null || val === undefined || val === '') return '<span class="text-muted">-</span>';
+
+                            let fieldType = col.field ? col.field.field_type : '';
+                            if (fieldType === 'Checkbox') {
+                                if (val == 1 || val === true || val === '1' || val === 'Yes') {
+                                    return '<span class="badge bg-label-success">Yes</span>';
+                                } else {
+                                    return '<span class="badge bg-label-secondary">No</span>';
+                                }
+                            }
+                            if (fieldType === 'Date') {
+                                return `<span class="text-nowrap">${formatDate(val)}</span>`;
+                            }
+                            return val;
+                        }
+                    });
+                }
+            });
+        }
+
+        followupTableColumns.push({
+            data: null,
+            orderable: false,
+            className: 'text-center',
+            render: function (data, type, row) {
+                let reassignBtn = '';
+                if (row.followup_status === 'Pending') {
+                    reassignBtn = `
+                        <a class="dropdown-item btn-reassign-followup" href="javascript:void(0);" data-id="${row.followups_id}" data-staff="${row.forward_to_user ? row.forward_to_user.name : 'Unassigned'}">
+                            <i class="bx bx-user-voice me-1"></i> Reassign Staff
+                        </a>
+                    `;
+                }
+                return `
+                    <div class="dropdown">
+                        <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                            <i class="bx bx-dots-vertical-rounded"></i>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end">
+                            ${reassignBtn}
+                            <a class="dropdown-item btn-edit-followup" href="javascript:void(0);" data-id="${row.followups_id}">
+                                <i class="bx bx-edit-alt me-1"></i> Edit
+                            </a>
+                            <a class="dropdown-item text-danger btn-delete-followup" href="javascript:void(0);" data-id="${row.followups_id}">
+                                <i class="bx bx-trash me-1"></i> Delete
+                            </a>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+
+        followupTable = $('#followups-table').DataTable({
+            ajax: {
+                url: APP_URL + '/admin/followups/data',
+                type: 'GET',
+                data: function (d) {
+                    d.filter_type = $('#filter_type_input').val();
+                    d.staff_id    = $('#filter_staff_id').val();
+                    d.date        = $('#filter_custom_date').val();
+                    d.month       = $('#followup_filter_month').val();
+                    d.start_date  = $('#followup_filter_start_date').val();
+                    d.end_date    = $('#followup_filter_end_date').val();
+                    d.lead_id     = $('#followup_filter_lead_id').val();
+                    d.customer_id = $('#followup_filter_customer_id').val();
+                    d.lead_source_id = $('#followup_filter_source_id').val();
+                    d.created_by  = $('#filter_staff_id').val();
+                    d.status      = $('#followup_filter_status').val();
+                },
+                dataSrc: function (json) {
+                    if (json.counts) {
+                        $('#badge_count_all').text(json.counts.all || 0);
+                        $('#badge_count_today').text(json.counts.today || 0);
+                        $('#badge_count_upcoming').text(json.counts.upcoming || 0);
+                        $('#badge_count_overdue').text(json.counts.overdue || 0);
+                    }
+                    if (json.total_followups !== undefined) {
+                        $('#kpi_total_followups').text(json.total_followups);
+                    }
+                    if (json.staff_created_count !== undefined) {
+                        $('#kpi_staff_created_followups').text(json.staff_created_count);
+                    }
+                    return json.data || [];
+                }
+            },
+            columns: followupTableColumns,
             layout: {
                 topStart: [
                     'pageLength',
@@ -341,6 +489,20 @@ $(document).ready(function () {
                     $('#edit_followup_status').val(followup.followup_status);
                     $('#edit_followup_forward_to').val(followup.forward_to || '');
                     $('#edit_followup_remarks').val(followup.remarks || '');
+
+                    // Populate custom fields
+                    if (followup.custom_fields) {
+                        $.each(followup.custom_fields, function (key, val) {
+                            let input = $('#edit_cf_' + key);
+                            if (input.length) {
+                                if (input.attr('type') === 'checkbox') {
+                                    input.prop('checked', val == 1 || val === '1' || val === 'Yes');
+                                } else {
+                                    input.val(val || '');
+                                }
+                            }
+                        });
+                    }
 
                     $('#editFollowupModal').modal('show');
                 }

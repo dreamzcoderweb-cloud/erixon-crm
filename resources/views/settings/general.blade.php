@@ -48,6 +48,13 @@
                         </a>
                     </li>
                 @endcan
+                @can('followup-settings.view')
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('admin.settings.followup') }}">
+                            <i class="bx bx-calendar-event me-1"></i> Followup Setting
+                        </a>
+                    </li>
+                @endcan
             </ul>
         </div>
     </div>

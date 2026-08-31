@@ -141,6 +141,8 @@
                 'roles' => ['title' => 'Roles & Access Control', 'icon' => 'bx-shield-quarter', 'badge' => 'bg-label-info'],
                 'general-settings' => ['title' => 'General Settings', 'icon' => 'bx-cog', 'badge' => 'bg-label-secondary'],
                 'lead-settings' => ['title' => 'Lead Settings', 'icon' => 'bx-gift', 'badge' => 'bg-label-primary'],
+                'customer-settings' => ['title' => 'Customer Settings', 'icon' => 'bx-user', 'badge' => 'bg-label-info'],
+                'followup-settings' => ['title' => 'Followup Settings', 'icon' => 'bx-calendar-event', 'badge' => 'bg-label-warning'],
                 'profile' => ['title' => 'Profile Settings', 'icon' => 'bx-user-circle', 'badge' => 'bg-label-dark'],
                 'dashboard' => ['title' => 'Dashboard Access', 'icon' => 'bx-home-smile', 'badge' => 'bg-label-primary'],
             ];

@@ -77,6 +77,8 @@ class PermissionSeeder extends Seeder
             'lead-settings.edit',
             'customer-settings.view',
             'customer-settings.edit',
+            'followup-settings.view',
+            'followup-settings.edit',
 
             'lead-documents.view',
             'lead-documents.create',

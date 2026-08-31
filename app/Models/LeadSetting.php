@@ -15,11 +15,13 @@ class LeadSetting extends Model
         'referral_points',
         'lead_list_columns',
         'customer_list_columns',
+        'followup_list_columns',
     ];
 
     protected $casts = [
         'lead_list_columns'     => 'array',
         'customer_list_columns' => 'array',
+        'followup_list_columns' => 'array',
     ];
 
     /**

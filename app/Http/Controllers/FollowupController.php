@@ -34,6 +34,59 @@ class FollowupController extends Controller
             $data['availableStaffs'] = User::where('id', $user->id)->get();
         }
 
+        $customFields = \App\Models\FollowupCustomField::where('status', 1)->orderBy('sort_order', 'asc')->orderBy('id', 'asc')->get();
+
+        $standardFields = [
+            'lead_info'          => 'Lead Info',
+            'followup_type'      => 'Type',
+            'duration'           => 'Duration',
+            'next_followup_date' => 'Next Follow-up Date',
+            'status'             => 'Status',
+            'forward_to'         => 'Forward To',
+            'created_by'         => 'Created By',
+            'created_at'         => 'Created At',
+            'remarks'            => 'Remarks',
+        ];
+
+        $allAvailableFieldsMap = [];
+        foreach ($standardFields as $key => $label) {
+            $allAvailableFieldsMap[$key] = [
+                'key'   => $key,
+                'label' => $label,
+                'type'  => 'standard',
+            ];
+        }
+
+        foreach ($customFields as $cf) {
+            $allAvailableFieldsMap[$cf->field_name] = [
+                'key'   => $cf->field_name,
+                'label' => $cf->field_label,
+                'type'  => 'custom',
+                'field' => $cf,
+            ];
+        }
+
+        $setting = \App\Models\LeadSetting::getSettings();
+        $savedColumns = $setting->followup_list_columns;
+
+        if (empty($savedColumns) || !is_array($savedColumns)) {
+            $savedColumns = array_keys($allAvailableFieldsMap);
+        } else {
+            $savedColumns = array_values(array_filter($savedColumns, function ($key) use ($allAvailableFieldsMap) {
+                return isset($allAvailableFieldsMap[$key]);
+            }));
+        }
+
+        $visibleColumns = [];
+        foreach ($savedColumns as $colKey) {
+            if (isset($allAvailableFieldsMap[$colKey])) {
+                $visibleColumns[] = $allAvailableFieldsMap[$colKey];
+            }
+        }
+
+        $data['customFields']   = $customFields;
+        $data['visibleColumns'] = $visibleColumns;
+
         return view('followups.view', $data);
     }
 
@@ -182,9 +235,12 @@ class FollowupController extends Controller
             $rules['duration'] = ['required', 'string', 'max:100'];
         }
 
+        [$cfRules, $cfAttributes] = $this->getCustomFieldsRules();
+        $rules = array_merge($rules, $cfRules);
+
         $validated = $request->validate($rules, [
             'duration.required' => 'Duration is required when Follow-up Type is Call.'
-        ]);
+        ], $cfAttributes);
 
         if (!empty($validated['forward_to'])) {
             $forwardUser = User::find($validated['forward_to']);
@@ -204,6 +260,7 @@ class FollowupController extends Controller
         }
 
         $validated['created_by'] = Auth::id();
+        $validated['custom_fields'] = $this->processCustomFieldsPayload($request->input('custom_fields', []));
 
         $followup = Followup::create($validated);
 
@@ -260,9 +317,12 @@ class FollowupController extends Controller
             $rules['duration'] = ['required', 'string', 'max:100'];
         }
 
+        [$cfRules, $cfAttributes] = $this->getCustomFieldsRules();
+        $rules = array_merge($rules, $cfRules);
+
         $validated = $request->validate($rules, [
             'duration.required' => 'Duration is required when Follow-up Type is Call.'
-        ]);
+        ], $cfAttributes);
 
         if (!empty($validated['forward_to'])) {
             $forwardUser = User::find($validated['forward_to']);
@@ -280,6 +340,8 @@ class FollowupController extends Controller
         if ($validated['followup_type'] !== 'Call') {
             $validated['duration'] = null;
         }
+
+        $validated['custom_fields'] = $this->processCustomFieldsPayload($request->input('custom_fields', []));
 
         $followup->update($validated);
 
@@ -496,5 +558,59 @@ class FollowupController extends Controller
             'staff'  => $staff,
             'data'   => $followups
         ]);
+    }
+
+    private function getCustomFieldsRules()
+    {
+        $customFields = \App\Models\FollowupCustomField::where('status', 1)->get();
+        $rules = [];
+        $attributes = [];
+
+        foreach ($customFields as $cf) {
+            $key = 'custom_fields.' . $cf->field_name;
+            $fieldRules = [];
+
+            if ($cf->is_required === 'Yes') {
+                $fieldRules[] = 'required';
+            } else {
+                $fieldRules[] = 'nullable';
+            }
+
+            switch ($cf->field_type) {
+                case 'Number':
+                    $fieldRules[] = 'numeric';
+                    break;
+                case 'Date':
+                    $fieldRules[] = 'date';
+                    break;
+                case 'Dropdown':
+                case 'Text':
+                case 'Textarea':
+                case 'Checkbox':
+                default:
+                    $fieldRules[] = 'string';
+                    break;
+            }
+
+            $rules[$key] = $fieldRules;
+            $attributes[$key] = $cf->field_label;
+        }
+
+        return [$rules, $attributes];
+    }
+
+    private function processCustomFieldsPayload(array $customFieldsData = [])
+    {
+        $allFields = \App\Models\FollowupCustomField::where('status', 1)->get();
+        foreach ($allFields as $field) {
+            if ($field->field_type === 'Checkbox') {
+                if (isset($customFieldsData[$field->field_name]) && ($customFieldsData[$field->field_name] == 1 || $customFieldsData[$field->field_name] === '1' || $customFieldsData[$field->field_name] === 'Yes')) {
+                    $customFieldsData[$field->field_name] = '1';
+                } else {
+                    $customFieldsData[$field->field_name] = '0';
+                }
+            }
+        }
+        return $customFieldsData;
     }
 }

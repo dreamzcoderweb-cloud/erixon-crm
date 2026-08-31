@@ -22,6 +22,11 @@ class Followup extends Model
         'followup_status',
         'forward_to',
         'created_by',
+        'custom_fields',
+    ];
+
+    protected $casts = [
+        'custom_fields' => 'array',
     ];
 
     public function lead()

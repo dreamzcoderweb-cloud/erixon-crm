@@ -14,6 +14,7 @@ use App\Http\Controllers\FollowupController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\GeneralSettingController;
 use App\Http\Controllers\LeadSettingController;
+use App\Http\Controllers\FollowupSettingController;
 use App\Http\Controllers\LeadDocumentController;
 use App\Http\Controllers\TemplateController;
 use App\Http\Controllers\CallRecordingController;
@@ -251,6 +252,28 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
     Route::post('settings/customer/list-columns/save', [\App\Http\Controllers\CustomerSettingController::class, 'saveCustomerListColumns'])
         ->middleware('permission:customer-settings.edit')
         ->name('settings.customer.list-columns.save');
+
+    // Followup Settings routes
+    Route::get('settings/followup', [FollowupSettingController::class, 'index'])
+        ->middleware('permission:followup-settings.view')
+        ->name('settings.followup');
+
+    Route::post('settings/followup/custom-fields/store', [FollowupSettingController::class, 'storeCustomField'])
+        ->middleware('permission:followup-settings.edit')
+        ->name('settings.followup.custom-fields.store');
+    Route::get('settings/followup/custom-fields/edit/{id}', [FollowupSettingController::class, 'editCustomField'])
+        ->middleware('permission:followup-settings.view')
+        ->name('settings.followup.custom-fields.edit');
+    Route::post('settings/followup/custom-fields/update/{id}', [FollowupSettingController::class, 'updateCustomField'])
+        ->middleware('permission:followup-settings.edit')
+        ->name('settings.followup.custom-fields.update');
+    Route::delete('settings/followup/custom-fields/delete/{id}', [FollowupSettingController::class, 'destroyCustomField'])
+        ->middleware('permission:followup-settings.edit')
+        ->name('settings.followup.custom-fields.destroy');
+
+    Route::post('settings/followup/list-columns/save', [FollowupSettingController::class, 'saveFollowupListColumns'])
+        ->middleware('permission:followup-settings.edit')
+        ->name('settings.followup.list-columns.save');
 
     // Lead Documents routes
     Route::get('lead-documents', [LeadDocumentController::class, 'index'])
