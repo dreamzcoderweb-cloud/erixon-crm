@@ -79,6 +79,22 @@ $(document).ready(function () {
                     }
                 },
                 {
+                    data: null,
+                    render: function (data, type, row) {
+                        if (!row.latitude || !row.longitude) {
+                            return '<span class="text-muted"><i class="bx bx-map-pin me-1"></i>N/A</span>';
+                        }
+                        if (type !== 'display') return `${row.latitude}, ${row.longitude}`;
+                        let mapsUrl = `https://maps.google.com/?q=${row.latitude},${row.longitude}`;
+                        let html = `<a href="${mapsUrl}" target="_blank" class="badge bg-label-info text-decoration-none" title="View Check-In Location on Google Maps"><i class="bx bx-map-pin me-1"></i>${row.latitude}, ${row.longitude}</a>`;
+                        if (row.second_check_in_latitude && row.second_check_in_longitude) {
+                            let mapsUrl2 = `https://maps.google.com/?q=${row.second_check_in_latitude},${row.second_check_in_longitude}`;
+                            html += `<br><a href="${mapsUrl2}" target="_blank" class="badge bg-label-primary mt-1 text-decoration-none" title="View Session 2 Location"><i class="bx bx-map-pin me-1"></i>S2: ${row.second_check_in_latitude}, ${row.second_check_in_longitude}</a>`;
+                        }
+                        return html;
+                    }
+                },
+                {
                     data: 'actual_work_finished_time',
                     render: function (data, type) {
                         let text = data || '-';

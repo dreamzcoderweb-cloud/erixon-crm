@@ -25,6 +25,10 @@ class Attendance extends Model
         'permission_id',
         'working_hours',
         'status',
+        'latitude',
+        'longitude',
+        'second_check_in_latitude',
+        'second_check_in_longitude',
     ];
 
     public function user()

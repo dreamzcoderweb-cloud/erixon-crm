@@ -139,6 +139,7 @@
                             <th>Date</th>
                             <th>Allowed In</th>
                             <th>Session 1 (In → Out)</th>
+                            <th>Check-In Location</th>
                             <th>Actual Work Finished</th>
                             <th>OT Minutes</th>
                             <th>OT Income</th>

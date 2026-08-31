@@ -193,6 +193,8 @@ class AttendanceController extends Controller
             'second_check_in'  => ['nullable'],
             'second_check_out' => ['nullable'],
             'status'           => ['nullable', 'in:Auto,Present,Late,Half Day,Absent,On Leave'],
+            'latitude'         => ['nullable', 'numeric'],
+            'longitude'        => ['nullable', 'numeric'],
         ]);
 
         $targetUser = User::find($validated['user_id']);
@@ -215,6 +217,8 @@ class AttendanceController extends Controller
             'second_check_out' => $validated['second_check_out'] ?? null,
             'working_hours'    => $workingHours,
             'status'           => $status,
+            'latitude'         => $validated['latitude'] ?? null,
+            'longitude'        => $validated['longitude'] ?? null,
         ]);
 
         return response()->json([
@@ -260,6 +264,8 @@ class AttendanceController extends Controller
             'second_check_in'  => ['nullable'],
             'second_check_out' => ['nullable'],
             'status'           => ['nullable', 'in:Auto,Present,Late,Half Day,Absent,On Leave'],
+            'latitude'         => ['nullable', 'numeric'],
+            'longitude'        => ['nullable', 'numeric'],
         ]);
 
         $user = User::find($validated['user_id']);
@@ -282,6 +288,8 @@ class AttendanceController extends Controller
             'second_check_out' => $validated['second_check_out'] ?? null,
             'working_hours'    => $workingHours,
             'status'           => $status,
+            'latitude'         => $validated['latitude'] ?? null,
+            'longitude'        => $validated['longitude'] ?? null,
         ]);
 
         return response()->json([
@@ -298,6 +306,11 @@ class AttendanceController extends Controller
     {
         $user = auth()->user();
         $type = $request->input('type'); // 'check_in' or 'check_out'
+        $lat  = $request->input('latitude');
+        $lng  = $request->input('longitude');
+        if (!is_null($lat) && !is_numeric($lat)) { $lat = null; }
+        if (!is_null($lng) && !is_numeric($lng)) { $lng = null; }
+
         $today = Carbon::now()->toDateString();
         $nowTime = Carbon::now()->format('H:i:s');
 
@@ -323,6 +336,8 @@ class AttendanceController extends Controller
                     'check_out'     => null,
                     'working_hours' => null,
                     'status'        => $status,
+                    'latitude'      => $lat,
+                    'longitude'     => $lng,
                 ];
 
                 if ($approvedPermission) {
@@ -350,8 +365,15 @@ class AttendanceController extends Controller
                 if (!empty($attendance->check_in) && !empty($attendance->check_out) && empty($attendance->second_check_in)) {
                     // Session 2 Check-In
                     $updateData = [
-                        'second_check_in' => $nowTime,
+                        'second_check_in'           => $nowTime,
+                        'second_check_in_latitude'  => $lat,
+                        'second_check_in_longitude' => $lng,
                     ];
+
+                    if (empty($attendance->latitude) && !is_null($lat)) {
+                        $updateData['latitude']  = $lat;
+                        $updateData['longitude'] = $lng;
+                    }
 
                     if ($approvedPermission && empty($attendance->permission_id)) {
                         $updateData['permission_start'] = $approvedPermission->start_time;

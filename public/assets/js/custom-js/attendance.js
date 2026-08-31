@@ -43,16 +43,16 @@ $(document).ready(function () {
         });
     }
 
-    // Global Self Attendance Quick Check In / Check Out (Dashboard & Attendance View)
-    $(document).on('click', '.btn-mark-self-attendance', function () {
-        let btn = $(this);
-        let type = btn.data('type');
+    function performSelfAttendanceRequest(btn, type, lat, lng, originalHtml) {
         btn.prop('disabled', true);
+        let postData = { type: type };
+        if (lat !== null && lat !== undefined) postData.latitude = lat;
+        if (lng !== null && lng !== undefined) postData.longitude = lng;
 
         $.ajax({
             url: APP_URL + '/admin/attendance/mark-self',
             type: 'POST',
-            data: { type: type },
+            data: postData,
             success: function (response) {
                 if (response.status) {
                     showAlert('success', response.message);
@@ -61,15 +61,65 @@ $(document).ready(function () {
                     }, 800);
                 } else {
                     showAlert('danger', response.message || 'Failed to record attendance.');
-                    btn.prop('disabled', false);
+                    btn.prop('disabled', false).html(originalHtml);
                 }
             },
             error: function (xhr) {
                 let msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Failed to record attendance.';
                 showAlert('danger', msg);
-                btn.prop('disabled', false);
+                btn.prop('disabled', false).html(originalHtml);
             }
         });
+    }
+
+    // Global Self Attendance Quick Check In / Check Out (Dashboard & Attendance View)
+    $(document).on('click', '.btn-mark-self-attendance', function () {
+        let btn = $(this);
+        let type = btn.data('type');
+        let originalHtml = btn.html();
+
+        if (type === 'check_in') {
+            if (!navigator.geolocation) {
+                showAlert('danger', 'Geolocation is not supported by your device/browser. Location permission is required for Check-In.');
+                return;
+            }
+
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1" role="status"></span> Getting Location...');
+
+            navigator.geolocation.getCurrentPosition(
+                function (position) {
+                    let lat = position.coords.latitude;
+                    let lng = position.coords.longitude;
+                    performSelfAttendanceRequest(btn, type, lat, lng, originalHtml);
+                },
+                function (error) {
+                    btn.prop('disabled', false).html(originalHtml);
+                    let errMsg = 'Location access is required for Check-In.';
+                    switch (error.code) {
+                        case error.PERMISSION_DENIED:
+                            errMsg = 'Location permission denied. Please allow location access in your browser/device settings to check in.';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errMsg = 'Location information is unavailable. Please ensure GPS/Location service is enabled on your device.';
+                            break;
+                        case error.TIMEOUT:
+                            errMsg = 'Location request timed out. Please check your GPS connection and try again.';
+                            break;
+                        default:
+                            errMsg = 'An unknown error occurred while capturing your location.';
+                            break;
+                    }
+                    showAlert('danger', errMsg);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        } else {
+            performSelfAttendanceRequest(btn, type, null, null, originalHtml);
+        }
     });
 
     let canManageAll = false;
@@ -139,6 +189,23 @@ $(document).ready(function () {
                         if (!data) return '-';
                         if (type !== 'display') return data;
                         return `<span class="badge bg-label-success"><i class="bx bx-log-in me-1"></i>${data}</span>`;
+                    }
+                },
+                {
+                    data: null,
+                    className: 'text-center',
+                    render: function (data, type, row) {
+                        if (!row.latitude || !row.longitude) {
+                            return '<span class="text-muted"><i class="bx bx-map-pin me-1"></i>N/A</span>';
+                        }
+                        if (type !== 'display') return `${row.latitude}, ${row.longitude}`;
+                        let mapsUrl = `https://maps.google.com/?q=${row.latitude},${row.longitude}`;
+                        let html = `<a href="${mapsUrl}" target="_blank" class="badge bg-label-info text-decoration-none" title="View Check-In Location on Google Maps"><i class="bx bx-map-pin me-1"></i>${row.latitude}, ${row.longitude}</a>`;
+                        if (row.second_check_in_latitude && row.second_check_in_longitude) {
+                            let mapsUrl2 = `https://maps.google.com/?q=${row.second_check_in_latitude},${row.second_check_in_longitude}`;
+                            html += `<br><a href="${mapsUrl2}" target="_blank" class="badge bg-label-primary mt-1 text-decoration-none" title="View Session 2 Location"><i class="bx bx-map-pin me-1"></i>S2: ${row.second_check_in_latitude}, ${row.second_check_in_longitude}</a>`;
+                        }
+                        return html;
                     }
                 },
                 {
@@ -309,6 +376,8 @@ $(document).ready(function () {
                         $('#edit_attendance_check_in').val(att.check_in ? att.check_in.substring(0, 5) : '');
                         $('#edit_attendance_check_out').val(att.check_out ? att.check_out.substring(0, 5) : '');
                         $('#edit_attendance_status').val(att.status);
+                        $('#edit_attendance_latitude').val(att.latitude || '');
+                        $('#edit_attendance_longitude').val(att.longitude || '');
 
                         $('#editAttendanceModal').modal('show');
                     }

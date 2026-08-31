@@ -181,6 +181,7 @@
                             <th>Staff Name</th>
                             <th class="text-center">Date</th>
                             <th class="text-center">Check-In</th>
+                            <th class="text-center">Check-In Location</th>
                             <th class="text-center">Check-Out</th>
                             <th class="text-center">Working Hours</th>
                             <th class="text-center">Status</th>
@@ -250,6 +251,16 @@
                                 </select>
                                 <div class="invalid-feedback"></div>
                             </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Check-In Latitude</label>
+                                <input type="number" step="any" name="latitude" id="add_attendance_latitude" class="form-control" placeholder="e.g. 13.0827">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Check-In Longitude</label>
+                                <input type="number" step="any" name="longitude" id="add_attendance_longitude" class="form-control" placeholder="e.g. 80.2707">
+                                <div class="invalid-feedback"></div>
+                            </div>
                         </div>
                     </div>
                     <div class="modal-footer gap-2">
@@ -310,6 +321,16 @@
                                     <option value="Absent">Absent</option>
                                     <option value="On Leave">On Leave</option>
                                 </select>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Check-In Latitude</label>
+                                <input type="number" step="any" name="latitude" id="edit_attendance_latitude" class="form-control" placeholder="Latitude">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Check-In Longitude</label>
+                                <input type="number" step="any" name="longitude" id="edit_attendance_longitude" class="form-control" placeholder="Longitude">
                                 <div class="invalid-feedback"></div>
                             </div>
                         </div>
