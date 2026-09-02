@@ -19,7 +19,7 @@ class CreditRequestController extends Controller
 
         $user = Auth::user();
         $data['leads']       = Lead::forUser($user)->with('customer')->orderBy('lead_id', 'DESC')->get();
-        $data['leadSources'] = LeadSource::where('status', 1)->orderBy('name')->get();
+        $data['leadSources'] = LeadSource::where('status', 1)->orderBy('lead_sources_id')->get();
         $data['customers']   = Customer::forUser($user)->where('status', 1)->orderBy('name')->get();
 
         $customFields = \App\Models\CreditRequestCustomField::where('status', 1)->orderBy('sort_order', 'asc')->orderBy('id', 'asc')->get();

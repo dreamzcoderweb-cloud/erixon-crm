@@ -16,6 +16,7 @@ class Payment extends Model
     protected $fillable = [
         'customer_id',
         'lead_id',
+        'lead_source_id',
         'amount',
         'tax_percentage',
         'tax_amount',
@@ -49,6 +50,10 @@ class Payment extends Model
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by', 'id');
+    }
+    public function leadSource()
+    {
+        return $this->belongsTo(LeadSource::class, 'lead_source_id', 'lead_sources_id');
     }
 
     /**

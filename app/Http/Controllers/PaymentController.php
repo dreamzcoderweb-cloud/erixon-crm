@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
-use App\Models\Lead;
+use App\Models\LeadSource;
 use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,7 +18,7 @@ class PaymentController extends Controller
 
         $user = Auth::user();
         $data['customers'] = Customer::forUser($user)->where('status', 1)->orderBy('name')->get();
-        $data['leads']     = Lead::forUser($user)->with('customer')->orderBy('lead_id', 'DESC')->get();
+        $data['leadSources'] = LeadSource::where('status', 1)->orderBy('lead_sources_id')->get();
 
         return view('payments.view', $data);
     }
@@ -28,6 +28,7 @@ class PaymentController extends Controller
         $payments = Payment::forUser(Auth::user())->with([
             'customer:customer_id,name,mobile,email',
             'lead:lead_id,lead_title',
+            'leadSource:lead_sources_id,name',
             'creator:id,name'
         ])
         ->orderBy('payment_id', 'DESC')
@@ -46,7 +47,7 @@ class PaymentController extends Controller
     {
         $validated = $request->validate([
             'customer_id'        => ['required', 'exists:customers,customer_id'],
-            'lead_id'            => ['nullable', 'exists:leads,lead_id'],
+            'lead_source_id'     => ['nullable', 'exists:lead_sources,lead_sources_id'],
             'amount'             => ['required', 'numeric', 'min:0.01'],
             'tax_percentage'     => ['required', 'numeric', 'min:0'],
             'tax_amount'         => ['required', 'numeric', 'min:0'],
@@ -78,7 +79,7 @@ class PaymentController extends Controller
 
         $payment = Payment::create([
             'customer_id'        => $validated['customer_id'],
-            'lead_id'            => $validated['lead_id'] ?? null,
+            'lead_source_id'     => $validated['lead_source_id'] ?? null,
             'amount'             => $validated['amount'],
             'tax_percentage'     => $validated['tax_percentage'],
             'tax_amount'         => $validated['tax_amount'],
@@ -100,7 +101,7 @@ class PaymentController extends Controller
 
     public function edit($id)
     {
-        $payment = Payment::forUser(Auth::user())->with(['customer', 'lead', 'creator'])->find($id);
+        $payment = Payment::forUser(Auth::user())->with(['customer', 'leadSource', 'creator'])->find($id);
         if (!$payment) {
             return response()->json(['status' => false, 'message' => 'Payment record not found.'], 404);
         }
@@ -120,7 +121,7 @@ class PaymentController extends Controller
 
         $validated = $request->validate([
             'customer_id'        => ['required', 'exists:customers,customer_id'],
-            'lead_id'            => ['nullable', 'exists:leads,lead_id'],
+            'lead_source_id'     => ['nullable', 'exists:lead_sources,lead_sources_id'],
             'amount'             => ['required', 'numeric', 'min:0.01'],
             'tax_percentage'     => ['required', 'numeric', 'min:0'],
             'tax_amount'         => ['required', 'numeric', 'min:0'],
@@ -150,7 +151,7 @@ class PaymentController extends Controller
         }
 
         $payment->customer_id    = $validated['customer_id'];
-        $payment->lead_id        = $validated['lead_id'] ?? null;
+        $payment->lead_source_id = $validated['lead_source_id'] ?? null;
         $payment->amount         = $validated['amount'];
         $payment->tax_percentage = $validated['tax_percentage'];
         $payment->tax_amount     = $validated['tax_amount'];

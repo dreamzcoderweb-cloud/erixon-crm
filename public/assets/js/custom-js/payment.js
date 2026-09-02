@@ -14,7 +14,17 @@ $(document).ready(function () {
         $('#add_total_amount').val(total.toFixed(2));
     }
 
+    function calcEditTax() {
+        let amt = parseFloat($('#edit_amount').val()) || 0;
+        let taxPct = parseFloat($('#edit_tax_percentage').val()) || 0;
+        let taxAmt = (amt * taxPct) / 100;
+        let total = amt + taxAmt;
+        $('#edit_tax_amount').val(taxAmt.toFixed(2));
+        $('#edit_total_amount').val(total.toFixed(2));
+    }
+
     $('#add_amount, #add_tax_percentage').on('input change', calcAddTax);
+    $('#edit_amount, #edit_tax_percentage').on('input change', calcEditTax);
 
     let paymentTable = $('#payments-table').DataTable({
         ajax: {
@@ -34,6 +44,14 @@ $(document).ready(function () {
                 render: function (data, type) {
                     if (type !== 'display') return data || '';
                     return `<strong>${data}</strong>`;
+                }
+            },
+            {
+                data: null,
+                render: function (data, type, row) {
+                    let sourceName = (row.lead_source && row.lead_source.name) ? row.lead_source.name : ((row.leadSource && row.leadSource.name) ? row.leadSource.name : 'N/A');
+                    if (type !== 'display') return sourceName;
+                    return sourceName !== 'N/A' ? `<strong>${sourceName}</strong>` : '<span class="text-muted">N/A</span>';
                 }
             },
             {
@@ -91,11 +109,22 @@ $(document).ready(function () {
             {
                 data: null,
                 orderable: false,
+                className: 'text-center',
                 render: function (data, type, row) {
                     return `
-                        <button class="btn btn-xs btn-outline-danger btn-delete-payment" data-id="${row.payment_id}">
-                            <i class="bx bx-trash"></i> Delete
-                        </button>
+                        <div class="dropdown">
+                            <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                <i class="bx bx-dots-vertical-rounded"></i>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end">
+                                <a class="dropdown-item btn-edit-payment text-primary" href="javascript:void(0);" data-id="${row.payment_id}">
+                                    <i class="bx bx-edit-alt me-1"></i> Edit
+                                </a>
+                                <a class="dropdown-item text-danger btn-delete-payment" href="javascript:void(0);" data-id="${row.payment_id}">
+                                    <i class="bx bx-trash me-1"></i> Delete
+                                </a>
+                            </div>
+                        </div>
                     `;
                 }
             }
@@ -202,6 +231,78 @@ $(document).ready(function () {
                     showValidationErrors(form, xhr.responseJSON.errors);
                 } else {
                     showAlert('danger', xhr.responseJSON?.message || 'Error saving payment record.');
+                }
+            },
+            complete: function () {
+                submitBtn.prop('disabled', false);
+            }
+        });
+    });
+
+    // Open Edit Payment Modal
+    $(document).on('click', '.btn-edit-payment', function () {
+        let id = $(this).data('id');
+        let form = $('#editPaymentForm');
+        clearValidationErrors(form);
+
+        $.ajax({
+            url: APP_URL + '/admin/payments/edit/' + id,
+            type: 'GET',
+            success: function (response) {
+                if (response.status) {
+                    let payment = response.data;
+                    $('#edit_payment_id').val(payment.payment_id);
+                    $('#edit_customer_id').val(payment.customer_id);
+                    $('#edit_lead_source_id').val(payment.lead_source_id || '');
+                    $('#edit_amount').val(payment.amount);
+                    $('#edit_tax_percentage').val(payment.tax_percentage);
+                    $('#edit_tax_amount').val(payment.tax_amount);
+                    $('#edit_total_amount').val(payment.total_amount);
+                    $('#edit_payment_method').val(payment.payment_method);
+                    if (payment.payment_date) {
+                        let pDate = payment.payment_date.split('T')[0];
+                        $('#edit_payment_date').val(pDate);
+                    }
+                    $('#edit_tax_number').val(payment.tax_number || '');
+
+                    $('#editPaymentModal').modal('show');
+                }
+            },
+            error: function (xhr) {
+                showAlert('danger', xhr.responseJSON?.message || 'Failed to fetch payment details.');
+            }
+        });
+    });
+
+    // Update Payment Form Submit
+    $('#editPaymentForm').on('submit', function (e) {
+        e.preventDefault();
+        let form = $(this);
+        let id = $('#edit_payment_id').val();
+        let formData = new FormData(this);
+        let submitBtn = $('#editPaymentSubmitBtn');
+
+        submitBtn.prop('disabled', true);
+        clearValidationErrors(form);
+
+        $.ajax({
+            url: APP_URL + '/admin/payments/update/' + id,
+            type: 'POST',
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function (response) {
+                if (response.status) {
+                    $('#editPaymentModal').modal('hide');
+                    paymentTable.ajax.reload(null, false);
+                    showAlert('success', response.message);
+                }
+            },
+            error: function (xhr) {
+                if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
+                    showValidationErrors(form, xhr.responseJSON.errors);
+                } else {
+                    showAlert('danger', xhr.responseJSON?.message || 'Error updating payment record.');
                 }
             },
             complete: function () {

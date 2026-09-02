@@ -19,6 +19,7 @@
                         <tr>
                             <th>#</th>
                             <th>Customer</th>
+                            <th>Lead Source</th>
                             <th>Amount</th>
                             <th>Tax %</th>
                             <th>Tax Amount</th>
@@ -60,11 +61,11 @@
                                 <div class="invalid-feedback"></div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Lead (Optional)</label>
-                                <select name="lead_id" class="form-select">
-                                    <option value="">-- Select Lead --</option>
-                                    @foreach ($leads as $lead)
-                                        <option value="{{ $lead->lead_id }}">{{ $lead->lead_title }}</option>
+                                <label class="form-label">Lead Sources</label>
+                                <select name="lead_source_id" class="form-select">
+                                    <option value="">-- Select Lead Source --</option>
+                                    @foreach ($leadSources as $lead)
+                                        <option value="{{ $lead->lead_sources_id }}">{{ $lead->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -131,6 +132,90 @@
                 <div class="modal-body text-center p-3">
                     <img id="previewImage" src="" class="img-fluid rounded" style="max-height: 450px;" alt="Screenshot">
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Payment Modal -->
+    <div class="modal fade" id="editPaymentModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <form id="editPaymentForm" method="POST" enctype="multipart/form-data" novalidate>
+                    @csrf
+                    <input type="hidden" name="payment_id" id="edit_payment_id">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bx bx-edit me-1"></i> Edit Payment</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Customer <span class="text-danger">*</span></label>
+                                <select name="customer_id" id="edit_customer_id" class="form-select" required>
+                                    <option value="">-- Select Customer --</option>
+                                    @foreach ($customers as $cust)
+                                        <option value="{{ $cust->customer_id }}">{{ $cust->name }} ({{ $cust->mobile }})</option>
+                                    @endforeach
+                                </select>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Lead Source</label>
+                                <select name="lead_source_id" id="edit_lead_source_id" class="form-select">
+                                    <option value="">-- Select Lead Source --</option>
+                                    @foreach ($leadSources as $lead)
+                                        <option value="{{ $lead->lead_sources_id }}">{{ $lead->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Base Amount (₹) <span class="text-danger">*</span></label>
+                                <input type="number" step="0.01" id="edit_amount" name="amount" class="form-control" required>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Tax (%) <span class="text-danger">* Mandatory</span></label>
+                                <input type="number" step="0.01" id="edit_tax_percentage" name="tax_percentage" class="form-control" required>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Tax Amount (₹) <span class="text-danger">* Mandatory</span></label>
+                                <input type="number" step="0.01" id="edit_tax_amount" name="tax_amount" class="form-control" readonly required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Total Amount (₹) <span class="text-danger">* Mandatory</span></label>
+                                <input type="number" step="0.01" id="edit_total_amount" name="total_amount" class="form-control" readonly required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Payment Method <span class="text-danger">*</span></label>
+                                <select name="payment_method" id="edit_payment_method" class="form-select" required>
+                                    <option value="Bank Transfer">Bank Transfer</option>
+                                    <option value="UPI / QR">UPI / QR</option>
+                                    <option value="Cash">Cash</option>
+                                    <option value="Credit Card">Credit Card</option>
+                                    <option value="Cheque">Cheque</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Payment Date <span class="text-danger">*</span></label>
+                                <input type="date" name="payment_date" id="edit_payment_date" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Tax / GST Number</label>
+                                <input type="text" name="tax_number" id="edit_tax_number" class="form-control" placeholder="GSTIN123456789">
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label">Payment Receipt / Screenshot (Optional to replace)</label>
+                                <input type="file" name="payment_screenshot" class="form-control" accept="image/*,.pdf">
+                                <small class="text-muted">Leave empty to keep existing proof.</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer gap-2">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary" id="editPaymentSubmitBtn">Update Payment</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
