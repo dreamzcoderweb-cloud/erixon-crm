@@ -14,7 +14,7 @@ class CreditRequest extends Model
     protected $primaryKey = 'credit_request_id';
 
     protected $fillable = [
-        'lead_id',
+        'lead_source_id',
         'customer_id',
         'username',
         'phone',
@@ -29,6 +29,7 @@ class CreditRequest extends Model
         'support_approved_at',
         'support_remarks',
         'requested_by',
+        'custom_fields',
     ];
 
     protected $casts = [
@@ -36,11 +37,17 @@ class CreditRequest extends Model
         'is_estimate'       => 'boolean',
         'admin_approved_at' => 'datetime',
         'support_approved_at' => 'datetime',
+        'custom_fields'     => 'array',
     ];
 
     public function lead()
     {
         return $this->belongsTo(Lead::class, 'lead_id', 'lead_id');
+    }
+
+    public function leadSource()
+    {
+        return $this->belongsTo(LeadSource::class, 'lead_source_id', 'lead_sources_id');
     }
 
     public function customer()
@@ -80,6 +87,7 @@ class CreditRequest extends Model
 
         return $query->where(function ($q) use ($userId, $user) {
             $q->where('requested_by', $userId)
+              ->orWhereNull('requested_by')
               ->orWhereHas('customer', function ($cq) use ($user) {
                   $cq->forUser($user);
               })

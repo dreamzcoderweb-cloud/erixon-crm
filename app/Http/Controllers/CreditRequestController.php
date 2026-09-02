@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CreditRequest;
 use App\Models\Customer;
 use App\Models\Lead;
+use App\Models\LeadSource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -17,8 +18,61 @@ class CreditRequestController extends Controller
         }
 
         $user = Auth::user();
-        $data['leads']     = Lead::forUser($user)->with('customer')->orderBy('lead_id', 'DESC')->get();
-        $data['customers'] = Customer::forUser($user)->where('status', 1)->orderBy('name')->get();
+        $data['leads']       = Lead::forUser($user)->with('customer')->orderBy('lead_id', 'DESC')->get();
+        $data['leadSources'] = LeadSource::where('status', 1)->orderBy('name')->get();
+        $data['customers']   = Customer::forUser($user)->where('status', 1)->orderBy('name')->get();
+
+        $customFields = \App\Models\CreditRequestCustomField::where('status', 1)->orderBy('sort_order', 'asc')->orderBy('id', 'asc')->get();
+
+        $standardFields = [
+            'customer_info' => 'Customer / User',
+            'contact_info'  => 'Phone / Email',
+            'lead_source'   => 'Lead Source',
+            'credit_amount' => 'Credit Amount',
+            'is_estimate'   => 'Type',
+            'status'        => 'Status',
+            'requested_by'  => 'Requested By',
+            'created_at'    => 'Date',
+        ];
+
+        $allAvailableFieldsMap = [];
+        foreach ($standardFields as $key => $label) {
+            $allAvailableFieldsMap[$key] = [
+                'key'   => $key,
+                'label' => $label,
+                'type'  => 'standard',
+            ];
+        }
+
+        foreach ($customFields as $cf) {
+            $allAvailableFieldsMap[$cf->field_name] = [
+                'key'   => $cf->field_name,
+                'label' => $cf->field_label,
+                'type'  => 'custom',
+                'field' => $cf,
+            ];
+        }
+
+        $setting = \App\Models\LeadSetting::getSettings();
+        $savedColumns = $setting->credit_request_list_columns;
+
+        if (empty($savedColumns) || !is_array($savedColumns)) {
+            $savedColumns = array_keys($allAvailableFieldsMap);
+        } else {
+            $savedColumns = array_values(array_filter($savedColumns, function ($key) use ($allAvailableFieldsMap) {
+                return isset($allAvailableFieldsMap[$key]);
+            }));
+        }
+
+        $visibleColumns = [];
+        foreach ($savedColumns as $colKey) {
+            if (isset($allAvailableFieldsMap[$colKey])) {
+                $visibleColumns[] = $allAvailableFieldsMap[$colKey];
+            }
+        }
+
+        $data['customFields']   = $customFields;
+        $data['visibleColumns'] = $visibleColumns;
 
         return view('credit_requests.view', $data);
     }
@@ -32,6 +86,7 @@ class CreditRequestController extends Controller
             'lead:lead_id,lead_title,customer_id',
             'lead.customer:customer_id,name,mobile,email',
             'customer:customer_id,name,mobile,email,credit_balance',
+            'leadSource:lead_sources_id,name',
             'adminApprover:id,name',
             'supportApprover:id,name',
             'requester:id,name'
@@ -51,21 +106,27 @@ class CreditRequestController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $rules = [
             'customer_id'   => ['required', 'exists:customers,customer_id'],
-            'lead_id'       => ['nullable', 'exists:leads,lead_id'],
+            'lead_source_id' => ['nullable', 'exists:lead_sources,lead_sources_id'],
             'credit_amount' => ['required', 'numeric', 'min:0.01'],
             'is_estimate'   => ['nullable', 'boolean'],
             'username'      => ['nullable', 'string', 'max:255'],
             'phone'         => ['nullable', 'string', 'max:30'],
             'email'         => ['nullable', 'email', 'max:255'],
-        ]);
+        ];
+
+        [$cfRules, $cfAttributes] = $this->getCustomFieldsRules();
+        $rules = array_merge($rules, $cfRules);
+
+        $validated = $request->validate($rules, [], $cfAttributes);
 
         $customer = Customer::find($validated['customer_id']);
+        $customFieldsData = $this->processCustomFieldsPayload($request->input('custom_fields', []));
 
         $creditRequest = CreditRequest::create([
             'customer_id'   => $validated['customer_id'],
-            'lead_id'       => $validated['lead_id'] ?? null,
+            'lead_source_id' => $validated['lead_source_id'] ?? null,
             'credit_amount' => $validated['credit_amount'],
             'is_estimate'   => !empty($validated['is_estimate']) ? true : false,
             'username'      => $validated['username'] ?? $customer->name ?? null,
@@ -73,6 +134,7 @@ class CreditRequestController extends Controller
             'email'         => $validated['email'] ?? $customer->email ?? null,
             'status'        => 'Pending Admin Approval',
             'requested_by'  => Auth::id(),
+            'custom_fields' => $customFieldsData,
         ]);
 
         $msgType = !empty($validated['is_estimate']) ? 'Estimate Credit Request' : 'Credit Request';
@@ -110,26 +172,33 @@ class CreditRequestController extends Controller
             ], 404);
         }
 
-        $validated = $request->validate([
+        $rules = [
             'customer_id'   => ['required', 'exists:customers,customer_id'],
-            'lead_id'       => ['nullable', 'exists:leads,lead_id'],
+            'lead_source_id' => ['nullable', 'exists:lead_sources,lead_sources_id'],
             'credit_amount' => ['required', 'numeric', 'min:0.01'],
             'is_estimate'   => ['nullable', 'boolean'],
             'username'      => ['nullable', 'string', 'max:255'],
             'phone'         => ['nullable', 'string', 'max:30'],
             'email'         => ['nullable', 'email', 'max:255'],
-        ]);
+        ];
+
+        [$cfRules, $cfAttributes] = $this->getCustomFieldsRules();
+        $rules = array_merge($rules, $cfRules);
+
+        $validated = $request->validate($rules, [], $cfAttributes);
 
         $customer = Customer::find($validated['customer_id']);
+        $customFieldsData = $this->processCustomFieldsPayload($request->input('custom_fields', []));
 
         $creditRequest->update([
             'customer_id'   => $validated['customer_id'],
-            'lead_id'       => $validated['lead_id'] ?? null,
+            'lead_source_id' => $validated['lead_source_id'] ?? null,
             'credit_amount' => $validated['credit_amount'],
             'is_estimate'   => !empty($validated['is_estimate']) ? true : false,
             'username'      => $validated['username'] ?? $customer->name ?? null,
             'phone'         => $validated['phone'] ?? $customer->mobile ?? null,
             'email'         => $validated['email'] ?? $customer->email ?? null,
+            'custom_fields' => $customFieldsData,
         ]);
 
         return response()->json([
@@ -237,5 +306,58 @@ class CreditRequestController extends Controller
             'status'  => true,
             'message' => 'Credit request deleted successfully.'
         ]);
+    }
+
+    private function getCustomFieldsRules()
+    {
+        $customFields = \App\Models\CreditRequestCustomField::where('status', 1)->get();
+        $rules = [];
+        $attributes = [];
+
+        foreach ($customFields as $field) {
+            $ruleKey = 'custom_fields.' . $field->field_name;
+            $fieldRules = [];
+
+            if ($field->is_required === 'Yes') {
+                $fieldRules[] = 'required';
+            } else {
+                $fieldRules[] = 'nullable';
+            }
+
+            switch ($field->field_type) {
+                case 'Number':
+                    $fieldRules[] = 'numeric';
+                    break;
+                case 'Date':
+                    $fieldRules[] = 'date';
+                    break;
+                case 'Text':
+                case 'Textarea':
+                case 'Dropdown':
+                default:
+                    $fieldRules[] = 'string';
+                    break;
+            }
+
+            $rules[$ruleKey] = $fieldRules;
+            $attributes[$ruleKey] = $field->field_label;
+        }
+
+        return [$rules, $attributes];
+    }
+
+    private function processCustomFieldsPayload(array $customFieldsData = [])
+    {
+        $allFields = \App\Models\CreditRequestCustomField::where('status', 1)->get();
+        foreach ($allFields as $field) {
+            if ($field->field_type === 'Checkbox') {
+                if (isset($customFieldsData[$field->field_name]) && ($customFieldsData[$field->field_name] == 1 || $customFieldsData[$field->field_name] === '1' || $customFieldsData[$field->field_name] === 'Yes')) {
+                    $customFieldsData[$field->field_name] = '1';
+                } else {
+                    $customFieldsData[$field->field_name] = '0';
+                }
+            }
+        }
+        return $customFieldsData;
     }
 }

@@ -133,6 +133,7 @@
                 'customers' => ['title' => 'Customers Management', 'icon' => 'bx-user', 'badge' => 'bg-label-primary'],
                 'leads' => ['title' => 'Leads Management', 'icon' => 'bx-target-lock', 'badge' => 'bg-label-success'],
                 'lead-sources' => ['title' => 'Lead Sources', 'icon' => 'bx-git-repo-forked', 'badge' => 'bg-label-purple'],
+                'coordinations' => ['title' => 'Coordination', 'icon' => 'bx-link-external', 'badge' => 'bg-label-info'],
                 'lead-stages' => ['title' => 'Lead Stages', 'icon' => 'bx-bar-chart-alt-2', 'badge' => 'bg-label-pink'],
                 'lead-requirements' => ['title' => 'Lead Requirements', 'icon' => 'bx-list-check', 'badge' => 'bg-label-dark'],
                 'lost-reasons' => ['title' => 'Lost Reasons', 'icon' => 'bx-dislike', 'badge' => 'bg-label-danger'],
@@ -143,6 +144,7 @@
                 'lead-settings' => ['title' => 'Lead Settings', 'icon' => 'bx-gift', 'badge' => 'bg-label-primary'],
                 'customer-settings' => ['title' => 'Customer Settings', 'icon' => 'bx-user', 'badge' => 'bg-label-info'],
                 'followup-settings' => ['title' => 'Followup Settings', 'icon' => 'bx-calendar-event', 'badge' => 'bg-label-warning'],
+                'credit-request-settings' => ['title' => 'Credit Request Settings', 'icon' => 'bx-credit-card', 'badge' => 'bg-label-primary'],
                 'profile' => ['title' => 'Profile Settings', 'icon' => 'bx-user-circle', 'badge' => 'bg-label-dark'],
                 'dashboard' => ['title' => 'Dashboard Access', 'icon' => 'bx-home-smile', 'badge' => 'bg-label-primary'],
             ];

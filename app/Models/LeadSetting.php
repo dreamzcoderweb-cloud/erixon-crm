@@ -16,12 +16,14 @@ class LeadSetting extends Model
         'lead_list_columns',
         'customer_list_columns',
         'followup_list_columns',
+        'credit_request_list_columns',
     ];
 
     protected $casts = [
-        'lead_list_columns'     => 'array',
-        'customer_list_columns' => 'array',
-        'followup_list_columns' => 'array',
+        'lead_list_columns'           => 'array',
+        'customer_list_columns'       => 'array',
+        'followup_list_columns'       => 'array',
+        'credit_request_list_columns' => 'array',
     ];
 
     /**

@@ -7,6 +7,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\LeadSourceController;
+use App\Http\Controllers\CoordinationController;
 use App\Http\Controllers\LeadStageController;
 use App\Http\Controllers\LeadRequirementController;
 use App\Http\Controllers\LostReasonController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\LeadController;
 use App\Http\Controllers\GeneralSettingController;
 use App\Http\Controllers\LeadSettingController;
 use App\Http\Controllers\FollowupSettingController;
+use App\Http\Controllers\CreditRequestSettingController;
 use App\Http\Controllers\LeadDocumentController;
 use App\Http\Controllers\TemplateController;
 use App\Http\Controllers\CallRecordingController;
@@ -107,6 +109,21 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
         ->middleware('permission:lead-sources.delete');
     Route::post('lead-sources/change-status/{id}', [LeadSourceController::class, 'changeStatus'])
         ->middleware('permission:lead-sources.edit');
+
+    // Coordination routes
+    Route::get('coordinations', [CoordinationController::class, 'index'])
+        ->middleware('permission:coordinations.view')
+        ->name('coordinations.index');
+    Route::get('coordinations/data', [CoordinationController::class, 'listData'])
+        ->middleware('permission:coordinations.view');
+    Route::post('coordinations/store', [CoordinationController::class, 'store'])
+        ->middleware('permission:coordinations.create');
+    Route::get('coordinations/edit/{id}', [CoordinationController::class, 'edit'])
+        ->middleware('permission:coordinations.edit');
+    Route::post('coordinations/update/{id}', [CoordinationController::class, 'update'])
+        ->middleware('permission:coordinations.edit');
+    Route::delete('coordinations/delete/{id}', [CoordinationController::class, 'destroy'])
+        ->middleware('permission:coordinations.delete');
 
     // Lead Stages routes
     Route::get('lead-stages', [LeadStageController::class, 'index'])
@@ -274,6 +291,28 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
     Route::post('settings/followup/list-columns/save', [FollowupSettingController::class, 'saveFollowupListColumns'])
         ->middleware('permission:followup-settings.edit')
         ->name('settings.followup.list-columns.save');
+
+    // Credit Request Settings routes
+    Route::get('settings/credit-request', [CreditRequestSettingController::class, 'index'])
+        ->middleware('permission:credit-request-settings.view')
+        ->name('settings.credit_request');
+
+    Route::post('settings/credit-request/custom-fields/store', [CreditRequestSettingController::class, 'storeCustomField'])
+        ->middleware('permission:credit-request-settings.edit')
+        ->name('settings.credit_request.custom_fields.store');
+    Route::get('settings/credit-request/custom-fields/edit/{id}', [CreditRequestSettingController::class, 'editCustomField'])
+        ->middleware('permission:credit-request-settings.view')
+        ->name('settings.credit_request.custom_fields.edit');
+    Route::post('settings/credit-request/custom-fields/update/{id}', [CreditRequestSettingController::class, 'updateCustomField'])
+        ->middleware('permission:credit-request-settings.edit')
+        ->name('settings.credit_request.custom_fields.update');
+    Route::delete('settings/credit-request/custom-fields/destroy/{id}', [CreditRequestSettingController::class, 'destroyCustomField'])
+        ->middleware('permission:credit-request-settings.edit')
+        ->name('settings.credit_request.custom_fields.destroy');
+
+    Route::post('settings/credit-request/save-columns', [CreditRequestSettingController::class, 'saveCreditRequestListColumns'])
+        ->middleware('permission:credit-request-settings.edit')
+        ->name('settings.credit_request.save_columns');
 
     // Lead Documents routes
     Route::get('lead-documents', [LeadDocumentController::class, 'index'])

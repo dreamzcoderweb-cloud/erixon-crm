@@ -44,6 +44,11 @@ class PermissionSeeder extends Seeder
             'lead-sources.edit',
             'lead-sources.delete',
 
+            'coordinations.view',
+            'coordinations.create',
+            'coordinations.edit',
+            'coordinations.delete',
+
             'lead-stages.view',
             'lead-stages.create',
             'lead-stages.edit',
@@ -79,6 +84,8 @@ class PermissionSeeder extends Seeder
             'customer-settings.edit',
             'followup-settings.view',
             'followup-settings.edit',
+            'credit-request-settings.view',
+            'credit-request-settings.edit',
 
             'lead-documents.view',
             'lead-documents.create',

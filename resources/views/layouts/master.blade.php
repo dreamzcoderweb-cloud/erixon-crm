@@ -317,6 +317,7 @@
     <script src="{{ asset('assets/js/custom-js/date_formatter.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/customer.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/lead_source.js') }}"></script>
+    <script src="{{ asset('assets/js/custom-js/coordination.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/lead_stage.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/lead_requirement.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/lost_reason.js') }}"></script>

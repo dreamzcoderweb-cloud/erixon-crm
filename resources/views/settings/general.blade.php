@@ -55,6 +55,13 @@
                         </a>
                     </li>
                 @endcan
+                @can('credit-request-settings.view')
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('admin.settings.credit_request') }}">
+                            <i class="bx bx-credit-card me-1"></i> Credit Request Setting
+                        </a>
+                    </li>
+                @endcan
             </ul>
         </div>
     </div>
