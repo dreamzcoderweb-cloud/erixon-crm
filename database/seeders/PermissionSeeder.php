@@ -86,6 +86,8 @@ class PermissionSeeder extends Seeder
             'followup-settings.edit',
             'credit-request-settings.view',
             'credit-request-settings.edit',
+            'demo-process-settings.view',
+            'demo-process-settings.edit',
 
             'lead-documents.view',
             'lead-documents.create',

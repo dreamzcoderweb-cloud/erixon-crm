@@ -1,6 +1,6 @@
 @extends('layouts.master')
 
-@section('title', 'Credit Request Settings - Settings')
+@section('title', 'Demo Process Settings - Settings')
 
 @section('content')
 <div class="container-xxl flex-grow-1 container-p-y">
@@ -13,7 +13,7 @@
             </div>
         @endif
 
-        @if (isset($errors) && $errors->any())
+        @if ($errors->any())
             <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
                 <ul class="mb-0">
                     @foreach ($errors->all() as $error)
@@ -59,14 +59,14 @@
                 @endcan
                 @can('credit-request-settings.view')
                     <li class="nav-item">
-                        <a class="nav-link active" href="{{ route('admin.settings.credit_request') }}">
+                        <a class="nav-link" href="{{ route('admin.settings.credit_request') }}">
                             <i class="bx bx-credit-card me-1"></i> Credit Request Setting
                         </a>
                     </li>
                 @endcan
                 @can('demo-process-settings.view')
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('admin.settings.demo_process') }}">
+                        <a class="nav-link active" href="{{ route('admin.settings.demo_process') }}">
                             <i class="bx bx-slideshow me-1"></i> Demo Process Setting
                         </a>
                     </li>
@@ -75,7 +75,7 @@
         </div>
     </div>
 
-    <!-- Credit Request Settings Vertical Layout -->
+    <!-- Demo Process Settings Vertical Layout -->
     <div class="row">
         <!-- Left Sidebar Navigation Menu -->
         <div class="col-md-3 mb-4 mb-md-0">
@@ -83,30 +83,30 @@
                 <div class="card-body p-3">
                     <div class="nav flex-column nav-pills custom-lead-nav gap-1" id="v-pills-tab" role="tablist" aria-orientation="vertical">
                         <button class="nav-link text-start py-2 px-3 fw-medium active" id="v-pills-additional-fields-tab" data-bs-toggle="pill" data-bs-target="#v-pills-additional-fields" type="button" role="tab">
-                            <i class="bx bx-list-plus me-2"></i> Additional Credit Request Fields
+                            <i class="bx bx-list-plus me-2"></i> Additional Demo Process Fields
                         </button>
                         <button class="nav-link text-start py-2 px-3 fw-medium" id="v-pills-site-customization-tab" data-bs-toggle="pill" data-bs-target="#v-pills-site-customization" type="button" role="tab">
-                            <i class="bx bx-customize me-2"></i> Credit Request List Customization
+                            <i class="bx bx-customize me-2"></i> Demo Process List Customization
                         </button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Right Content Panels -->
+        <!-- Right Content Panes -->
         <div class="col-md-9">
-            <div class="tab-content p-0 bg-transparent shadow-none border-0" id="v-pills-tabContent">
+            <div class="tab-content p-0 shadow-none bg-transparent" id="v-pills-tabContent">
 
-                <!-- 1. Additional Credit Request Fields Tab -->
+                <!-- Additional Demo Process Fields (Default Active) -->
                 <div class="tab-pane fade show active" id="v-pills-additional-fields" role="tabpanel">
                     <div class="card shadow-sm border-0">
-                        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                        <div class="card-header border-bottom d-flex align-items-center justify-content-between py-3">
                             <div>
-                                <h5 class="card-title mb-0 fw-bold">Custom Credit Request Fields</h5>
-                                <small class="text-muted">Additional Credit Request Fields</small>
+                                <h5 class="card-title mb-0 fw-bold text-dark">Custom Demo Process Fields</h5>
+                                <span class="text-muted small">Additional Demo Process Fields</span>
                             </div>
-                            @can('credit-request-settings.edit')
-                                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createFieldModal">
+                            @can('demo-process-settings.edit')
+                                <button type="button" class="btn btn-primary btn-sm px-3" data-bs-toggle="modal" data-bs-target="#createFieldModal">
                                     <i class="bx bx-plus me-1"></i> Create Field
                                 </button>
                             @endcan
@@ -114,53 +114,47 @@
                         <div class="card-body p-0">
                             <div class="table-responsive text-nowrap">
                                 <table class="table table-hover align-middle mb-0">
-                                    <thead class="table-light">
+                                    <thead class="bg-light">
                                         <tr>
-                                            <th class="ps-4">LABEL</th>
-                                            <th>TYPE</th>
-                                            <th>OPTIONS</th>
-                                            <th>REQUIRED</th>
-                                            <th class="text-end pe-4">ACTIONS</th>
+                                            <th class="fw-semibold text-muted text-uppercase small py-3">Label</th>
+                                            <th class="fw-semibold text-muted text-uppercase small py-3">Type</th>
+                                            <th class="fw-semibold text-muted text-uppercase small py-3">Options</th>
+                                            <th class="fw-semibold text-muted text-uppercase small py-3">Required</th>
+                                            <th class="fw-semibold text-muted text-uppercase small py-3 text-center">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody class="table-border-bottom-0" id="customFieldsTableBody">
                                         @forelse ($customFields as $field)
                                             <tr>
-                                                <td class="ps-4 fw-semibold text-dark">{{ $field->field_label }}</td>
-                                                <td><span class="badge bg-label-info">{{ $field->field_type }}</span></td>
-                                                <td>{{ $field->field_options ? $field->field_options : '-' }}</td>
+                                                <td class="fw-medium text-dark">{{ $field->field_label }}</td>
+                                                <td><span class="badge bg-label-info text-dark">{{ $field->field_type }}</span></td>
+                                                <td class="text-muted">{{ $field->field_options ?: '-' }}</td>
                                                 <td>
-                                                    @if ($field->is_required === 'Yes')
-                                                        <span class="badge bg-label-danger">Yes</span>
-                                                    @else
-                                                        <span class="badge bg-label-secondary">No</span>
-                                                    @endif
+                                                    <span class="badge {{ $field->is_required === 'Yes' ? 'bg-label-primary' : 'bg-label-secondary' }}">
+                                                        {{ $field->is_required }}
+                                                    </span>
                                                 </td>
-                                                <td class="text-end pe-4">
-                                                    @can('credit-request-settings.edit')
-                                                        <div class="dropdown">
-                                                            <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
-                                                                <i class="bx bx-dots-vertical-rounded"></i>
-                                                            </button>
-                                                            <div class="dropdown-menu dropdown-menu-end">
+                                                <td class="text-center">
+                                                    <div class="dropdown">
+                                                        <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                                            <i class="bx bx-dots-vertical-rounded"></i>
+                                                        </button>
+                                                        <div class="dropdown-menu dropdown-menu-end">
+                                                            @can('demo-process-settings.edit')
                                                                 <a class="dropdown-item edit-field-btn" href="javascript:void(0);" data-id="{{ $field->id }}">
                                                                     <i class="bx bx-edit-alt me-1"></i> Edit
                                                                 </a>
-                                                                <a class="dropdown-item text-danger delete-field-btn" href="javascript:void(0);" data-id="{{ $field->id }}">
+                                                                <a class="dropdown-item text-danger delete-field-btn" href="javascript:void(0);" data-id="{{ $field->id }}" data-label="{{ $field->field_label }}">
                                                                     <i class="bx bx-trash me-1"></i> Delete
                                                                 </a>
-                                                            </div>
+                                                            @endcan
                                                         </div>
-                                                    @else
-                                                        <span class="text-muted fs-7">-</span>
-                                                    @endcan
+                                                    </div>
                                                 </td>
                                             </tr>
                                         @empty
                                             <tr>
-                                                <td colspan="5" class="text-center py-4 text-muted">
-                                                    <i class="bx bx-info-circle me-1"></i> No custom fields created yet.
-                                                </td>
+                                                <td colspan="5" class="text-center py-4 text-muted">No custom fields created yet. Click "Create Field" to add one.</td>
                                             </tr>
                                         @endforelse
                                     </tbody>
@@ -170,16 +164,13 @@
                     </div>
                 </div>
 
-                <!-- 2. Credit Request List Customization Tab -->
+                <!-- Demo Process List Customization -->
                 <div class="tab-pane fade" id="v-pills-site-customization" role="tabpanel">
                     <div class="card shadow-sm border-0 rounded-3">
                         <div class="card-header border-bottom bg-white d-flex align-items-center justify-content-between py-3 px-4">
-                            <div>
-                                <h5 class="card-title mb-0 fw-bold text-dark fs-5">Credit Request List Customization</h5>
-                                <small class="text-muted">Configure visible table columns and display order for Credit Request Management</small>
-                            </div>
-                            @can('credit-request-settings.edit')
-                                <button type="button" class="btn btn-primary fw-semibold shadow-sm" id="saveCreditRequestColumnsBtn">
+                            <h5 class="card-title mb-0 fw-bold text-dark fs-5">Demo Process List Customization</h5>
+                            @can('demo-process-settings.edit')
+                                <button type="button" class="btn btn-primary fw-semibold shadow-sm" id="saveDemoProcessColumnsBtn">
                                     <span class="spinner-border spinner-border-sm d-none me-1" role="status"></span>
                                     Save
                                 </button>
@@ -199,28 +190,54 @@
                                             </div>
                                         @endif
                                     @empty
-                                        <div class="text-muted small no-fields-msg py-2">No fields selected. Select fields from Available Fields below.</div>
+                                        <span class="text-muted small no-fields-msg">No fields selected. Select available fields below.</span>
                                     @endforelse
                                 </div>
                             </div>
 
-                            <!-- Section: Available Fields -->
-                            <div>
-                                <h6 class="fw-bold text-dark mb-3 fs-6">Available Fields</h6>
-                                <div class="row row-cols-1 row-cols-md-2 g-3" id="availableFieldsList">
-                                    @foreach ($allAvailableFields as $key => $item)
-                                        @php $isChecked = in_array($key, $selectedColumns); @endphp
-                                        <div class="col">
-                                            <div class="form-check d-flex align-items-center">
-                                                <input class="form-check-input available-field-checkbox me-2" type="checkbox" value="{{ $key }}" id="chk_col_{{ $key }}" {{ $isChecked ? 'checked' : '' }} style="width: 1.1rem; height: 1.1rem;">
-                                                <label class="form-check-label fw-medium text-dark cursor-pointer select-none" for="chk_col_{{ $key }}">
-                                                    {{ $item['label'] }}
-                                                </label>
-                                            </div>
+                            <!-- Section: Available Fields (Checkbox) -->
+                            <div class="mb-4">
+                                <h6 class="fw-bold text-dark mb-3 fs-6">Available Fields (Checkbox)</h6>
+                                <div class="row g-3">
+                                    @php
+                                        $allFieldsList = array_values($allAvailableFields);
+                                        $halfCount = ceil(count($allFieldsList) / 2);
+                                        $col1 = array_slice($allFieldsList, 0, $halfCount);
+                                        $col2 = array_slice($allFieldsList, $halfCount);
+                                    @endphp
+
+                                    <!-- Column 1 -->
+                                    <div class="col-md-6">
+                                        <div class="d-flex flex-column gap-2">
+                                            @foreach ($col1 as $fieldItem)
+                                                @php $isChecked = in_array($fieldItem['key'], $selectedColumns); @endphp
+                                                <div class="form-check form-check-custom py-1">
+                                                    <input class="form-check-input available-field-checkbox" type="checkbox" value="{{ $fieldItem['key'] }}" id="chk_col_{{ $fieldItem['key'] }}" {{ $isChecked ? 'checked' : '' }}>
+                                                    <label class="form-check-label fw-medium text-dark ms-2 select-none" for="chk_col_{{ $fieldItem['key'] }}">
+                                                        {{ $fieldItem['label'] }}
+                                                    </label>
+                                                </div>
+                                            @endforeach
                                         </div>
-                                    @endforeach
+                                    </div>
+
+                                    <!-- Column 2 -->
+                                    <div class="col-md-6">
+                                        <div class="d-flex flex-column gap-2">
+                                            @foreach ($col2 as $fieldItem)
+                                                @php $isChecked = in_array($fieldItem['key'], $selectedColumns); @endphp
+                                                <div class="form-check form-check-custom py-1">
+                                                    <input class="form-check-input available-field-checkbox" type="checkbox" value="{{ $fieldItem['key'] }}" id="chk_col_{{ $fieldItem['key'] }}" {{ $isChecked ? 'checked' : '' }}>
+                                                    <label class="form-check-label fw-medium text-dark ms-2 select-none" for="chk_col_{{ $fieldItem['key'] }}">
+                                                        {{ $fieldItem['label'] }}
+                                                    </label>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
+
                         </div>
                     </div>
                 </div>
@@ -228,27 +245,28 @@
             </div>
         </div>
     </div>
+
 </div>
 
-<!-- Create Field Modal -->
+<!-- Modal: Create Custom Field -->
 <div class="modal fade" id="createFieldModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Create Demo Process Custom Field</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
             <form id="createFieldForm">
                 @csrf
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold"><i class="bx bx-plus-circle me-1 text-primary"></i> Create Custom Field</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Field Label <span class="text-danger">*</span></label>
-                        <input type="text" name="field_label" class="form-control" placeholder="e.g. Credit Reason, Tax ID" required>
+                        <input type="text" class="form-control" name="field_label" placeholder="e.g. Alternate Contact, Demo Mode" required>
                         <div class="invalid-feedback"></div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Field Type <span class="text-danger">*</span></label>
-                        <select name="field_type" id="create_field_type" class="form-select" required>
+                        <select class="form-select" name="field_type" id="create_field_type" required>
                             <option value="Text">Text</option>
                             <option value="Number">Number</option>
                             <option value="Dropdown">Dropdown</option>
@@ -259,24 +277,24 @@
                         <div class="invalid-feedback"></div>
                     </div>
                     <div class="mb-3 d-none" id="create_options_container">
-                        <label class="form-label fw-semibold">Dropdown Options <span class="text-danger">*</span></label>
-                        <textarea name="field_options" class="form-control" rows="2" placeholder="Option 1, Option 2, Option 3 (comma separated)"></textarea>
-                        <small class="text-muted">Separate multiple options with commas.</small>
+                        <label class="form-label fw-semibold">Options <span class="text-muted small">(Comma separated)</span></label>
+                        <textarea class="form-control" name="field_options" rows="2" placeholder="Online, Offline, In-Person"></textarea>
                         <div class="invalid-feedback"></div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Is Required? <span class="text-danger">*</span></label>
-                        <select name="is_required" class="form-select" required>
+                        <select class="form-select" name="is_required" required>
                             <option value="No">No</option>
                             <option value="Yes">Yes</option>
                         </select>
                         <div class="invalid-feedback"></div>
                     </div>
                 </div>
-                <div class="modal-footer gap-2">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-primary" id="createFieldSubmitBtn">
-                        <span class="spinner-border spinner-border-sm d-none me-1" role="status"></span> Save Field
+                        <span class="spinner-border spinner-border-sm d-none me-1" role="status"></span>
+                        Create Field
                     </button>
                 </div>
             </form>
@@ -284,26 +302,26 @@
     </div>
 </div>
 
-<!-- Edit Field Modal -->
+<!-- Modal: Edit Custom Field -->
 <div class="modal fade" id="editFieldModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Edit Custom Field</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
             <form id="editFieldForm">
                 @csrf
                 <input type="hidden" name="field_id" id="edit_field_id">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold"><i class="bx bx-edit me-1 text-primary"></i> Edit Custom Field</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Field Label <span class="text-danger">*</span></label>
-                        <input type="text" name="field_label" id="edit_field_label" class="form-control" required>
+                        <input type="text" class="form-control" name="field_label" id="edit_field_label" required>
                         <div class="invalid-feedback"></div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Field Type <span class="text-danger">*</span></label>
-                        <select name="field_type" id="edit_field_type" class="form-select" required>
+                        <select class="form-select" name="field_type" id="edit_field_type" required>
                             <option value="Text">Text</option>
                             <option value="Number">Number</option>
                             <option value="Dropdown">Dropdown</option>
@@ -314,24 +332,24 @@
                         <div class="invalid-feedback"></div>
                     </div>
                     <div class="mb-3 d-none" id="edit_options_container">
-                        <label class="form-label fw-semibold">Dropdown Options <span class="text-danger">*</span></label>
-                        <textarea name="field_options" id="edit_field_options" class="form-control" rows="2"></textarea>
-                        <small class="text-muted">Separate multiple options with commas.</small>
+                        <label class="form-label fw-semibold">Options <span class="text-muted small">(Comma separated)</span></label>
+                        <textarea class="form-control" name="field_options" id="edit_field_options" rows="2"></textarea>
                         <div class="invalid-feedback"></div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Is Required? <span class="text-danger">*</span></label>
-                        <select name="is_required" id="edit_is_required" class="form-select" required>
+                        <select class="form-select" name="is_required" id="edit_is_required" required>
                             <option value="No">No</option>
                             <option value="Yes">Yes</option>
                         </select>
                         <div class="invalid-feedback"></div>
                     </div>
                 </div>
-                <div class="modal-footer gap-2">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-primary" id="editFieldSubmitBtn">
-                        <span class="spinner-border spinner-border-sm d-none me-1" role="status"></span> Update Field
+                        <span class="spinner-border spinner-border-sm d-none me-1" role="status"></span>
+                        Update Field
                     </button>
                 </div>
             </form>
@@ -339,77 +357,48 @@
     </div>
 </div>
 
-<!-- Delete Confirmation Modal -->
+<!-- Modal: Delete Confirmation -->
 <div class="modal fade" id="deleteFieldModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold"><i class="bx bx-trash me-1 text-danger"></i> Confirm Deletion</h5>
+            <div class="modal-header border-0 pb-0">
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <p class="mb-0">Are you sure you want to delete this custom field? This action cannot be undone.</p>
+            <div class="modal-body text-center pt-0 pb-4">
+                <div class="text-danger mb-3">
+                    <i class="bx bx-trash fs-1"></i>
+                </div>
+                <h5 class="fw-bold mb-2">Delete Custom Field?</h5>
+                <p class="text-muted small mb-0">Are you sure you want to delete this custom field? This action cannot be undone.</p>
                 <input type="hidden" id="delete_field_id">
             </div>
-            <div class="modal-footer gap-2">
+            <div class="modal-footer border-0 pt-0 justify-content-center gap-2">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger" id="confirmDeleteFieldBtn">Delete Field</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteFieldBtn">Delete</button>
             </div>
         </div>
     </div>
 </div>
 
 <style>
-    .custom-lead-nav .nav-link {
-        color: #566a7f;
-        border-radius: 0.375rem;
-        transition: all 0.2s ease-in-out;
-    }
-    .custom-lead-nav .nav-link:hover {
-        background-color: #f5f5f9;
-        color: var(--theme-color, #696cff);
-    }
-    .custom-lead-nav .nav-link.active {
-        background-color: var(--theme-color, #696cff) !important;
-        color: #ffffff !important;
-        font-weight: 600 !important;
+    .bg-green-pill {
+        background-color: #d1f2d9 !important;
+        border-color: #a3e4b3 !important;
     }
     .cursor-move {
-        cursor: grab;
+        cursor: move;
     }
-    .cursor-move:active {
-        cursor: grabbing;
-    }
-    .bg-green-pill {
-        background-color: #dcf5e7 !important;
-        border: 1px solid #7edca6 !important;
-        color: #1b5e35 !important;
-        transition: all 0.2s ease-in-out;
-    }
-    .bg-green-pill:hover {
-        background-color: #ceefdc !important;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.08);
-    }
-    .remove-chip-icon {
-        font-size: 1.2rem;
-        line-height: 1;
-        font-weight: bold;
-        color: #2e7d32 !important;
-        padding-left: 4px;
-        transition: color 0.15s ease;
-    }
-    .remove-chip-icon:hover {
-        color: #d32f2f !important;
+    .cursor-pointer {
+        cursor: pointer;
     }
     .min-height-100 {
-        min-height: 90px;
+        min-height: 80px;
     }
     .select-none {
         user-select: none;
     }
 </style>
 
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
 
@@ -464,7 +453,7 @@ document.addEventListener('DOMContentLoaded', function() {
         spinner.removeClass('d-none');
 
         $.ajax({
-            url: "{{ route('admin.settings.credit_request.custom_fields.store') }}",
+            url: "{{ route('admin.settings.demo_process.custom-fields.store') }}",
             type: 'POST',
             data: form.serialize(),
             success: function(response) {
@@ -495,7 +484,7 @@ document.addEventListener('DOMContentLoaded', function() {
     $(document).on('click', '.edit-field-btn', function() {
         let id = $(this).data('id');
         $.ajax({
-            url: "{{ url('admin/settings/credit-request/custom-fields/edit') }}/" + id,
+            url: "{{ url('admin/settings/demo-process/custom-fields/edit') }}/" + id,
             type: 'GET',
             success: function(response) {
                 if (response.status) {
@@ -528,7 +517,7 @@ document.addEventListener('DOMContentLoaded', function() {
         spinner.removeClass('d-none');
 
         $.ajax({
-            url: "{{ url('admin/settings/credit-request/custom-fields/update') }}/" + id,
+            url: "{{ url('admin/settings/demo-process/custom-fields/update') }}/" + id,
             type: 'POST',
             data: form.serialize(),
             success: function(response) {
@@ -568,7 +557,7 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.prop('disabled', true);
 
         $.ajax({
-            url: "{{ url('admin/settings/credit-request/custom-fields/destroy') }}/" + id,
+            url: "{{ url('admin/settings/demo-process/custom-fields/delete') }}/" + id,
             type: 'DELETE',
             data: {
                 _token: "{{ csrf_token() }}"
@@ -591,7 +580,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    /* --- Credit Request List Customization (Drag & Drop Horizontal Chips + 2-Col Checkboxes) --- */
+    /* --- Demo Process List Customization (Drag & Drop Horizontal Chips + Checkboxes) --- */
     let dragItem = null;
 
     $('#selectedFieldsContainer').on('dragstart', '.selected-field-chip', function (e) {
@@ -650,7 +639,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Save Customization Order
-    $('#saveCreditRequestColumnsBtn').on('click', function () {
+    $('#saveDemoProcessColumnsBtn').on('click', function () {
         let columns = [];
         $('#selectedFieldsContainer .selected-field-chip').each(function () {
             columns.push($(this).data('key'));
@@ -662,7 +651,7 @@ document.addEventListener('DOMContentLoaded', function() {
         spinner.removeClass('d-none');
 
         $.ajax({
-            url: "{{ route('admin.settings.credit_request.save_columns') }}",
+            url: "{{ route('admin.settings.demo_process.list-columns.save') }}",
             type: "POST",
             data: {
                 _token: "{{ csrf_token() }}",
@@ -674,7 +663,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             },
             error: function () {
-                showAlert('danger', 'Failed to save Credit Request List customization.');
+                showAlert('danger', 'Failed to save Demo Process List customization.');
             },
             complete: function () {
                 btn.prop('disabled', false);

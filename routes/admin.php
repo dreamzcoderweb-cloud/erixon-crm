@@ -25,6 +25,7 @@ use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\IncentiveController;
 use App\Http\Controllers\DemoProcessController;
+use App\Http\Controllers\DemoProcessSettingController;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -333,6 +334,31 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
     Route::post('settings/credit-request/save-columns', [CreditRequestSettingController::class, 'saveCreditRequestListColumns'])
         ->middleware('permission:credit-request-settings.edit')
         ->name('settings.credit_request.save_columns');
+
+    // Demo Process Settings routes
+    Route::get('settings/demo-process', [DemoProcessSettingController::class, 'index'])
+        ->middleware('permission:demo-process-settings.view')
+        ->name('settings.demo_process');
+
+    Route::post('settings/demo-process/custom-fields/store', [DemoProcessSettingController::class, 'storeCustomField'])
+        ->middleware('permission:demo-process-settings.edit')
+        ->name('settings.demo_process.custom-fields.store');
+    Route::get('settings/demo-process/custom-fields/edit/{id}', [DemoProcessSettingController::class, 'editCustomField'])
+        ->middleware('permission:demo-process-settings.view')
+        ->name('settings.demo_process.custom-fields.edit');
+    Route::post('settings/demo-process/custom-fields/update/{id}', [DemoProcessSettingController::class, 'updateCustomField'])
+        ->middleware('permission:demo-process-settings.edit')
+        ->name('settings.demo_process.custom-fields.update');
+    Route::delete('settings/demo-process/custom-fields/delete/{id}', [DemoProcessSettingController::class, 'destroyCustomField'])
+        ->middleware('permission:demo-process-settings.edit')
+        ->name('settings.demo_process.custom-fields.destroy');
+
+    Route::post('settings/demo-process/list-columns/save', [DemoProcessSettingController::class, 'saveDemoProcessListColumns'])
+        ->middleware('permission:demo-process-settings.edit')
+        ->name('settings.demo_process.list-columns.save');
+    Route::post('settings/demo-process/save-columns', [DemoProcessSettingController::class, 'saveDemoProcessListColumns'])
+        ->middleware('permission:demo-process-settings.edit')
+        ->name('settings.demo_process.save_columns');
 
     // Lead Documents routes
     Route::get('lead-documents', [LeadDocumentController::class, 'index'])

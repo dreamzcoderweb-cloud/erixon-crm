@@ -32,10 +32,20 @@ $(document).ready(function () {
     function displayValidationErrors(form, errors) {
         clearValidationErrors(form);
         $.each(errors, function (field, messages) {
-            let input = form.find(`[name="${field}"], [name="${field}[]"]`);
+            let inputName = field;
+            if (field.indexOf('.') !== -1) {
+                let parts = field.split('.');
+                inputName = parts[0] + '[' + parts.slice(1).join('][') + ']';
+            }
+
+            let input = form.find(`[name="${inputName}"]`);
+            if (!input.length) {
+                input = form.find(`[name="${field}"], [name="${field}[]"]`);
+            }
             if (!input.length) {
                 input = form.find(`#add_${field}, #edit_${field}`);
             }
+
             if (input.length) {
                 input.addClass('is-invalid');
                 if (input.hasClass('select2-hidden-accessible') || input.next('.select2-container').length) {
@@ -60,6 +70,7 @@ $(document).ready(function () {
         let isValid = true;
         let errors = {};
 
+        // 1. Check specific standard fields
         let customerName = form.find('[name="customer_name"]').val();
         let customerPhone = form.find('[name="customer_phone"]').val();
         let demoDate = form.find('[name="demo_date"]').val();
@@ -81,6 +92,26 @@ $(document).ready(function () {
             errors['demo_time'] = ['This field is required'];
             isValid = false;
         }
+
+        // 2. Check any input, select, textarea with required attribute (including all required custom fields)
+        form.find('input[required], select[required], textarea[required]').each(function () {
+            let el = $(this);
+            let name = el.attr('name');
+            if (!name) return;
+
+            if (el.is(':checkbox')) {
+                if (!el.is(':checked')) {
+                    errors[name] = ['This field is required'];
+                    isValid = false;
+                }
+            } else {
+                let val = el.val();
+                if (!val || (typeof val === 'string' && val.trim() === '')) {
+                    errors[name] = ['This field is required'];
+                    isValid = false;
+                }
+            }
+        });
 
         if (!isValid) {
             displayValidationErrors(form, errors);
@@ -361,6 +392,21 @@ $(document).ready(function () {
                         $('#edit_product_names').val(d.product_names).trigger('change');
                     } else {
                         $('#edit_product_names').val(null).trigger('change');
+                    }
+
+                    // Populate custom fields
+                    let editForm = $('#editDemoProcessForm');
+                    editForm.find('[name^="custom_fields["]').val('');
+                    editForm.find('input[type="checkbox"][name^="custom_fields["]').prop('checked', false);
+                    if (d.custom_fields && typeof d.custom_fields === 'object') {
+                        $.each(d.custom_fields, function (cfKey, cfVal) {
+                            let cfInput = editForm.find(`[name="custom_fields[${cfKey}]"]`);
+                            if (cfInput.is(':checkbox')) {
+                                cfInput.prop('checked', cfVal == 1 || cfVal === true || cfVal === '1');
+                            } else {
+                                cfInput.val(cfVal);
+                            }
+                        });
                     }
 
                     $('#editDemoProcessModal').modal('show');

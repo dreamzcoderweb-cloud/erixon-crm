@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\DemoProcess;
+use App\Models\DemoProcessCustomField;
 use App\Models\LeadSource;
 use App\Models\Customer;
 use App\Models\LeadRequirement;
@@ -51,8 +52,9 @@ class DemoProcessController extends Controller
         $leadSources = LeadSource::orderBy('name', 'asc')->get();
         $customers = Customer::orderBy('name', 'asc')->get();
         $leadRequirements = LeadRequirement::orderBy('name', 'asc')->get();
+        $customFields = DemoProcessCustomField::where('status', 1)->orderBy('sort_order', 'asc')->orderBy('id', 'asc')->get();
 
-        return view('demo_processes.view', compact('staffList', 'productManagers', 'supportTeam', 'leadSources', 'customers', 'leadRequirements'));
+        return view('demo_processes.view', compact('staffList', 'productManagers', 'supportTeam', 'leadSources', 'customers', 'leadRequirements', 'customFields'));
     }
 
     public function listData(Request $request = null)
@@ -138,7 +140,7 @@ class DemoProcessController extends Controller
 
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $rules = [
             'customer_name'   => 'required|string|max:255',
             'customer_phone'  => 'required|string|max:30',
             'lead_source_id'  => 'nullable|exists:lead_sources,lead_sources_id',
@@ -149,7 +151,17 @@ class DemoProcessController extends Controller
             'assigned_by'     => 'nullable|exists:users,id',
             'sub_assigned_by' => 'nullable|exists:users,id',
             'remarks'         => 'nullable|string',
-        ]);
+        ];
+
+        $requiredCustomFields = DemoProcessCustomField::where('status', 1)->where('is_required', 'Yes')->get();
+        $customAttributes = [];
+        foreach ($requiredCustomFields as $rcf) {
+            $rules["custom_fields.{$rcf->field_name}"] = 'required';
+            $customAttributes["custom_fields.{$rcf->field_name}"] = $rcf->field_label;
+        }
+
+        $validator = Validator::make($request->all(), $rules);
+        $validator->setAttributeNames($customAttributes);
 
         if ($validator->fails()) {
             return response()->json([
@@ -175,6 +187,7 @@ class DemoProcessController extends Controller
             'sub_assigned_by' => $request->filled('sub_assigned_by') ? $request->input('sub_assigned_by') : null,
             'status'          => 'Pending',
             'remarks'         => $request->input('remarks'),
+            'custom_fields'   => $request->input('custom_fields'),
         ]);
 
         // Send Notifications to involved recipients
@@ -229,7 +242,7 @@ class DemoProcessController extends Controller
             ], 404);
         }
 
-        $validator = Validator::make($request->all(), [
+        $rules = [
             'customer_name'   => 'required|string|max:255',
             'customer_phone'  => 'required|string|max:30',
             'lead_source_id'  => 'nullable|exists:lead_sources,lead_sources_id',
@@ -241,7 +254,17 @@ class DemoProcessController extends Controller
             'sub_assigned_by' => 'nullable|exists:users,id',
             'status'          => 'required|in:Pending,Finished',
             'remarks'         => 'nullable|string',
-        ]);
+        ];
+
+        $requiredCustomFields = DemoProcessCustomField::where('status', 1)->where('is_required', 'Yes')->get();
+        $customAttributes = [];
+        foreach ($requiredCustomFields as $rcf) {
+            $rules["custom_fields.{$rcf->field_name}"] = 'required';
+            $customAttributes["custom_fields.{$rcf->field_name}"] = $rcf->field_label;
+        }
+
+        $validator = Validator::make($request->all(), $rules);
+        $validator->setAttributeNames($customAttributes);
 
         if ($validator->fails()) {
             return response()->json([
@@ -270,6 +293,7 @@ class DemoProcessController extends Controller
             'sub_assigned_by' => $request->filled('sub_assigned_by') ? $request->input('sub_assigned_by') : null,
             'status'          => $newStatus,
             'remarks'         => $request->input('remarks'),
+            'custom_fields'   => $request->input('custom_fields'),
         ]);
 
         if ($oldStatus !== 'Finished' && $newStatus === 'Finished') {

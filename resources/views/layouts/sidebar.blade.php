@@ -222,7 +222,7 @@
             </li>
         @endcan
 
-        @canany(['general-settings.view', 'lead-settings.view', 'customer-settings.view', 'followup-settings.view', 'credit-request-settings.view'])
+        @canany(['general-settings.view', 'lead-settings.view', 'customer-settings.view', 'followup-settings.view', 'credit-request-settings.view', 'demo-process-settings.view'])
             <li class="menu-item {{ request()->is('admin/settings/*') ? 'active' : '' }}">
                 <a href="{{ route('admin.settings.general') }}" class="menu-link">
                     <i class="menu-icon tf-icons bx bx-cog"></i>

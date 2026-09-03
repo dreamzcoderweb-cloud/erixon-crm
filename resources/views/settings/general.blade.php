@@ -62,6 +62,13 @@
                         </a>
                     </li>
                 @endcan
+                @can('demo-process-settings.view')
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('admin.settings.demo_process') }}">
+                            <i class="bx bx-slideshow me-1"></i> Demo Process Setting
+                        </a>
+                    </li>
+                @endcan
             </ul>
         </div>
     </div>

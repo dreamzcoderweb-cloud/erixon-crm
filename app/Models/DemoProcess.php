@@ -25,10 +25,12 @@ class DemoProcess extends Model
         'sub_assigned_by',
         'status',
         'remarks',
+        'custom_fields',
     ];
 
     protected $casts = [
         'demo_date'     => 'date',
+        'custom_fields' => 'array',
     ];
 
     /**
