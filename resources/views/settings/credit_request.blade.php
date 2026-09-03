@@ -99,7 +99,7 @@
                                 <small class="text-muted">Additional Credit Request Fields</small>
                             </div>
                             @can('credit-request-settings.edit')
-                                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#createFieldModal">
+                                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createFieldModal">
                                     <i class="bx bx-plus me-1"></i> Create Field
                                 </button>
                             @endcan
@@ -165,54 +165,55 @@
 
                 <!-- 2. Credit Request List Customization Tab -->
                 <div class="tab-pane fade" id="v-pills-site-customization" role="tabpanel">
-                    <div class="card shadow-sm border-0">
-                        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                    <div class="card shadow-sm border-0 rounded-3">
+                        <div class="card-header border-bottom bg-white d-flex align-items-center justify-content-between py-3 px-4">
                             <div>
-                                <h5 class="card-title mb-0 fw-bold">Credit Request List Customization</h5>
+                                <h5 class="card-title mb-0 fw-bold text-dark fs-5">Credit Request List Customization</h5>
                                 <small class="text-muted">Configure visible table columns and display order for Credit Request Management</small>
                             </div>
                             @can('credit-request-settings.edit')
-                                <button type="button" class="btn btn-danger btn-sm" id="saveCreditRequestColumnsBtn">
-                                    <i class="bx bx-save me-1"></i> Save
+                                <button type="button" class="btn btn-primary fw-semibold shadow-sm" id="saveCreditRequestColumnsBtn">
+                                    <span class="spinner-border spinner-border-sm d-none me-1" role="status"></span>
+                                    Save
                                 </button>
                             @endcan
                         </div>
                         <div class="card-body p-4">
-                            <form id="creditRequestListColumnsForm">
-                                @csrf
-                                <div class="mb-4">
-                                    <label class="form-label fw-bold text-dark mb-2">Selected Fields (Drag to reorder)</label>
-                                    <div id="selectedColumnsContainer" class="d-flex flex-wrap gap-2 p-3 bg-light rounded border min-height-60 align-items-center">
-                                        @foreach ($selectedColumns as $colKey)
-                                            @if (isset($allAvailableFields[$colKey]))
-                                                @php $item = $allAvailableFields[$colKey]; @endphp
-                                                <div class="draggable-pill badge bg-label-primary fs-6 py-2 px-3 d-flex align-items-center gap-2 cursor-move" data-key="{{ $colKey }}">
-                                                    <span>{{ $item['label'] }}</span>
-                                                    <i class="bx bx-x text-danger fs-5 remove-column-btn" style="cursor: pointer;" title="Remove field"></i>
-                                                    <input type="hidden" name="columns[]" value="{{ $colKey }}">
-                                                </div>
-                                            @endif
-                                        @endforeach
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label class="form-label fw-bold text-dark mb-2">Available Fields</label>
-                                    <div class="row g-3 p-3 bg-white rounded border">
-                                        @foreach ($allAvailableFields as $key => $fieldItem)
-                                            @php $isChecked = in_array($key, $selectedColumns); @endphp
-                                            <div class="col-md-6 col-lg-4">
-                                                <div class="form-check">
-                                                    <input class="form-check-input column-toggle-checkbox" type="checkbox" id="col_chk_{{ $key }}" data-key="{{ $key }}" data-label="{{ $fieldItem['label'] }}" {{ $isChecked ? 'checked' : '' }}>
-                                                    <label class="form-check-label fw-medium" for="col_chk_{{ $key }}">
-                                                        {{ $fieldItem['label'] }}
-                                                    </label>
-                                                </div>
+                            <!-- Section: Selected Fields (Drag) -->
+                            <div class="mb-4">
+                                <h6 class="fw-bold text-dark mb-3 fs-6">Selected Fields (Drag)</h6>
+                                <div id="selectedFieldsContainer" class="d-flex flex-wrap gap-2 align-items-center p-3 rounded-3 border bg-light min-height-100">
+                                    @forelse ($selectedColumns as $key)
+                                        @if (isset($allAvailableFields[$key]))
+                                            @php $item = $allAvailableFields[$key]; @endphp
+                                            <div class="selected-field-chip d-inline-flex align-items-center rounded-pill px-3 py-2 border bg-green-pill cursor-move shadow-sm" draggable="true" data-key="{{ $key }}">
+                                                <span class="fw-medium text-dark small me-2">{{ $item['label'] }}</span>
+                                                <span class="remove-chip-icon text-muted cursor-pointer remove-field-chip-btn" data-key="{{ $key }}" title="Remove">&times;</span>
                                             </div>
-                                        @endforeach
-                                    </div>
+                                        @endif
+                                    @empty
+                                        <div class="text-muted small no-fields-msg py-2">No fields selected. Select fields from Available Fields below.</div>
+                                    @endforelse
                                 </div>
-                            </form>
+                            </div>
+
+                            <!-- Section: Available Fields -->
+                            <div>
+                                <h6 class="fw-bold text-dark mb-3 fs-6">Available Fields</h6>
+                                <div class="row row-cols-1 row-cols-md-2 g-3" id="availableFieldsList">
+                                    @foreach ($allAvailableFields as $key => $item)
+                                        @php $isChecked = in_array($key, $selectedColumns); @endphp
+                                        <div class="col">
+                                            <div class="form-check d-flex align-items-center">
+                                                <input class="form-check-input available-field-checkbox me-2" type="checkbox" value="{{ $key }}" id="chk_col_{{ $key }}" {{ $isChecked ? 'checked' : '' }} style="width: 1.1rem; height: 1.1rem;">
+                                                <label class="form-check-label fw-medium text-dark cursor-pointer select-none" for="chk_col_{{ $key }}">
+                                                    {{ $item['label'] }}
+                                                </label>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -352,18 +353,52 @@
 </div>
 
 <style>
-    .draggable-pill {
-        user-select: none;
-        transition: all 0.2s ease;
+    .custom-lead-nav .nav-link {
+        color: #566a7f;
+        border-radius: 0.375rem;
+        transition: all 0.2s ease-in-out;
     }
-    .draggable-pill.dragging {
-        opacity: 0.5;
+    .custom-lead-nav .nav-link:hover {
+        background-color: #f5f5f9;
+        color: var(--theme-color, #696cff);
+    }
+    .custom-lead-nav .nav-link.active {
+        background-color: var(--theme-color, #696cff) !important;
+        color: #ffffff !important;
+        font-weight: 600 !important;
     }
     .cursor-move {
-        cursor: move;
+        cursor: grab;
     }
-    .min-height-60 {
-        min-height: 60px;
+    .cursor-move:active {
+        cursor: grabbing;
+    }
+    .bg-green-pill {
+        background-color: #dcf5e7 !important;
+        border: 1px solid #7edca6 !important;
+        color: #1b5e35 !important;
+        transition: all 0.2s ease-in-out;
+    }
+    .bg-green-pill:hover {
+        background-color: #ceefdc !important;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+    }
+    .remove-chip-icon {
+        font-size: 1.2rem;
+        line-height: 1;
+        font-weight: bold;
+        color: #2e7d32 !important;
+        padding-left: 4px;
+        transition: color 0.15s ease;
+    }
+    .remove-chip-icon:hover {
+        color: #d32f2f !important;
+    }
+    .min-height-100 {
+        min-height: 90px;
+    }
+    .select-none {
+        user-select: none;
     }
 </style>
 
@@ -549,63 +584,94 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // --- Drag and Drop Column Customization ---
-    let container = document.getElementById('selectedColumnsContainer');
-    if (container) {
-        new Sortable(container, {
-            animation: 150,
-            ghostClass: 'dragging'
-        });
-    }
+    /* --- Credit Request List Customization (Drag & Drop Horizontal Chips + 2-Col Checkboxes) --- */
+    let dragItem = null;
 
-    // Toggle column pill on checkbox change
-    $('.column-toggle-checkbox').on('change', function() {
-        let key = $(this).data('key');
-        let label = $(this).data('label');
-
-        if ($(this).is(':checked')) {
-            if (!$(`#selectedColumnsContainer .draggable-pill[data-key="${key}"]`).length) {
-                let pillHtml = `
-                    <div class="draggable-pill badge bg-label-primary fs-6 py-2 px-3 d-flex align-items-center gap-2 cursor-move" data-key="${key}">
-                        <span>${label}</span>
-                        <i class="bx bx-x text-danger fs-5 remove-column-btn" style="cursor: pointer;" title="Remove field"></i>
-                        <input type="hidden" name="columns[]" value="${key}">
-                    </div>
-                `;
-                $('#selectedColumnsContainer').append(pillHtml);
-            }
-        } else {
-            $(`#selectedColumnsContainer .draggable-pill[data-key="${key}"]`).remove();
+    $('#selectedFieldsContainer').on('dragstart', '.selected-field-chip', function (e) {
+        dragItem = this;
+        $(this).css('opacity', '0.5');
+        if (e.originalEvent && e.originalEvent.dataTransfer) {
+            e.originalEvent.dataTransfer.effectAllowed = 'move';
         }
     });
 
-    // Remove pill click event
-    $(document).on('click', '.remove-column-btn', function() {
-        let pill = $(this).closest('.draggable-pill');
-        let key = pill.data('key');
-        pill.remove();
-        $(`#col_chk_${key}`).prop('checked', false);
+    $('#selectedFieldsContainer').on('dragend', '.selected-field-chip', function () {
+        $(this).css('opacity', '1');
+        dragItem = null;
     });
 
-    // Save List Customization Columns
-    $('#saveCreditRequestColumnsBtn').on('click', function() {
+    $('#selectedFieldsContainer').on('dragover', function (e) {
+        e.preventDefault();
+        if (e.originalEvent && e.originalEvent.dataTransfer) {
+            e.originalEvent.dataTransfer.dropEffect = 'move';
+        }
+        let target = e.target.closest('.selected-field-chip');
+        if (target && target !== dragItem) {
+            let rect = target.getBoundingClientRect();
+            let next = (e.clientX - rect.left) / (rect.right - rect.left) > 0.5;
+            let container = document.getElementById('selectedFieldsContainer');
+            container.insertBefore(dragItem, next ? target.nextSibling : target);
+        }
+    });
+
+    // Available Fields Checkbox Toggle
+    $(document).on('change', '.available-field-checkbox', function () {
+        let key = $(this).val();
+        let isChecked = $(this).is(':checked');
+
+        if (isChecked) {
+            if ($('#selectedFieldsContainer').find(`[data-key="${key}"]`).length === 0) {
+                let label = $(this).siblings('label').text().trim();
+                let chipHtml = `
+                    <div class="selected-field-chip d-inline-flex align-items-center rounded-pill px-3 py-2 border bg-green-pill cursor-move shadow-sm" draggable="true" data-key="${key}">
+                        <span class="fw-medium text-dark small me-2">${label}</span>
+                        <span class="remove-chip-icon text-muted cursor-pointer remove-field-chip-btn" data-key="${key}" title="Remove">&times;</span>
+                    </div>
+                `;
+                $('#selectedFieldsContainer').append(chipHtml);
+                $('.no-fields-msg').remove();
+            }
+        } else {
+            $('#selectedFieldsContainer').find(`[data-key="${key}"]`).remove();
+        }
+    });
+
+    // Remove field via chip x button
+    $(document).on('click', '.remove-field-chip-btn', function () {
+        let key = $(this).data('key');
+        $(`#chk_col_${key}`).prop('checked', false).trigger('change');
+    });
+
+    // Save Customization Order
+    $('#saveCreditRequestColumnsBtn').on('click', function () {
+        let columns = [];
+        $('#selectedFieldsContainer .selected-field-chip').each(function () {
+            columns.push($(this).data('key'));
+        });
+
         let btn = $(this);
+        let spinner = btn.find('.spinner-border');
         btn.prop('disabled', true);
+        spinner.removeClass('d-none');
 
         $.ajax({
             url: "{{ route('admin.settings.credit_request.save_columns') }}",
-            type: 'POST',
-            data: $('#creditRequestListColumnsForm').serialize(),
-            success: function(response) {
+            type: "POST",
+            data: {
+                _token: "{{ csrf_token() }}",
+                columns: columns
+            },
+            success: function (response) {
                 if (response.status) {
                     showAlert('success', response.message);
                 }
             },
-            error: function() {
+            error: function () {
                 showAlert('danger', 'Failed to save Credit Request List customization.');
             },
-            complete: function() {
+            complete: function () {
                 btn.prop('disabled', false);
+                spinner.addClass('d-none');
             }
         });
     });

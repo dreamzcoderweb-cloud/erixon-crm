@@ -24,7 +24,7 @@ class RoleController extends Controller
 
         $validated = $request->validate(
             [
-                'name' => ['required', 'string', 'min:3', 'max:50', 'regex:/^[a-zA-Z0-9 _-]+$/', Rule::unique('roles', 'name')->withoutTrashed()],
+                'name' => ['required', 'string', 'min:3', 'max:50', 'regex:/^[a-zA-Z0-9 _-]+$/', Rule::unique('roles', 'name')],
                 'permissions' => ['nullable', 'array'],
                 'permissions.*' => ['integer', 'exists:permissions,id'],
             ],
@@ -58,7 +58,7 @@ class RoleController extends Controller
 
         $validated = $request->validate(
             [
-                'name' => ['required', 'string', 'min:3', 'max:50', 'regex:/^[a-zA-Z0-9 _-]+$/', Rule::unique('roles', 'name')->ignore($role->id)->withoutTrashed()],
+                'name' => ['required', 'string', 'min:3', 'max:50', 'regex:/^[a-zA-Z0-9 _-]+$/', Rule::unique('roles', 'name')->ignore($role->id)],
                 'permissions' => ['nullable', 'array'],
                 'permissions.*' => ['integer', 'exists:permissions,id'],
             ],

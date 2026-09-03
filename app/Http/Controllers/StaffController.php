@@ -37,7 +37,7 @@ class StaffController extends Controller
         $validated = $request->validate(
             [
                 'name' => ['required', 'string', 'min:3', 'max:50'],
-                'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->withoutTrashed()],
+                'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
                 'password' => ['required', 'string', 'min:8', 'confirmed'],
                 'role_id' => ['required', 'integer', 'exists:roles,id'],
                 'mobile_number' => ['nullable', 'string', 'max:20'],
@@ -111,7 +111,7 @@ class StaffController extends Controller
         $validated = $request->validate(
             [
                 'name' => ['required', 'string', 'min:3', 'max:50'],
-                'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)->withoutTrashed()],
+                'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
                 'password' => ['nullable', 'string', 'min:8', 'confirmed'],
                 'role_id' => ['required', 'integer', 'exists:roles,id'],
                 'mobile_number' => ['nullable', 'string', 'max:20'],

@@ -6,6 +6,9 @@ use App\Models\CreditRequest;
 use App\Models\Customer;
 use App\Models\Lead;
 use App\Models\LeadSource;
+use App\Models\User;
+use App\Notifications\CreditRequestApprovedByAdmin;
+use App\Notifications\CreditRequestApprovedByProductManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -229,6 +232,27 @@ class CreditRequestController extends Controller
         $creditRequest->admin_remarks     = $request->input('admin_remarks');
         $creditRequest->save();
 
+        // First Notification: Send ONLY to approving Super Admin and Product Manager users
+        $recipients = collect();
+
+        if ($user) {
+            $recipients->push($user);
+        }
+
+        $productManagers = User::whereHas('roles', function ($query) {
+            $query->whereRaw('LOWER(name) IN (?, ?, ?)', ['product manager', 'product-manager', 'product_manager']);
+        })->get();
+
+        foreach ($productManagers as $pm) {
+            $recipients->push($pm);
+        }
+
+        $recipients = $recipients->unique('id');
+
+        foreach ($recipients as $recipient) {
+            $recipient->notify(new CreditRequestApprovedByAdmin($creditRequest));
+        }
+
         return response()->json([
             'status'  => true,
             'message' => 'Credit request approved by Admin and forwarded to Support Team.',
@@ -266,6 +290,25 @@ class CreditRequestController extends Controller
         if ($customer) {
             $customer->credit_balance = floatval($customer->credit_balance ?? 0) + floatval($creditRequest->credit_amount);
             $customer->save();
+        }
+
+        // Second Notification: Send ONLY to approving Product Manager and the handling Super Admin
+        $recipients = collect();
+
+        if ($user) {
+            $recipients->push($user);
+        }
+
+        $adminId = $creditRequest->admin_approved_by ?: $creditRequest->requested_by ?: 1;
+        $superAdminUser = User::find($adminId);
+        if ($superAdminUser) {
+            $recipients->push($superAdminUser);
+        }
+
+        $recipients = $recipients->unique('id');
+
+        foreach ($recipients as $recipient) {
+            $recipient->notify(new CreditRequestApprovedByProductManager($creditRequest));
         }
 
         return response()->json([

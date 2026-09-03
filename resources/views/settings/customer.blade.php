@@ -362,11 +362,11 @@
     }
     .custom-lead-nav .nav-link:hover {
         background-color: #f5f5f9;
-        color: #696cff;
+        color: var(--theme-color, #696cff);
     }
     .custom-lead-nav .nav-link.active {
-        background-color: #e7e7ff;
-        color: #696cff;
+        background-color: var(--theme-color, #696cff) !important;
+        color: #ffffff !important;
         font-weight: 600 !important;
     }
     .cursor-move {

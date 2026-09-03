@@ -79,7 +79,7 @@ class CreditRequest extends Model
             return $query->whereRaw('1 = 0');
         }
 
-        if ($user->isAdmin()) {
+        if ($user->isAdmin() || $user->hasRole(['Product Manager', 'product manager', 'Product-Manager', 'product-manager', 'support', 'Support']) || $user->can('credit-requests.approve_admin') || $user->can('credit-requests.approve_support')) {
             return $query;
         }
 
