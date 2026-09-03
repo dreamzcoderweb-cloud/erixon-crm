@@ -24,7 +24,8 @@ $(document).ready(function () {
     // Helper: Clear Form Validation Errors
     function clearValidationErrors(form) {
         form.find('.is-invalid').removeClass('is-invalid');
-        form.find('.invalid-feedback').text('');
+        form.find('.select2-container').removeClass('is-invalid');
+        form.find('.invalid-feedback').text('').css('display', 'none');
     }
 
     // Helper: Display Form Validation Errors
@@ -32,16 +33,59 @@ $(document).ready(function () {
         clearValidationErrors(form);
         $.each(errors, function (field, messages) {
             let input = form.find(`[name="${field}"], [name="${field}[]"]`);
+            if (!input.length) {
+                input = form.find(`#add_${field}, #edit_${field}`);
+            }
             if (input.length) {
                 input.addClass('is-invalid');
-                let errorDiv = input.siblings('.invalid-feedback');
+                if (input.hasClass('select2-hidden-accessible') || input.next('.select2-container').length) {
+                    input.next('.select2-container').addClass('is-invalid');
+                }
+                let errorDiv = input.siblings('.invalid-feedback').first();
+                if (!errorDiv.length) {
+                    errorDiv = input.parent().find('.invalid-feedback').first();
+                }
                 if (!errorDiv.length) {
                     errorDiv = $('<div class="invalid-feedback"></div>');
                     input.after(errorDiv);
                 }
-                errorDiv.text(messages[0]).css('display', 'block');
+                errorDiv.text(messages[0] || 'This field is required').css('display', 'block');
             }
         });
+    }
+
+    // Helper: Validate Required Fields Client-Side
+    function validateDemoProcessForm(form) {
+        clearValidationErrors(form);
+        let isValid = true;
+        let errors = {};
+
+        let customerName = form.find('[name="customer_name"]').val();
+        let customerPhone = form.find('[name="customer_phone"]').val();
+        let demoDate = form.find('[name="demo_date"]').val();
+        let demoTime = form.find('[name="demo_time"]').val();
+
+        if (!customerName || customerName.trim() === '') {
+            errors['customer_name'] = ['This field is required'];
+            isValid = false;
+        }
+        if (!customerPhone || customerPhone.trim() === '') {
+            errors['customer_phone'] = ['This field is required'];
+            isValid = false;
+        }
+        if (!demoDate || demoDate.trim() === '') {
+            errors['demo_date'] = ['This field is required'];
+            isValid = false;
+        }
+        if (!demoTime || demoTime.trim() === '') {
+            errors['demo_time'] = ['This field is required'];
+            isValid = false;
+        }
+
+        if (!isValid) {
+            displayValidationErrors(form, errors);
+        }
+        return isValid;
     }
 
     // Initialize Select2 with Search option for Customer Name inside Modals
@@ -254,6 +298,10 @@ $(document).ready(function () {
     $('#addDemoProcessForm').on('submit', function (e) {
         e.preventDefault();
         let form = $(this);
+        if (!validateDemoProcessForm(form)) {
+            return false;
+        }
+
         let submitBtn = $('#addDemoProcessSubmitBtn');
         let spinner = submitBtn.find('.spinner-border');
 
@@ -328,6 +376,10 @@ $(document).ready(function () {
     $('#editDemoProcessForm').on('submit', function (e) {
         e.preventDefault();
         let form = $(this);
+        if (!validateDemoProcessForm(form)) {
+            return false;
+        }
+
         let id = $('#edit_demo_process_id').val();
         let submitBtn = $('#editDemoProcessSubmitBtn');
         let spinner = submitBtn.find('.spinner-border');

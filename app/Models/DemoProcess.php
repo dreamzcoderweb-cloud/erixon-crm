@@ -17,7 +17,6 @@ class DemoProcess extends Model
         'customer_name',
         'customer_phone',
         'lead_source_id',
-        'product_names',
         'demo_date',
         'demo_time',
         'customer_type',
@@ -29,7 +28,6 @@ class DemoProcess extends Model
     ];
 
     protected $casts = [
-        'product_names' => 'array',
         'demo_date'     => 'date',
     ];
 

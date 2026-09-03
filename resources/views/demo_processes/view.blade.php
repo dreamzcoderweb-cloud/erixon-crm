@@ -64,6 +64,18 @@
             align-items: center !important;
             gap: 0.25rem !important;
         }
+
+        /* Select2 Validation Styling */
+        .select2-container.is-invalid .select2-selection,
+        .is-invalid + .select2-container .select2-selection {
+            border-color: #ff3e1d !important;
+        }
+        .is-invalid ~ .invalid-feedback {
+            display: block !important;
+            color: #ff3e1d !important;
+            font-size: 0.8125rem !important;
+            margin-top: 0.25rem !important;
+        }
     </style>
 @endpush
 
@@ -183,7 +195,7 @@
                     <h5 class="modal-title"><i class="bx bx-plus me-1"></i> Add Demo Process</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form id="addDemoProcessForm">
+                <form id="addDemoProcessForm" novalidate>
                     @csrf
                     <div class="modal-body p-4">
                         <div class="row g-3">
@@ -285,7 +297,7 @@
                     <h5 class="modal-title"><i class="bx bx-edit-alt me-1"></i> Edit Demo Process</h5>
                     <button type="button" class="btn-close " data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form id="editDemoProcessForm">
+                <form id="editDemoProcessForm" novalidate>
                     @csrf
                     <input type="hidden" id="edit_demo_process_id">
                     <div class="modal-body p-4">
