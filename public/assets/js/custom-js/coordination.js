@@ -56,6 +56,14 @@ $(document).ready(function () {
     let coordinationTable = $('#coordinations-table').DataTable({
         ajax: {
             url: APP_URL + '/admin/coordinations/data',
+            data: function (d) {
+                d.filter_type = $('#coordination_filter_period').val();
+                d.date = $('#coordination_filter_date').val();
+                d.month = $('#coordination_filter_month').val();
+                d.start_date = $('#coordination_filter_start_date').val();
+                d.end_date = $('#coordination_filter_end_date').val();
+                d.created_by = $('#coordination_filter_created_by').val();
+            },
             dataSrc: 'data'
         },
         columns: [
@@ -166,16 +174,52 @@ $(document).ready(function () {
         ],
         layout: {
             topStart: [
-                'pageLength',
-                {
-                    buttons: [
-                        { extend: 'copy', className: 'btn btn-secondary btn-sm me-1', exportOptions: { columns: ':not(:last-child)' } },
-                        { extend: 'csv', className: 'btn btn-secondary btn-sm me-1', exportOptions: { columns: ':not(:last-child)' } },
-                        { extend: 'excel', className: 'btn btn-secondary btn-sm me-1', exportOptions: { columns: ':not(:last-child)' } },
-                        { extend: 'pdf', className: 'btn btn-secondary btn-sm me-1', exportOptions: { columns: ':not(:last-child)' } },
-                        { extend: 'print', className: 'btn btn-secondary btn-sm', exportOptions: { columns: ':not(:last-child)' } }
-                    ]
-                }
+            'pageLength',
+            {
+                buttons: [
+                    {
+                        extend: 'colvis',
+                        text: '<i class="bx bx-columns me-1"></i> Column Visibility',
+                        className: 'btn btn-secondary btn-sm me-1 ms-2',
+                        columns: ':not(:last-child)'
+                    },
+                    {
+                        extend: 'copy',
+                        className: 'btn btn-secondary btn-sm me-1',
+                        exportOptions: {
+                            columns: ':visible:not(:last-child)'
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        className: 'btn btn-secondary btn-sm me-1',
+                        exportOptions: {
+                            columns: ':visible:not(:last-child)'
+                        }
+                    },
+                    {
+                        extend: 'excel',
+                        className: 'btn btn-secondary btn-sm me-1',
+                        exportOptions: {
+                            columns: ':visible:not(:last-child)'
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        className: 'btn btn-secondary btn-sm me-1',
+                        exportOptions: {
+                            columns: ':visible:not(:last-child)'
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        className: 'btn btn-secondary btn-sm me-1',
+                        exportOptions: {
+                            columns: ':visible:not(:last-child)'
+                        }
+                    }
+                ]
+            }
             ],
             topEnd: 'search',
             bottomStart: 'info',
@@ -411,5 +455,45 @@ $(document).ready(function () {
                 deleteCoordinationId = null;
             }
         });
+    });
+    $('.btn-coordination-period').on('click', function () {
+        $('.btn-coordination-period').removeClass('active');
+        $(this).addClass('active');
+
+        let period = $(this).data('period');
+        $('#coordination_filter_period').val(period);
+        $('.coordination-filter-date-group').addClass('d-none');
+
+        if (period === 'daily') {
+            $('#coordination_group_daily').removeClass('d-none');
+        } else if (period === 'weekly') {
+            $('#coordination_group_custom_start').removeClass('d-none');
+        } else if (period === 'monthly') {
+            $('#coordination_group_monthly').removeClass('d-none');
+        } else if (period === 'custom') {
+            $('#coordination_group_custom_start').removeClass('d-none');
+            $('#coordination_group_custom_end').removeClass('d-none');
+        }
+
+        coordinationTable.ajax.reload();
+    });
+
+    // Coordination Filter Form Submit
+    $('#coordinationFilterForm').on('submit', function (e) {
+        e.preventDefault();
+        coordinationTable.ajax.reload();
+    });
+
+    // Reset Filters
+    $('#resetCoordinationFilterBtn').on('click', function () {
+        $('#coordinationFilterForm')[0].reset();
+        $('.btn-coordination-period').removeClass('active');
+        $('.btn-coordination-period[data-period="all"]').addClass('active');
+        $('#coordination_filter_period').val('all');
+        if ($('#coordination_filter_created_by').length) {
+            $('#coordination_filter_created_by').val('');
+        }
+        $('.coordination-filter-date-group').addClass('d-none');
+        coordinationTable.ajax.reload();
     });
 });

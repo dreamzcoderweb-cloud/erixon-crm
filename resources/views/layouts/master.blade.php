@@ -96,88 +96,149 @@
     <style>
         /* Global Dynamic Theme Color Styles */
         :root {
-            --bs-primary: {{ $themeColor }};
-            --theme-color: {{ $themeColor }};
+            --bs-primary:
+                {{ $themeColor }}
+            ;
+            --theme-color:
+                {{ $themeColor }}
+            ;
         }
 
         /* Sidebar Background & Text */
         .bg-menu-theme {
-            background-color: {{ $themeColor }} !important;
+            background-color:
+                {{ $themeColor }}
+                !important;
             color: #ffffff !important;
         }
+
         .bg-menu-theme .menu-link,
         .bg-menu-theme .menu-header,
         .bg-menu-theme .menu-icon,
         .bg-menu-theme .app-brand-text {
             color: rgba(255, 255, 255, 0.9) !important;
         }
-        .bg-menu-theme .menu-item.active > .menu-link,
-        .bg-menu-theme .menu-sub .menu-item.active > .menu-link {
+
+        .bg-menu-theme .menu-item.active>.menu-link,
+        .bg-menu-theme .menu-sub .menu-item.active>.menu-link {
             background-color: rgba(255, 255, 255, 0.22) !important;
             color: #ffffff !important;
             font-weight: 600 !important;
         }
+
         .bg-menu-theme .menu-item:not(.active) .menu-link:hover {
             background-color: rgba(255, 255, 255, 0.12) !important;
             color: #ffffff !important;
         }
+
         .bg-menu-theme .menu-sub .menu-link:before {
             background-color: rgba(255, 255, 255, 0.6) !important;
         }
 
         /* Primary Buttons & Elements */
         .btn-primary {
-            background-color: {{ $themeColor }} !important;
-            border-color: {{ $themeColor }} !important;
+            background-color:
+                {{ $themeColor }}
+                !important;
+            border-color:
+                {{ $themeColor }}
+                !important;
             color: #ffffff !important;
-            box-shadow: 0 0.125rem 0.25rem 0 {{ $themeColor }}55 !important;
+            box-shadow: 0 0.125rem 0.25rem 0
+                {{ $themeColor }}
+                55 !important;
         }
-        .btn-primary:hover, .btn-primary:focus, .btn-primary:active {
-            background-color: {{ $themeColor }} !important;
-            border-color: {{ $themeColor }} !important;
+
+        .btn-primary:hover,
+        .btn-primary:focus,
+        .btn-primary:active {
+            background-color:
+                {{ $themeColor }}
+                !important;
+            border-color:
+                {{ $themeColor }}
+                !important;
             color: #ffffff !important;
             opacity: 0.9;
         }
+
         .btn-outline-primary {
-            color: {{ $themeColor }} !important;
-            border-color: {{ $themeColor }} !important;
+            color:
+                {{ $themeColor }}
+                !important;
+            border-color:
+                {{ $themeColor }}
+                !important;
         }
+
         .btn-outline-primary:hover {
-            background-color: {{ $themeColor }} !important;
+            background-color:
+                {{ $themeColor }}
+                !important;
             color: #ffffff !important;
         }
 
         /* Nav Pills Active State */
-        .nav-pills .nav-link.active, .nav-pills .show > .nav-link {
-            background-color: {{ $themeColor }} !important;
+        .nav-pills .nav-link.active,
+        .nav-pills .show>.nav-link {
+            background-color:
+                {{ $themeColor }}
+                !important;
             color: #ffffff !important;
-            box-shadow: 0 2px 4px 0 {{ $themeColor }}40 !important;
+            box-shadow: 0 2px 4px 0
+                {{ $themeColor }}
+                40 !important;
         }
 
         /* Form Controls Active & Highlights */
         .form-check-input:checked {
-            background-color: {{ $themeColor }} !important;
-            border-color: {{ $themeColor }} !important;
+            background-color:
+                {{ $themeColor }}
+                !important;
+            border-color:
+                {{ $themeColor }}
+                !important;
         }
-        .form-control:focus, .form-select:focus {
-            border-color: {{ $themeColor }} !important;
-            box-shadow: 0 0 0 0.25rem {{ $themeColor }}25 !important;
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color:
+                {{ $themeColor }}
+                !important;
+            box-shadow: 0 0 0 0.25rem
+                {{ $themeColor }}
+                25 !important;
         }
 
         /* Text & Badges */
         .text-primary {
-            color: {{ $themeColor }} !important;
+            color:
+                {{ $themeColor }}
+                !important;
         }
+
         .bg-primary {
-            background-color: {{ $themeColor }} !important;
+            background-color:
+                {{ $themeColor }}
+                !important;
         }
+
         .bg-label-primary {
-            background-color: {{ $themeColor }}18 !important;
-            color: {{ $themeColor }} !important;
+            background-color:
+                {{ $themeColor }}
+                18 !important;
+            color:
+                {{ $themeColor }}
+                !important;
         }
+
         .page-item.active .page-link {
-            background-color: {{ $themeColor }} !important;
-            border-color: {{ $themeColor }} !important;
+            background-color:
+                {{ $themeColor }}
+                !important;
+            border-color:
+                {{ $themeColor }}
+                !important;
         }
 
         /* Form Validation Error Styling */
@@ -189,7 +250,8 @@
             color: #ff3e1d;
             font-weight: 500;
         }
-        .is-invalid ~ .invalid-feedback {
+
+        .is-invalid~.invalid-feedback {
             display: block !important;
         }
 
@@ -198,6 +260,7 @@
             overflow-x: auto !important;
             min-height: 200px;
         }
+
         .table-responsive .dropdown-menu {
             z-index: 1050 !important;
         }
@@ -272,7 +335,8 @@
                     <h5 class="modal-title text-white d-flex align-items-center">
                         <i class="bx bx-bell bx-tada me-2 fs-4"></i> Today's Follow-up Reminders
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
                     <div class="alert alert-info d-flex align-items-center mb-3">

@@ -13,7 +13,7 @@ class CoordinationController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax() || $request->wantsJson()) {
-            return $this->listData();
+            return $this->listData($request);
         }
 
         $staffList = User::orderBy('name', 'asc')->get();
@@ -21,11 +21,47 @@ class CoordinationController extends Controller
         return view('coordinations.view', compact('staffList'));
     }
 
-    public function listData()
+    public function listData(Request $request = null)
     {
+        $request = $request ?? request();
         $user = Auth::user();
-        $coordinations = Coordination::forUser($user)
-            ->with([
+        $query = Coordination::forUser($user);
+
+        if ($request->filled('created_by')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('staff_id', $request->input('created_by'))
+                  ->orWhere('created_by', $request->input('created_by'));
+            });
+        }
+
+        $filterType = $request->input('filter_type');
+        $date       = $request->input('date');
+        $month      = $request->input('month');
+        $startDate  = $request->input('start_date');
+        $endDate    = $request->input('end_date');
+
+        if ($filterType === 'daily' && !empty($date)) {
+            $query->whereDate('created_at', $date);
+        } elseif ($filterType === 'weekly') {
+            $refDate = !empty($startDate) ? \Illuminate\Support\Carbon::parse($startDate) : \Illuminate\Support\Carbon::today();
+            $query->whereBetween('created_at', [
+                $refDate->copy()->startOfWeek(),
+                $refDate->copy()->endOfWeek(),
+            ]);
+        } elseif ($filterType === 'monthly' && !empty($month)) {
+            [$year, $selectedMonth] = array_pad(explode('-', $month), 2, null);
+            $query->whereYear('created_at', $year ?: date('Y'))
+                ->whereMonth('created_at', $selectedMonth ?: date('m'));
+        } elseif ($filterType === 'custom') {
+            if (!empty($startDate)) {
+                $query->whereDate('created_at', '>=', $startDate);
+            }
+            if (!empty($endDate)) {
+                $query->whereDate('created_at', '<=', $endDate);
+            }
+        }
+
+        $coordinations = $query->with([
                 'staff:id,name,email',
                 'creator:id,name',
                 'joiningStaff:id,name,email'

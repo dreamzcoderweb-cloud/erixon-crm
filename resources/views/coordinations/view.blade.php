@@ -9,6 +9,7 @@
             z-index: 1090 !important;
             width: 100% !important;
         }
+
         .select2-container--default .select2-selection--multiple {
             border: 1px solid #d9ade5 !important;
             border-radius: 0.375rem !important;
@@ -16,10 +17,12 @@
             padding: 3px 8px !important;
             background-color: #fff !important;
         }
+
         .select2-container--default.select2-container--focus .select2-selection--multiple {
             border-color: var(--theme-color, #6747c7) !important;
             box-shadow: 0 0 0 0.25rem rgba(103, 71, 199, 0.25) !important;
         }
+
         .select2-container--default .select2-selection--multiple .select2-selection__choice {
             background-color: var(--theme-color, #6747c7) !important;
             border: none !important;
@@ -33,6 +36,7 @@
             display: inline-flex !important;
             align-items: center !important;
         }
+
         .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
             color: #ffffff !important;
             margin-right: 6px !important;
@@ -43,16 +47,19 @@
             line-height: 1 !important;
             cursor: pointer !important;
         }
+
         .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
             color: #ffd1d1 !important;
             background: transparent !important;
         }
+
         .select2-dropdown {
             z-index: 1095 !important;
             border-color: #d9ade5 !important;
             box-shadow: 0 0.25rem 1rem rgba(161, 172, 184, 0.45) !important;
             border-radius: 0.375rem !important;
         }
+
         .select2-results__option--highlighted[aria-selected] {
             background-color: var(--theme-color, #6747c7) !important;
             color: #fff !important;
@@ -73,6 +80,80 @@
                     </button>
                 @endcan
             </div>
+
+            <!-- Coordination Date Period Filter Bar -->
+            <div class="p-3 bg-light border-bottom">
+                <form id="coordinationFilterForm">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-12">
+                            <label class="form-label fw-semibold d-block">Date Period</label>
+                            <div class="btn-group btn-group-sm" role="group" id="coordinationPeriodBtnGroup">
+                                <button type="button" class="btn btn-outline-primary btn-coordination-period active"
+                                    data-period="all">All Time</button>
+                                <button type="button" class="btn btn-outline-primary btn-coordination-period"
+                                    data-period="daily">Daily</button>
+                                <button type="button" class="btn btn-outline-primary btn-coordination-period"
+                                    data-period="weekly">Weekly</button>
+                                <button type="button" class="btn btn-outline-primary btn-coordination-period"
+                                    data-period="monthly">Monthly</button>
+                                <button type="button" class="btn btn-outline-primary btn-coordination-period"
+                                    data-period="custom">Custom</button>
+                            </div>
+                            <input type="hidden" name="filter_type" id="coordination_filter_period" value="all">
+                        </div>
+
+                        <div class="col-md-3 coordination-filter-date-group d-none" id="coordination_group_daily">
+                            <label class="form-label fw-semibold">Date</label>
+                            <input type="date" name="date" id="coordination_filter_date"
+                                class="form-control form-control-sm" value="{{ date('Y-m-d') }}">
+                        </div>
+
+                        <div class="col-md-3 coordination-filter-date-group d-none" id="coordination_group_monthly">
+                            <label class="form-label fw-semibold">Month</label>
+                            <input type="month" name="month" id="coordination_filter_month"
+                                class="form-control form-control-sm" value="{{ date('Y-m') }}">
+                        </div>
+
+                        <div class="col-md-3 coordination-filter-date-group d-none" id="coordination_group_custom_start">
+                            <label class="form-label fw-semibold">From Date</label>
+                            <input type="date" name="start_date" id="coordination_filter_start_date"
+                                class="form-control form-control-sm" value="{{ date('Y-m-01') }}">
+                        </div>
+
+                        <div class="col-md-3 coordination-filter-date-group d-none" id="coordination_group_custom_end">
+                            <label class="form-label fw-semibold">To Date</label>
+                            <input type="date" name="end_date" id="coordination_filter_end_date"
+                                class="form-control form-control-sm" value="{{ date('Y-m-d') }}">
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Created Staff</label>
+                            <select name="created_by" id="coordination_filter_created_by"
+                                class="form-select form-select-sm">
+                                <option value="">-- All Staff --</option>
+                                @if(isset($staffList) && count($staffList) > 0)
+                                    @foreach ($staffList as $staff)
+                                        <option value="{{ $staff->id }}">{{ $staff->name }} ({{ $staff->email }})</option>
+                                    @endforeach
+                                @endif
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
+                                    <i class="bx bx-filter-alt me-1"></i> Apply Filter
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm"
+                                    id="resetCoordinationFilterBtn" title="Reset Filters">
+                                    <i class="bx bx-refresh me-1"></i> Reset
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
             <div class="table-responsive text-nowrap p-3">
                 <table id="coordinations-table" class="table table-hover align-middle w-100">
                     <thead class="table-light">
@@ -120,27 +201,32 @@
 
                         <div class="mb-3">
                             <label class="form-label">Link <span class="text-danger">*</span></label>
-                            <input type="text" name="link" class="form-control" placeholder="e.g. https://example.com/coordination-link" required>
+                            <input type="text" name="link" class="form-control"
+                                placeholder="e.g. https://example.com/coordination-link" required>
                             <div class="invalid-feedback"></div>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Joining Staff <span class="text-muted">(Multiple Selection)</span></label>
-                            <select name="joining_staff_ids[]" id="add_joining_staff_ids" class="form-select select2-multi" multiple="multiple" data-placeholder="Select Joining Staff members...">
+                            <label class="form-label">Joining Staff <span class="text-muted">(Multiple
+                                    Selection)</span></label>
+                            <select name="joining_staff_ids[]" id="add_joining_staff_ids" class="form-select select2-multi"
+                                multiple="multiple" data-placeholder="Select Joining Staff members...">
                                 @foreach ($staffList as $staff)
                                     <option value="{{ $staff->id }}" {{ Auth::id() == $staff->id ? 'selected' : '' }}>
                                         {{ $staff->name }} ({{ $staff->email }})
                                     </option>
                                 @endforeach
                             </select>
-                            <small class="text-muted d-block mt-1">Note: Created Staff is automatically included in Joining Staff.</small>
+                            <small class="text-muted d-block mt-1">Note: Created Staff is automatically included in Joining
+                                Staff.</small>
                             <div class="invalid-feedback"></div>
                         </div>
                     </div>
                     <div class="modal-footer gap-2">
                         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
                         <button type="submit" class="btn btn-primary" id="addCoordinationSubmitBtn">
-                            <span class="spinner-border spinner-border-sm d-none me-1" role="status"></span> Save Coordination
+                            <span class="spinner-border spinner-border-sm d-none me-1" role="status"></span> Save
+                            Coordination
                         </button>
                     </div>
                 </form>
@@ -173,25 +259,30 @@
 
                         <div class="mb-3">
                             <label class="form-label">Link <span class="text-danger">*</span></label>
-                            <input type="text" name="link" id="edit_link" class="form-control" placeholder="Enter link" required>
+                            <input type="text" name="link" id="edit_link" class="form-control" placeholder="Enter link"
+                                required>
                             <div class="invalid-feedback"></div>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Joining Staff <span class="text-muted">(Multiple Selection)</span></label>
-                            <select name="joining_staff_ids[]" id="edit_joining_staff_ids" class="form-select select2-multi" multiple="multiple" data-placeholder="Select Joining Staff members...">
+                            <label class="form-label">Joining Staff <span class="text-muted">(Multiple
+                                    Selection)</span></label>
+                            <select name="joining_staff_ids[]" id="edit_joining_staff_ids" class="form-select select2-multi"
+                                multiple="multiple" data-placeholder="Select Joining Staff members...">
                                 @foreach ($staffList as $staff)
                                     <option value="{{ $staff->id }}">{{ $staff->name }} ({{ $staff->email }})</option>
                                 @endforeach
                             </select>
-                            <small class="text-muted d-block mt-1">Note: Created Staff is automatically included in Joining Staff.</small>
+                            <small class="text-muted d-block mt-1">Note: Created Staff is automatically included in Joining
+                                Staff.</small>
                             <div class="invalid-feedback"></div>
                         </div>
                     </div>
                     <div class="modal-footer gap-2">
                         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
                         <button type="submit" class="btn btn-primary" id="editCoordinationSubmitBtn">
-                            <span class="spinner-border spinner-border-sm d-none me-1" role="status"></span> Update Coordination
+                            <span class="spinner-border spinner-border-sm d-none me-1" role="status"></span> Update
+                            Coordination
                         </button>
                     </div>
                 </form>
@@ -208,7 +299,8 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Are you sure you want to delete this coordination record for <strong id="delete_staff_name"></strong>?</p>
+                    <p>Are you sure you want to delete this coordination record for <strong
+                            id="delete_staff_name"></strong>?</p>
                 </div>
                 <div class="modal-footer gap-2">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
