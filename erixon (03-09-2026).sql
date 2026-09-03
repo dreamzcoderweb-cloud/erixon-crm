@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Aug 31, 2026 at 06:45 AM
+-- Generation Time: Sep 03, 2026 at 12:56 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -35,6 +35,10 @@ CREATE TABLE `attendance` (
   `check_out` time DEFAULT NULL,
   `working_hours` varchar(255) DEFAULT NULL,
   `status` varchar(255) NOT NULL DEFAULT 'Present',
+  `latitude` decimal(10,8) DEFAULT NULL,
+  `longitude` decimal(11,8) DEFAULT NULL,
+  `second_check_in_latitude` decimal(10,8) DEFAULT NULL,
+  `second_check_in_longitude` decimal(11,8) DEFAULT NULL,
   `permission_start` time DEFAULT NULL,
   `permission_end` time DEFAULT NULL,
   `second_check_in` time DEFAULT NULL,
@@ -49,18 +53,18 @@ CREATE TABLE `attendance` (
 -- Dumping data for table `attendance`
 --
 
-INSERT INTO `attendance` (`attendance_id`, `user_id`, `date`, `check_in`, `check_out`, `working_hours`, `status`, `permission_start`, `permission_end`, `second_check_in`, `second_check_out`, `permission_id`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, 3, '2026-08-18', '09:00:00', '17:30:00', '8 hrs 30 mins', 'Present', NULL, NULL, NULL, NULL, NULL, '2026-08-18 04:38:11', '2026-08-18 04:38:11', NULL),
-(2, 3, '2026-08-19', '10:06:05', NULL, NULL, 'Present', NULL, NULL, NULL, NULL, NULL, '2026-08-18 23:06:05', '2026-08-19 04:37:49', NULL),
-(3, 2, '2026-08-19', '11:38:43', NULL, NULL, 'Late', NULL, NULL, NULL, NULL, NULL, '2026-08-19 06:08:43', '2026-08-19 06:08:43', NULL),
-(4, 4, '2026-08-21', '09:00:00', '18:00:00', '9 hrs', 'Present', NULL, NULL, NULL, NULL, NULL, '2026-08-21 06:14:58', '2026-08-21 06:14:58', NULL),
-(5, 6, '2026-08-21', '09:00:00', '06:26:00', '21 hrs 26 mins', 'Present', NULL, NULL, NULL, NULL, NULL, '2026-08-21 06:26:08', '2026-08-21 06:33:00', NULL),
-(6, 2, '2026-08-25', '09:48:04', NULL, NULL, 'Late', NULL, NULL, NULL, NULL, NULL, '2026-08-25 05:48:04', '2026-08-25 09:33:06', NULL),
-(7, 3, '2026-08-25', '09:33:39', NULL, '0 hrs', 'Late', NULL, NULL, NULL, NULL, NULL, '2026-08-25 09:33:39', '2026-08-25 09:34:04', NULL),
-(8, 2, '2026-08-24', '09:15:00', NULL, NULL, 'Late', NULL, NULL, NULL, NULL, NULL, '0000-00-00 00:00:00', '0000-00-00 00:00:00', NULL),
-(9, 2, '2026-08-26', '09:40:10', '12:14:27', '2 hrs 34 mins', 'Late', NULL, NULL, NULL, NULL, NULL, '0000-00-00 00:00:00', '2026-08-26 12:14:27', NULL),
-(13, 3, '2026-08-27', '09:52:06', NULL, NULL, 'Late', NULL, NULL, NULL, NULL, NULL, '2026-08-27 09:52:06', '2026-08-27 09:52:06', NULL),
-(14, 2, '2026-08-28', '11:12:21', '11:12:32', '0 hrs', 'Late', NULL, NULL, '11:12:43', '11:12:46', NULL, '2026-08-28 11:12:21', '2026-08-28 11:12:46', NULL);
+INSERT INTO `attendance` (`attendance_id`, `user_id`, `date`, `check_in`, `check_out`, `working_hours`, `status`, `latitude`, `longitude`, `second_check_in_latitude`, `second_check_in_longitude`, `permission_start`, `permission_end`, `second_check_in`, `second_check_out`, `permission_id`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 3, '2026-08-18', '09:00:00', '17:30:00', '8 hrs 30 mins', 'Present', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-08-18 04:38:11', '2026-08-18 04:38:11', NULL),
+(2, 3, '2026-08-19', '10:06:05', NULL, NULL, 'Present', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-08-18 23:06:05', '2026-08-19 04:37:49', NULL),
+(3, 2, '2026-08-19', '11:38:43', NULL, NULL, 'Late', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-08-19 06:08:43', '2026-08-19 06:08:43', NULL),
+(4, 4, '2026-08-21', '09:00:00', '18:00:00', '9 hrs', 'Present', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-08-21 06:14:58', '2026-08-21 06:14:58', NULL),
+(5, 6, '2026-08-21', '09:00:00', '06:26:00', '21 hrs 26 mins', 'Present', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-08-21 06:26:08', '2026-08-21 06:33:00', NULL),
+(6, 2, '2026-08-25', '09:48:04', NULL, NULL, 'Late', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-08-25 05:48:04', '2026-08-25 09:33:06', NULL),
+(7, 3, '2026-08-25', '09:33:39', NULL, '0 hrs', 'Late', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-08-25 09:33:39', '2026-08-25 09:34:04', NULL),
+(8, 2, '2026-08-24', '09:15:00', NULL, NULL, 'Late', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '0000-00-00 00:00:00', '0000-00-00 00:00:00', NULL),
+(9, 2, '2026-08-26', '09:40:10', '12:14:27', '2 hrs 34 mins', 'Late', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '0000-00-00 00:00:00', '2026-08-26 12:14:27', NULL),
+(13, 3, '2026-08-27', '09:52:06', NULL, NULL, 'Late', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-08-27 09:52:06', '2026-08-27 09:52:06', NULL),
+(14, 2, '2026-08-28', '11:12:21', '11:12:32', '0 hrs', 'Late', NULL, NULL, NULL, NULL, NULL, NULL, '11:12:43', '11:12:46', NULL, '2026-08-28 11:12:21', '2026-08-28 11:12:46', NULL);
 
 -- --------------------------------------------------------
 
@@ -79,7 +83,7 @@ CREATE TABLE `cache` (
 --
 
 INSERT INTO `cache` (`key`, `value`, `expiration`) VALUES
-('spatie.permission.cache', 'a:3:{s:5:\"alias\";a:4:{s:1:\"a\";s:2:\"id\";s:1:\"b\";s:4:\"name\";s:1:\"c\";s:10:\"guard_name\";s:1:\"r\";s:5:\"roles\";}s:11:\"permissions\";a:93:{i:0;a:4:{s:1:\"a\";i:1;s:1:\"b\";s:14:\"dashboard.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:1;a:4:{s:1:\"a\";i:2;s:1:\"b\";s:12:\"profile.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:2;a:4:{s:1:\"a\";i:3;s:1:\"b\";s:16:\"profile.password\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:3;a:4:{s:1:\"a\";i:4;s:1:\"b\";s:10:\"roles.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:4;a:4:{s:1:\"a\";i:5;s:1:\"b\";s:12:\"roles.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:5;a:4:{s:1:\"a\";i:6;s:1:\"b\";s:10:\"roles.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:6;a:4:{s:1:\"a\";i:7;s:1:\"b\";s:12:\"roles.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:7;a:4:{s:1:\"a\";i:8;s:1:\"b\";s:10:\"staff.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:8;a:4:{s:1:\"a\";i:9;s:1:\"b\";s:12:\"staff.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:9;a:4:{s:1:\"a\";i:10;s:1:\"b\";s:10:\"staff.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:10;a:4:{s:1:\"a\";i:11;s:1:\"b\";s:12:\"staff.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:11;a:4:{s:1:\"a\";i:12;s:1:\"b\";s:14:\"customers.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:12;a:4:{s:1:\"a\";i:13;s:1:\"b\";s:21:\"general-settings.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:13;a:4:{s:1:\"a\";i:14;s:1:\"b\";s:21:\"general-settings.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:14;a:4:{s:1:\"a\";i:15;s:1:\"b\";s:18:\"lead-settings.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:15;a:4:{s:1:\"a\";i:16;s:1:\"b\";s:18:\"lead-settings.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:16;a:4:{s:1:\"a\";i:17;s:1:\"b\";s:16:\"customers.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:17;a:4:{s:1:\"a\";i:18;s:1:\"b\";s:14:\"customers.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:18;a:4:{s:1:\"a\";i:19;s:1:\"b\";s:16:\"customers.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:19;a:4:{s:1:\"a\";i:20;s:1:\"b\";s:17:\"lead-sources.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:20;a:4:{s:1:\"a\";i:21;s:1:\"b\";s:19:\"lead-sources.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:21;a:4:{s:1:\"a\";i:22;s:1:\"b\";s:17:\"lead-sources.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:22;a:4:{s:1:\"a\";i:23;s:1:\"b\";s:19:\"lead-sources.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:23;a:4:{s:1:\"a\";i:24;s:1:\"b\";s:10:\"leads.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:24;a:4:{s:1:\"a\";i:25;s:1:\"b\";s:12:\"leads.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:25;a:4:{s:1:\"a\";i:26;s:1:\"b\";s:10:\"leads.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:26;a:4:{s:1:\"a\";i:27;s:1:\"b\";s:12:\"leads.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:27;a:4:{s:1:\"a\";i:28;s:1:\"b\";s:16:\"lead-stages.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:28;a:4:{s:1:\"a\";i:29;s:1:\"b\";s:18:\"lead-stages.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:29;a:4:{s:1:\"a\";i:30;s:1:\"b\";s:16:\"lead-stages.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:30;a:4:{s:1:\"a\";i:31;s:1:\"b\";s:18:\"lead-stages.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:31;a:4:{s:1:\"a\";i:32;s:1:\"b\";s:22:\"lead-requirements.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:32;a:4:{s:1:\"a\";i:33;s:1:\"b\";s:24:\"lead-requirements.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:33;a:4:{s:1:\"a\";i:34;s:1:\"b\";s:22:\"lead-requirements.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:34;a:4:{s:1:\"a\";i:35;s:1:\"b\";s:24:\"lead-requirements.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:35;a:4:{s:1:\"a\";i:36;s:1:\"b\";s:17:\"lost-reasons.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:36;a:4:{s:1:\"a\";i:37;s:1:\"b\";s:19:\"lost-reasons.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:37;a:4:{s:1:\"a\";i:38;s:1:\"b\";s:17:\"lost-reasons.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:38;a:4:{s:1:\"a\";i:39;s:1:\"b\";s:19:\"lost-reasons.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:39;a:4:{s:1:\"a\";i:40;s:1:\"b\";s:14:\"followups.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:40;a:4:{s:1:\"a\";i:41;s:1:\"b\";s:16:\"followups.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:41;a:4:{s:1:\"a\";i:42;s:1:\"b\";s:14:\"followups.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:42;a:4:{s:1:\"a\";i:43;s:1:\"b\";s:16:\"followups.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:43;a:4:{s:1:\"a\";i:44;s:1:\"b\";s:18:\"followups.reassign\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:44;a:4:{s:1:\"a\";i:45;s:1:\"b\";s:11:\"staff.leave\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:45;a:4:{s:1:\"a\";i:46;s:1:\"b\";s:19:\"lead-documents.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:46;a:4:{s:1:\"a\";i:47;s:1:\"b\";s:21:\"lead-documents.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:47;a:4:{s:1:\"a\";i:48;s:1:\"b\";s:19:\"lead-documents.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:48;a:4:{s:1:\"a\";i:49;s:1:\"b\";s:21:\"lead-documents.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:49;a:4:{s:1:\"a\";i:50;s:1:\"b\";s:14:\"templates.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:50;a:4:{s:1:\"a\";i:51;s:1:\"b\";s:16:\"templates.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:51;a:4:{s:1:\"a\";i:52;s:1:\"b\";s:14:\"templates.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:52;a:4:{s:1:\"a\";i:53;s:1:\"b\";s:16:\"templates.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:53;a:4:{s:1:\"a\";i:54;s:1:\"b\";s:20:\"call-recordings.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:54;a:4:{s:1:\"a\";i:55;s:1:\"b\";s:22:\"call-recordings.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:55;a:4:{s:1:\"a\";i:56;s:1:\"b\";s:20:\"call-recordings.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:56;a:4:{s:1:\"a\";i:57;s:1:\"b\";s:22:\"call-recordings.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:57;a:4:{s:1:\"a\";i:58;s:1:\"b\";s:15:\"attendance.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:58;a:4:{s:1:\"a\";i:59;s:1:\"b\";s:17:\"attendance.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:59;a:4:{s:1:\"a\";i:60;s:1:\"b\";s:15:\"attendance.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:60;a:4:{s:1:\"a\";i:61;s:1:\"b\";s:17:\"attendance.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:3;}}i:61;a:4:{s:1:\"a\";i:62;s:1:\"b\";s:23:\"attendance-reports.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:62;a:4:{s:1:\"a\";i:63;s:1:\"b\";s:11:\"leaves.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:63;a:4:{s:1:\"a\";i:64;s:1:\"b\";s:13:\"leaves.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:64;a:4:{s:1:\"a\";i:65;s:1:\"b\";s:14:\"leaves.approve\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:3;}}i:65;a:4:{s:1:\"a\";i:66;s:1:\"b\";s:13:\"leaves.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:66;a:4:{s:1:\"a\";i:67;s:1:\"b\";s:11:\"salary.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:67;a:4:{s:1:\"a\";i:68;s:1:\"b\";s:14:\"call-logs.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:68;a:4:{s:1:\"a\";i:69;s:1:\"b\";s:16:\"call-logs.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:69;a:4:{s:1:\"a\";i:70;s:1:\"b\";s:14:\"call-logs.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:70;a:4:{s:1:\"a\";i:71;s:1:\"b\";s:16:\"call-logs.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:71;a:4:{s:1:\"a\";i:72;s:1:\"b\";s:21:\"call-log-reports.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:72;a:4:{s:1:\"a\";i:73;s:1:\"b\";s:20:\"credit-requests.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:4;}}i:73;a:4:{s:1:\"a\";i:74;s:1:\"b\";s:22:\"credit-requests.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:4;}}i:74;a:4:{s:1:\"a\";i:75;s:1:\"b\";s:29:\"credit-requests.approve_admin\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:75;a:4:{s:1:\"a\";i:76;s:1:\"b\";s:31:\"credit-requests.approve_support\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:76;a:4:{s:1:\"a\";i:77;s:1:\"b\";s:22:\"credit-requests.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:4;}}i:77;a:4:{s:1:\"a\";i:78;s:1:\"b\";s:13:\"payments.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:4;}}i:78;a:4:{s:1:\"a\";i:79;s:1:\"b\";s:15:\"payments.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:79;a:4:{s:1:\"a\";i:80;s:1:\"b\";s:13:\"payments.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:80;a:4:{s:1:\"a\";i:81;s:1:\"b\";s:15:\"payments.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:81;a:4:{s:1:\"a\";i:82;s:1:\"b\";s:16:\"permissions.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:4;}}i:82;a:4:{s:1:\"a\";i:83;s:1:\"b\";s:18:\"permissions.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:4;}}i:83;a:4:{s:1:\"a\";i:84;s:1:\"b\";s:19:\"permissions.approve\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:84;a:4:{s:1:\"a\";i:85;s:1:\"b\";s:18:\"permissions.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:4;}}i:85;a:4:{s:1:\"a\";i:86;s:1:\"b\";s:15:\"incentives.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:4;}}i:86;a:4:{s:1:\"a\";i:87;s:1:\"b\";s:17:\"incentives.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:87;a:4:{s:1:\"a\";i:88;s:1:\"b\";s:15:\"incentives.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:88;a:4:{s:1:\"a\";i:89;s:1:\"b\";s:17:\"incentives.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:89;a:4:{s:1:\"a\";i:90;s:1:\"b\";s:22:\"customer-settings.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:90;a:4:{s:1:\"a\";i:91;s:1:\"b\";s:22:\"customer-settings.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:91;a:4:{s:1:\"a\";i:92;s:1:\"b\";s:22:\"followup-settings.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:92;a:4:{s:1:\"a\";i:93;s:1:\"b\";s:22:\"followup-settings.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}}s:5:\"roles\";a:4:{i:0;a:3:{s:1:\"a\";i:1;s:1:\"b\";s:11:\"Super Admin\";s:1:\"c\";s:3:\"web\";}i:1;a:3:{s:1:\"a\";i:2;s:1:\"b\";s:7:\"manager\";s:1:\"c\";s:3:\"web\";}i:2;a:3:{s:1:\"a\";i:3;s:1:\"b\";s:7:\"support\";s:1:\"c\";s:3:\"web\";}i:3;a:3:{s:1:\"a\";i:4;s:1:\"b\";s:10:\"sales team\";s:1:\"c\";s:3:\"web\";}}}', 1788236739);
+('spatie.permission.cache', 'a:3:{s:5:\"alias\";a:4:{s:1:\"a\";s:2:\"id\";s:1:\"b\";s:4:\"name\";s:1:\"c\";s:10:\"guard_name\";s:1:\"r\";s:5:\"roles\";}s:11:\"permissions\";a:106:{i:0;a:4:{s:1:\"a\";i:1;s:1:\"b\";s:14:\"dashboard.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:5:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;i:4;i:5;}}i:1;a:4:{s:1:\"a\";i:2;s:1:\"b\";s:12:\"profile.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:2;a:4:{s:1:\"a\";i:3;s:1:\"b\";s:16:\"profile.password\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:3;a:4:{s:1:\"a\";i:4;s:1:\"b\";s:10:\"roles.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:4;a:4:{s:1:\"a\";i:5;s:1:\"b\";s:12:\"roles.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:5;a:4:{s:1:\"a\";i:6;s:1:\"b\";s:10:\"roles.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:6;a:4:{s:1:\"a\";i:7;s:1:\"b\";s:12:\"roles.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:7;a:4:{s:1:\"a\";i:8;s:1:\"b\";s:10:\"staff.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:8;a:4:{s:1:\"a\";i:9;s:1:\"b\";s:12:\"staff.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:9;a:4:{s:1:\"a\";i:10;s:1:\"b\";s:10:\"staff.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:10;a:4:{s:1:\"a\";i:11;s:1:\"b\";s:12:\"staff.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:11;a:4:{s:1:\"a\";i:12;s:1:\"b\";s:14:\"customers.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:5:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;i:4;i:5;}}i:12;a:4:{s:1:\"a\";i:13;s:1:\"b\";s:21:\"general-settings.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:3;i:2;i:4;}}i:13;a:4:{s:1:\"a\";i:14;s:1:\"b\";s:21:\"general-settings.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:3;i:2;i:4;}}i:14;a:4:{s:1:\"a\";i:15;s:1:\"b\";s:18:\"lead-settings.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:4;}}i:15;a:4:{s:1:\"a\";i:16;s:1:\"b\";s:18:\"lead-settings.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:4;}}i:16;a:4:{s:1:\"a\";i:17;s:1:\"b\";s:16:\"customers.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:5:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;i:4;i:5;}}i:17;a:4:{s:1:\"a\";i:18;s:1:\"b\";s:14:\"customers.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:5:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;i:4;i:5;}}i:18;a:4:{s:1:\"a\";i:19;s:1:\"b\";s:16:\"customers.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:5:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;i:4;i:5;}}i:19;a:4:{s:1:\"a\";i:20;s:1:\"b\";s:17:\"lead-sources.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:20;a:4:{s:1:\"a\";i:21;s:1:\"b\";s:19:\"lead-sources.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:21;a:4:{s:1:\"a\";i:22;s:1:\"b\";s:17:\"lead-sources.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:22;a:4:{s:1:\"a\";i:23;s:1:\"b\";s:19:\"lead-sources.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:23;a:4:{s:1:\"a\";i:24;s:1:\"b\";s:10:\"leads.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:24;a:4:{s:1:\"a\";i:25;s:1:\"b\";s:12:\"leads.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:25;a:4:{s:1:\"a\";i:26;s:1:\"b\";s:10:\"leads.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:26;a:4:{s:1:\"a\";i:27;s:1:\"b\";s:12:\"leads.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:27;a:4:{s:1:\"a\";i:28;s:1:\"b\";s:16:\"lead-stages.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:28;a:4:{s:1:\"a\";i:29;s:1:\"b\";s:18:\"lead-stages.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:29;a:4:{s:1:\"a\";i:30;s:1:\"b\";s:16:\"lead-stages.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:30;a:4:{s:1:\"a\";i:31;s:1:\"b\";s:18:\"lead-stages.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:31;a:4:{s:1:\"a\";i:32;s:1:\"b\";s:22:\"lead-requirements.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:32;a:4:{s:1:\"a\";i:33;s:1:\"b\";s:24:\"lead-requirements.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:33;a:4:{s:1:\"a\";i:34;s:1:\"b\";s:22:\"lead-requirements.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:34;a:4:{s:1:\"a\";i:35;s:1:\"b\";s:24:\"lead-requirements.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:35;a:4:{s:1:\"a\";i:36;s:1:\"b\";s:17:\"lost-reasons.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:36;a:4:{s:1:\"a\";i:37;s:1:\"b\";s:19:\"lost-reasons.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:37;a:4:{s:1:\"a\";i:38;s:1:\"b\";s:17:\"lost-reasons.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:38;a:4:{s:1:\"a\";i:39;s:1:\"b\";s:19:\"lost-reasons.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:39;a:4:{s:1:\"a\";i:40;s:1:\"b\";s:14:\"followups.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:40;a:4:{s:1:\"a\";i:41;s:1:\"b\";s:16:\"followups.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:41;a:4:{s:1:\"a\";i:42;s:1:\"b\";s:14:\"followups.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:42;a:4:{s:1:\"a\";i:43;s:1:\"b\";s:16:\"followups.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:43;a:4:{s:1:\"a\";i:44;s:1:\"b\";s:18:\"followups.reassign\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:44;a:4:{s:1:\"a\";i:45;s:1:\"b\";s:11:\"staff.leave\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:45;a:4:{s:1:\"a\";i:46;s:1:\"b\";s:19:\"lead-documents.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:46;a:4:{s:1:\"a\";i:47;s:1:\"b\";s:21:\"lead-documents.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:47;a:4:{s:1:\"a\";i:48;s:1:\"b\";s:19:\"lead-documents.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:48;a:4:{s:1:\"a\";i:49;s:1:\"b\";s:21:\"lead-documents.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:49;a:4:{s:1:\"a\";i:50;s:1:\"b\";s:14:\"templates.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:50;a:4:{s:1:\"a\";i:51;s:1:\"b\";s:16:\"templates.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:51;a:4:{s:1:\"a\";i:52;s:1:\"b\";s:14:\"templates.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:52;a:4:{s:1:\"a\";i:53;s:1:\"b\";s:16:\"templates.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:53;a:4:{s:1:\"a\";i:54;s:1:\"b\";s:20:\"call-recordings.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:54;a:4:{s:1:\"a\";i:55;s:1:\"b\";s:22:\"call-recordings.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:55;a:4:{s:1:\"a\";i:56;s:1:\"b\";s:20:\"call-recordings.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:56;a:4:{s:1:\"a\";i:57;s:1:\"b\";s:22:\"call-recordings.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:57;a:4:{s:1:\"a\";i:58;s:1:\"b\";s:15:\"attendance.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:58;a:4:{s:1:\"a\";i:59;s:1:\"b\";s:17:\"attendance.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:59;a:4:{s:1:\"a\";i:60;s:1:\"b\";s:15:\"attendance.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:60;a:4:{s:1:\"a\";i:61;s:1:\"b\";s:17:\"attendance.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:3;}}i:61;a:4:{s:1:\"a\";i:62;s:1:\"b\";s:23:\"attendance-reports.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:62;a:4:{s:1:\"a\";i:63;s:1:\"b\";s:11:\"leaves.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:63;a:4:{s:1:\"a\";i:64;s:1:\"b\";s:13:\"leaves.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:64;a:4:{s:1:\"a\";i:65;s:1:\"b\";s:14:\"leaves.approve\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:3;}}i:65;a:4:{s:1:\"a\";i:66;s:1:\"b\";s:13:\"leaves.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:4;}}i:66;a:4:{s:1:\"a\";i:67;s:1:\"b\";s:11:\"salary.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:67;a:4:{s:1:\"a\";i:68;s:1:\"b\";s:14:\"call-logs.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:68;a:4:{s:1:\"a\";i:69;s:1:\"b\";s:16:\"call-logs.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:69;a:4:{s:1:\"a\";i:70;s:1:\"b\";s:14:\"call-logs.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:70;a:4:{s:1:\"a\";i:71;s:1:\"b\";s:16:\"call-logs.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:71;a:4:{s:1:\"a\";i:72;s:1:\"b\";s:21:\"call-log-reports.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:4;}}i:72;a:4:{s:1:\"a\";i:73;s:1:\"b\";s:20:\"credit-requests.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:4;i:3;i:5;}}i:73;a:4:{s:1:\"a\";i:74;s:1:\"b\";s:22:\"credit-requests.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:4;i:3;i:5;}}i:74;a:4:{s:1:\"a\";i:75;s:1:\"b\";s:29:\"credit-requests.approve_admin\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:5;}}i:75;a:4:{s:1:\"a\";i:76;s:1:\"b\";s:31:\"credit-requests.approve_support\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:3:{i:0;i:1;i:1;i:2;i:2;i:5;}}i:76;a:4:{s:1:\"a\";i:77;s:1:\"b\";s:22:\"credit-requests.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:4:{i:0;i:1;i:1;i:2;i:2;i:4;i:3;i:5;}}i:77;a:4:{s:1:\"a\";i:78;s:1:\"b\";s:13:\"payments.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:4;}}i:78;a:4:{s:1:\"a\";i:79;s:1:\"b\";s:15:\"payments.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:79;a:4:{s:1:\"a\";i:80;s:1:\"b\";s:13:\"payments.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:80;a:4:{s:1:\"a\";i:81;s:1:\"b\";s:15:\"payments.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:81;a:4:{s:1:\"a\";i:82;s:1:\"b\";s:16:\"permissions.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:4;}}i:82;a:4:{s:1:\"a\";i:83;s:1:\"b\";s:18:\"permissions.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:4;}}i:83;a:4:{s:1:\"a\";i:84;s:1:\"b\";s:19:\"permissions.approve\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:84;a:4:{s:1:\"a\";i:85;s:1:\"b\";s:18:\"permissions.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:4;}}i:85;a:4:{s:1:\"a\";i:86;s:1:\"b\";s:15:\"incentives.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:4;}}i:86;a:4:{s:1:\"a\";i:87;s:1:\"b\";s:17:\"incentives.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:87;a:4:{s:1:\"a\";i:88;s:1:\"b\";s:15:\"incentives.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:88;a:4:{s:1:\"a\";i:89;s:1:\"b\";s:17:\"incentives.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:89;a:4:{s:1:\"a\";i:90;s:1:\"b\";s:22:\"customer-settings.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:90;a:4:{s:1:\"a\";i:91;s:1:\"b\";s:22:\"customer-settings.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:91;a:4:{s:1:\"a\";i:92;s:1:\"b\";s:22:\"followup-settings.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:92;a:4:{s:1:\"a\";i:93;s:1:\"b\";s:22:\"followup-settings.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:93;a:4:{s:1:\"a\";i:94;s:1:\"b\";s:28:\"credit-request-settings.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:94;a:4:{s:1:\"a\";i:95;s:1:\"b\";s:28:\"credit-request-settings.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:95;a:4:{s:1:\"a\";i:96;s:1:\"b\";s:18:\"coordinations.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:2:{i:0;i:1;i:1;i:2;}}i:96;a:4:{s:1:\"a\";i:97;s:1:\"b\";s:20:\"coordinations.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:97;a:4:{s:1:\"a\";i:98;s:1:\"b\";s:18:\"coordinations.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:98;a:4:{s:1:\"a\";i:99;s:1:\"b\";s:20:\"coordinations.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:99;a:4:{s:1:\"a\";i:100;s:1:\"b\";s:19:\"demo-processes.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:100;a:4:{s:1:\"a\";i:101;s:1:\"b\";s:21:\"demo-processes.create\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:101;a:4:{s:1:\"a\";i:102;s:1:\"b\";s:19:\"demo-processes.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:102;a:4:{s:1:\"a\";i:103;s:1:\"b\";s:21:\"demo-processes.delete\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:103;a:4:{s:1:\"a\";i:104;s:1:\"b\";s:21:\"demo-processes.assign\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:104;a:4:{s:1:\"a\";i:105;s:1:\"b\";s:26:\"demo-process-settings.view\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:105;a:4:{s:1:\"a\";i:106;s:1:\"b\";s:26:\"demo-process-settings.edit\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}}s:5:\"roles\";a:5:{i:0;a:3:{s:1:\"a\";i:1;s:1:\"b\";s:11:\"Super Admin\";s:1:\"c\";s:3:\"web\";}i:1;a:3:{s:1:\"a\";i:2;s:1:\"b\";s:7:\"manager\";s:1:\"c\";s:3:\"web\";}i:2;a:3:{s:1:\"a\";i:3;s:1:\"b\";s:7:\"support\";s:1:\"c\";s:3:\"web\";}i:3;a:3:{s:1:\"a\";i:4;s:1:\"b\";s:10:\"sales team\";s:1:\"c\";s:3:\"web\";}i:4;a:3:{s:1:\"a\";i:5;s:1:\"b\";s:15:\"product manager\";s:1:\"c\";s:3:\"web\";}}}', 1788517564);
 
 -- --------------------------------------------------------
 
@@ -145,12 +149,62 @@ INSERT INTO `call_recordings` (`call_id`, `lead_id`, `recording_file`, `duration
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `coordinations`
+--
+
+CREATE TABLE `coordinations` (
+  `coordination_id` bigint(20) UNSIGNED NOT NULL,
+  `staff_id` bigint(20) UNSIGNED NOT NULL,
+  `link` text DEFAULT NULL,
+  `created_by` bigint(20) UNSIGNED DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `coordinations`
+--
+
+INSERT INTO `coordinations` (`coordination_id`, `staff_id`, `link`, `created_by`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 10, 'https://bizz.kgsystems.in/', 1, '2026-09-02 05:12:25', '2026-09-02 05:13:32', '2026-09-02 05:13:32'),
+(3, 1, 'https://meet.google.com/ksj-tvbv-pyq', 1, '2026-09-03 06:15:16', '2026-09-03 06:15:16', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `coordination_joining_staff`
+--
+
+CREATE TABLE `coordination_joining_staff` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `coordination_id` bigint(20) UNSIGNED NOT NULL,
+  `user_id` bigint(20) UNSIGNED NOT NULL,
+  `status` enum('Pending','Joined') NOT NULL DEFAULT 'Pending',
+  `joined_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `coordination_joining_staff`
+--
+
+INSERT INTO `coordination_joining_staff` (`id`, `coordination_id`, `user_id`, `status`, `joined_at`, `created_at`, `updated_at`) VALUES
+(4, 3, 3, 'Joined', '2026-09-03 06:27:07', '2026-09-03 06:15:16', '2026-09-03 06:27:07'),
+(5, 3, 1, 'Joined', '2026-09-03 06:25:48', '2026-09-03 06:15:16', '2026-09-03 06:25:48'),
+(6, 3, 2, 'Joined', '2026-09-03 06:23:44', '2026-09-03 06:15:16', '2026-09-03 06:23:44');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `credit_requests`
 --
 
 CREATE TABLE `credit_requests` (
   `credit_request_id` bigint(20) UNSIGNED NOT NULL,
   `lead_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `lead_source_id` bigint(20) UNSIGNED DEFAULT NULL,
   `customer_id` bigint(20) UNSIGNED DEFAULT NULL,
   `username` varchar(255) DEFAULT NULL,
   `phone` varchar(30) DEFAULT NULL,
@@ -165,6 +219,7 @@ CREATE TABLE `credit_requests` (
   `support_approved_at` timestamp NULL DEFAULT NULL,
   `support_remarks` text DEFAULT NULL,
   `requested_by` bigint(20) UNSIGNED DEFAULT NULL,
+  `custom_fields` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`custom_fields`)),
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL
@@ -174,8 +229,37 @@ CREATE TABLE `credit_requests` (
 -- Dumping data for table `credit_requests`
 --
 
-INSERT INTO `credit_requests` (`credit_request_id`, `lead_id`, `customer_id`, `username`, `phone`, `email`, `credit_amount`, `is_estimate`, `status`, `admin_approved_by`, `admin_approved_at`, `admin_remarks`, `support_approved_by`, `support_approved_at`, `support_remarks`, `requested_by`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, 1, 1, 'ajis', '9489042085', 'ajis@gmail.com', 1500.00, 0, 'Credit Added', 1, '2026-08-21 10:54:38', NULL, 1, '2026-08-21 10:54:55', 'fgfdg', 1, '2026-08-21 10:46:39', '2026-08-21 10:54:55', NULL);
+INSERT INTO `credit_requests` (`credit_request_id`, `lead_id`, `lead_source_id`, `customer_id`, `username`, `phone`, `email`, `credit_amount`, `is_estimate`, `status`, `admin_approved_by`, `admin_approved_at`, `admin_remarks`, `support_approved_by`, `support_approved_at`, `support_remarks`, `requested_by`, `custom_fields`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, NULL, 1, 791, '10003', '2707', 'anand@sparkalerts.in', 15000.00, 0, 'Credit Added', 1, '2026-09-03 05:21:57', 'admin side no issues', 13, '2026-09-03 05:24:45', 'product manager side no issues so proceed', 1, '[]', '2026-09-03 05:21:38', '2026-09-03 05:24:45', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `credit_request_custom_fields`
+--
+
+CREATE TABLE `credit_request_custom_fields` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `field_label` varchar(255) NOT NULL,
+  `field_name` varchar(255) NOT NULL,
+  `field_type` varchar(255) NOT NULL,
+  `field_options` text DEFAULT NULL,
+  `is_required` varchar(255) NOT NULL DEFAULT 'No',
+  `sort_order` int(11) NOT NULL DEFAULT 0,
+  `status` tinyint(4) NOT NULL DEFAULT 1,
+  `created_by` bigint(20) UNSIGNED DEFAULT NULL,
+  `updated_by` bigint(20) UNSIGNED DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `credit_request_custom_fields`
+--
+
+INSERT INTO `credit_request_custom_fields` (`id`, `field_label`, `field_name`, `field_type`, `field_options`, `is_required`, `sort_order`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 'credit reason', 'credit_reason', 'Text', NULL, 'Yes', 0, 1, NULL, NULL, '2026-09-02 05:30:34', '2026-09-03 04:44:31', '2026-09-03 04:44:31');
 
 -- --------------------------------------------------------
 
@@ -215,7 +299,7 @@ CREATE TABLE `customers` (
 --
 
 INSERT INTO `customers` (`customer_id`, `customer_type`, `name`, `company_name`, `mobile`, `email`, `alternate_mobile`, `address`, `city`, `state`, `country`, `pincode`, `owner_by`, `assign_by`, `created_by`, `status`, `credit_balance`, `password`, `reference_code`, `custom_fields`, `remember_token`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, 'user', 'ajis', 'site studio', '9489042085', 'ajis@gmail.com', NULL, NULL, 'madurai', 'Taminadu', 'India', NULL, NULL, NULL, 2, 1, 1500.00, NULL, NULL, NULL, NULL, '2026-08-13 01:47:54', '2026-08-21 10:54:55', NULL),
+(1, 'user', 'ajis', 'site studio', '9489042085', 'ajis@gmail.com', NULL, NULL, 'madurai', 'Taminadu', 'India', NULL, NULL, NULL, 2, 1, 0.00, NULL, NULL, NULL, NULL, '2026-08-13 01:47:54', '2026-09-03 04:33:16', NULL),
 (2, 'user', 'ajis', 'abc', '8521239632', NULL, NULL, NULL, NULL, NULL, 'India', NULL, NULL, NULL, 2, 1, 0.00, NULL, NULL, NULL, NULL, '2026-08-18 05:21:07', '2026-08-18 05:21:07', NULL),
 (3, 'user', 'deepika', 'abc', '9653247890', NULL, NULL, NULL, NULL, NULL, 'India', NULL, NULL, NULL, 4, 1, 0.00, NULL, NULL, NULL, NULL, '2026-08-21 06:46:17', '2026-08-21 06:46:17', NULL),
 (4, 'user', 'John Doe', 'Acme Corp', '9876543210', 'john@example.com', '9876543211', '123 Main St', 'Chennai', 'Tamil Nadu', 'India', '600001', NULL, NULL, 1, 1, 0.00, NULL, NULL, NULL, NULL, '2026-08-21 10:59:47', '2026-08-21 10:59:47', NULL),
@@ -1007,7 +1091,7 @@ INSERT INTO `customers` (`customer_id`, `customer_type`, `name`, `company_name`,
 (788, 'user', '9984', '9080517101', '2541', 'arafafashionboutique@gmail.com', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 8, 1, 0.00, NULL, NULL, NULL, NULL, '2026-08-24 09:01:17', '2026-08-24 09:01:17', NULL),
 (789, 'user', '9988', '8438189879', '2182', 'mail.absolutions@gmail.com', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 8, 1, 0.00, NULL, NULL, NULL, NULL, '2026-08-24 09:01:17', '2026-08-24 09:01:17', NULL),
 (790, 'user', '9993', '918667414985', '2872', 'sparrowmenswear.19@gmail.com', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 8, 1, 0.00, NULL, NULL, NULL, NULL, '2026-08-24 09:01:17', '2026-08-24 09:01:17', NULL),
-(791, 'user', '10003', '9600248421', '2707', 'anand@sparkalerts.in', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 8, 1, 0.00, NULL, NULL, NULL, NULL, '2026-08-24 09:01:17', '2026-08-24 09:01:17', NULL),
+(791, 'user', '10003', '9600248421', '2707', 'anand@sparkalerts.in', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 8, 1, 15000.00, NULL, NULL, NULL, NULL, '2026-08-24 09:01:17', '2026-09-03 05:24:45', NULL),
 (792, 'user', '10008', '9750024777', '2912', 'amutha916@gmail.com', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 8, 1, 0.00, NULL, NULL, NULL, NULL, '2026-08-24 09:01:17', '2026-08-24 09:01:17', NULL),
 (793, 'user', '10011', '9759202241', '2916', 'arsal_software@yahoo.com', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 8, 1, 0.00, NULL, NULL, NULL, NULL, '2026-08-24 09:01:17', '2026-08-24 09:01:17', NULL),
 (794, 'user', '10015', '9688455522', '2972', 'vallivasu.tvs@gmail.com', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 8, 1, 0.00, NULL, NULL, NULL, NULL, '2026-08-24 09:01:17', '2026-08-24 09:01:17', NULL),
@@ -1354,14 +1438,59 @@ CREATE TABLE `customer_custom_fields` (
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- --------------------------------------------------------
+
 --
--- Dumping data for table `customer_custom_fields`
+-- Table structure for table `demo_processes`
 --
 
-INSERT INTO `customer_custom_fields` (`id`, `field_label`, `field_name`, `field_type`, `field_options`, `is_required`, `status`, `sort_order`, `created_at`, `updated_at`) VALUES
-(1, 'aadhar number', 'aadhar_number', 'Text', NULL, 'No', 1, 0, '2026-08-29 07:36:37', '2026-08-29 07:48:42'),
-(2, 'category', 'category', 'Dropdown', 'electronics,fashion,beauty & personal care', 'No', 1, 0, '2026-08-29 07:49:14', '2026-08-29 07:49:14'),
-(3, 'terms and condition', 'terms_and_condition', 'Checkbox', 'Yes,No', 'Yes', 1, 0, '2026-08-29 07:51:08', '2026-08-29 07:51:08');
+CREATE TABLE `demo_processes` (
+  `demo_process_id` bigint(20) UNSIGNED NOT NULL,
+  `customer_name` varchar(255) NOT NULL,
+  `customer_phone` varchar(30) DEFAULT NULL,
+  `lead_source_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `demo_date` date DEFAULT NULL,
+  `demo_time` varchar(20) DEFAULT NULL,
+  `customer_type` varchar(100) DEFAULT NULL,
+  `created_by` bigint(20) UNSIGNED DEFAULT NULL,
+  `assigned_by` bigint(20) UNSIGNED DEFAULT NULL,
+  `sub_assigned_by` bigint(20) UNSIGNED DEFAULT NULL,
+  `status` enum('Pending','Finished') NOT NULL DEFAULT 'Pending',
+  `remarks` text DEFAULT NULL,
+  `custom_fields` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`custom_fields`)),
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `demo_process_custom_fields`
+--
+
+CREATE TABLE `demo_process_custom_fields` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `field_label` varchar(255) NOT NULL,
+  `field_name` varchar(255) NOT NULL,
+  `field_type` varchar(255) NOT NULL,
+  `field_options` text DEFAULT NULL,
+  `is_required` varchar(255) NOT NULL DEFAULT 'No',
+  `sort_order` int(11) NOT NULL DEFAULT 0,
+  `status` tinyint(4) NOT NULL DEFAULT 1,
+  `created_by` bigint(20) UNSIGNED DEFAULT NULL,
+  `updated_by` bigint(20) UNSIGNED DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `demo_process_custom_fields`
+--
+
+INSERT INTO `demo_process_custom_fields` (`id`, `field_label`, `field_name`, `field_type`, `field_options`, `is_required`, `sort_order`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(3, 'hygfhg', 'hygfhg', 'Text', NULL, 'No', 0, 1, NULL, NULL, '2026-09-03 10:27:44', '2026-09-03 10:41:05', '2026-09-03 10:41:05');
 
 -- --------------------------------------------------------
 
@@ -1483,7 +1612,7 @@ CREATE TABLE `general_settings` (
 --
 
 INSERT INTO `general_settings` (`id`, `company_name`, `logo`, `favicon`, `whatsapp_no`, `theme_color`, `created_at`, `updated_at`) VALUES
-(1, 'Erixon CRM', 'uploads/settings/logo_1787898504_550bed9c.png', 'uploads/settings/favicon_1786599209.png', '8610747034', '#e00c1d', '2026-08-07 00:49:16', '2026-08-29 08:08:09');
+(1, 'Erixon CRM', 'uploads/settings/logo_1787898504_550bed9c.png', 'uploads/settings/favicon_1786599209.png', '8610747034', '#7448c7', '2026-08-07 00:49:16', '2026-09-03 07:37:50');
 
 -- --------------------------------------------------------
 
@@ -1835,7 +1964,11 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 (38, '2026_08_29_000003_create_customer_custom_fields_table', 15),
 (39, '2026_08_29_000004_add_custom_fields_to_customers_table', 16),
 (40, '2026_08_29_000005_add_customer_list_columns_to_referral_settings_table', 17),
-(41, '2026_08_31_000001_create_followup_custom_fields_table', 18);
+(41, '2026_08_31_000001_create_followup_custom_fields_table', 18),
+(42, '2026_08_31_000002_add_location_fields_to_attendance_table', 19),
+(43, '2026_09_02_000001_create_credit_request_custom_fields_table', 20),
+(44, '2026_09_02_000002_add_lead_id_to_credit_requests_table', 21),
+(45, '2026_09_02_000003_create_coordinations_table', 22);
 
 -- --------------------------------------------------------
 
@@ -1876,7 +2009,8 @@ INSERT INTO `model_has_roles` (`role_id`, `model_type`, `model_id`) VALUES
 (3, 'App\\Models\\User', 5),
 (3, 'App\\Models\\User', 11),
 (4, 'App\\Models\\User', 6),
-(4, 'App\\Models\\User', 8);
+(4, 'App\\Models\\User', 8),
+(5, 'App\\Models\\User', 13);
 
 -- --------------------------------------------------------
 
@@ -1900,9 +2034,28 @@ CREATE TABLE `notifications` (
 --
 
 INSERT INTO `notifications` (`id`, `type`, `notifiable_type`, `notifiable_id`, `data`, `read_at`, `created_at`, `updated_at`) VALUES
-('0ace6014-bba9-4831-82db-82d920c8caef', 'App\\Notifications\\AdminLeaveRequestReceived', 'App\\Models\\User', 1, '{\"title\":\"New Staff Leave Request Pending Approval\",\"message\":\"riyaz (riyaz@gmail.com) submitted a leave request for 28-08-2026 to 31-08-2026 (3 day(s)) pending approval.\",\"leave_id\":5,\"user_id\":3,\"status\":\"Pending\"}', '2026-08-27 13:45:15', '2026-08-27 11:07:02', '2026-08-27 13:45:15'),
-('a431d067-3fff-4ab7-868a-c992b355b323', 'App\\Notifications\\AdminLeaveRequestReceived', 'App\\Models\\User', 7, '{\"title\":\"New Staff Leave Request Pending Approval\",\"message\":\"riyaz (riyaz@gmail.com) submitted a leave request for 28-08-2026 to 31-08-2026 (3 day(s)) pending approval.\",\"leave_id\":5,\"user_id\":3,\"status\":\"Pending\"}', '2026-08-27 13:45:15', '2026-08-27 11:07:02', '2026-08-27 13:45:15'),
-('d22c15a8-346b-4f59-99e4-9665be4b3465', 'App\\Notifications\\LeaveRequestSubmitted', 'App\\Models\\User', 3, '{\"title\":\"Leave Request Pending Approval\",\"message\":\"Your leave request for 28-08-2026 to 31-08-2026 (3 day(s)) has been submitted and is pending approval.\",\"leave_id\":5,\"status\":\"Pending\"}', '2026-08-27 13:45:18', '2026-08-27 11:07:02', '2026-08-27 13:45:18');
+('0b35ee19-70f2-4d34-8655-35427aaa8ff9', 'App\\Notifications\\DemoProcessCreated', 'App\\Models\\User', 1, '{\"title\":\"Demo Process Created\",\"message\":\"New Demo Process created for ajis (9489042085). Product: . Date: 03\\/09\\/2026, Timing: 10:00. Created By: super admin.\",\"demo_process_id\":2,\"customer_name\":\"ajis\",\"status\":\"Pending\"}', '2026-09-03 08:11:27', '2026-09-03 08:10:18', '2026-09-03 08:11:27'),
+('0bad0d84-7fdd-4288-9330-0db244308bdd', 'App\\Notifications\\DemoProcessPending', 'App\\Models\\User', 10, '{\"title\":\"Demo Process Pending\",\"message\":\"Demo for 1 is pending. Demo Date: 03\\/09\\/2026, Timing: 10:00.\",\"demo_process_id\":1,\"customer_name\":\"1\",\"status\":\"Pending\"}', '2026-09-03 09:57:38', '2026-09-03 09:57:00', '2026-09-03 09:57:38'),
+('21537e03-b06e-4e6f-83ef-6bf9e220324b', 'App\\Notifications\\DemoProcessPending', 'App\\Models\\User', 11, '{\"title\":\"Demo Process Pending\",\"message\":\"Demo for ajis is pending. Demo Date: 03\\/09\\/2026, Timing: 10:00.\",\"demo_process_id\":2,\"customer_name\":\"ajis\",\"status\":\"Pending\"}', '2026-09-03 08:11:05', '2026-09-03 08:10:18', '2026-09-03 08:11:05'),
+('256707e7-67d3-4477-8583-71f3bc418195', 'App\\Notifications\\DemoProcessPending', 'App\\Models\\User', 7, '{\"title\":\"Demo Process Pending\",\"message\":\"Demo for ajis is pending. Demo Date: 03\\/09\\/2026, Timing: 10:00.\",\"demo_process_id\":2,\"customer_name\":\"ajis\",\"status\":\"Pending\"}', '2026-09-03 08:11:04', '2026-09-03 08:10:18', '2026-09-03 08:11:04'),
+('2961673f-35a6-4fc2-96a9-716b19547c86', 'App\\Notifications\\DemoProcessCreated', 'App\\Models\\User', 1, '{\"title\":\"Demo Process Created\",\"message\":\"New Demo Process created for 1 (1). Product: N\\/A. Date: 03\\/09\\/2026, Timing: 10:00. Created By: super admin.\",\"demo_process_id\":1,\"customer_name\":\"1\",\"status\":\"Pending\"}', '2026-09-03 09:57:39', '2026-09-03 09:57:00', '2026-09-03 09:57:39'),
+('2c4958aa-fefb-4868-a19a-b56c0a44fc29', 'App\\Notifications\\CreditRequestApprovedByProductManager', 'App\\Models\\User', 13, '{\"title\":\"Credit Request Approved by Product Manager\",\"message\":\"Product Manager has approved the Credit Request. The approval process is completed.\",\"credit_request_id\":1,\"status\":\"Credit Added\"}', '2026-09-03 05:25:13', '2026-09-03 05:24:45', '2026-09-03 05:25:13'),
+('2dfe5ba6-23dd-4a8e-ade5-63ee2421fa5f', 'App\\Notifications\\DemoProcessFinished', 'App\\Models\\User', 11, '{\"title\":\"Demo Process Finished\",\"message\":\"Demo for ajis has been completed successfully.\",\"demo_process_id\":2,\"customer_name\":\"ajis\",\"status\":\"Finished\"}', '2026-09-03 08:16:47', '2026-09-03 08:16:26', '2026-09-03 08:16:47'),
+('2f0349da-0c80-49de-88a2-3df08e398e11', 'App\\Notifications\\DemoProcessPending', 'App\\Models\\User', 1, '{\"title\":\"Demo Process Pending\",\"message\":\"Demo for Ramesh Kumar is pending. Demo Date: 03\\/09\\/2026, Timing: 11:00.\",\"demo_process_id\":1,\"customer_name\":\"Ramesh Kumar\",\"status\":\"Pending\"}', '2026-09-03 07:47:07', '2026-09-03 07:46:08', '2026-09-03 07:47:07'),
+('2ffade68-0e23-478e-a177-cdf19e4971e6', 'App\\Notifications\\DemoProcessPending', 'App\\Models\\User', 1, '{\"title\":\"Demo Process Pending\",\"message\":\"Demo for ajis is pending. Demo Date: 03\\/09\\/2026, Timing: 10:00.\",\"demo_process_id\":2,\"customer_name\":\"ajis\",\"status\":\"Pending\"}', '2026-09-03 08:10:59', '2026-09-03 08:10:18', '2026-09-03 08:10:59'),
+('3fac588e-c278-4fc1-9e94-78051141e5a3', 'App\\Notifications\\CreditRequestApprovedByAdmin', 'App\\Models\\User', 13, '{\"title\":\"Credit Request Approved\",\"message\":\"Super Admin has approved the Credit Request. Next, Product Manager approval is required.\",\"credit_request_id\":1,\"status\":\"Forwarded to Support\"}', '2026-09-03 05:23:13', '2026-09-03 05:21:57', '2026-09-03 05:23:13'),
+('5ca00c86-52b2-4b82-b20e-39ae4952f6f8', 'App\\Notifications\\DemoProcessCreated', 'App\\Models\\User', 7, '{\"title\":\"Demo Process Created\",\"message\":\"New Demo Process created for ajis (9489042085). Product: . Date: 03\\/09\\/2026, Timing: 10:00. Created By: super admin.\",\"demo_process_id\":2,\"customer_name\":\"ajis\",\"status\":\"Pending\"}', '2026-09-03 08:10:58', '2026-09-03 08:10:18', '2026-09-03 08:10:58'),
+('725ab6e8-c793-4866-bd45-8c128552dfb2', 'App\\Notifications\\DemoProcessCreated', 'App\\Models\\User', 1, '{\"title\":\"Demo Process Created\",\"message\":\"New Demo Process created for Test Customer LS (9998887770). Product: CRM Software. Date: 03\\/09\\/2026, Timing: 12:00. Created By: super admin.\",\"demo_process_id\":3,\"customer_name\":\"Test Customer LS\",\"status\":\"Pending\"}', '2026-09-03 08:27:03', '2026-09-03 08:26:34', '2026-09-03 08:27:03'),
+('7a32ee0a-e6f3-4788-a5ee-350bb229611a', 'App\\Notifications\\CreditRequestApprovedByProductManager', 'App\\Models\\User', 1, '{\"title\":\"Credit Request Approved by Product Manager\",\"message\":\"Product Manager has approved the Credit Request. The approval process is completed.\",\"credit_request_id\":1,\"status\":\"Credit Added\"}', '2026-09-03 05:25:01', '2026-09-03 05:24:45', '2026-09-03 05:25:01'),
+('7a81f497-dfbe-469e-9dd6-0ac128d5ea61', 'App\\Notifications\\DemoProcessCreated', 'App\\Models\\User', 1, '{\"title\":\"Demo Process Created\",\"message\":\"New Demo Process created for Ramesh Kumar (9876543210). Product: CRM Software, Billing Solution. Date: 03\\/09\\/2026, Timing: 11:00. Created By: super admin.\",\"demo_process_id\":1,\"customer_name\":\"Ramesh Kumar\",\"status\":\"Pending\"}', '2026-09-03 07:47:08', '2026-09-03 07:46:08', '2026-09-03 07:47:08'),
+('84c93675-3d90-4f09-b81d-9983ce23de87', 'App\\Notifications\\DemoProcessFinished', 'App\\Models\\User', 1, '{\"title\":\"Demo Process Finished\",\"message\":\"Demo for ajis has been completed successfully.\",\"demo_process_id\":2,\"customer_name\":\"ajis\",\"status\":\"Finished\"}', '2026-09-03 08:16:46', '2026-09-03 08:16:26', '2026-09-03 08:16:46'),
+('8d480a9b-1f30-4c05-8883-45786dfc59c3', 'App\\Notifications\\DemoProcessCreated', 'App\\Models\\User', 10, '{\"title\":\"Demo Process Created\",\"message\":\"New Demo Process created for 1 (1). Product: N\\/A. Date: 03\\/09\\/2026, Timing: 10:00. Created By: super admin.\",\"demo_process_id\":1,\"customer_name\":\"1\",\"status\":\"Pending\"}', '2026-09-03 09:58:53', '2026-09-03 09:57:00', '2026-09-03 09:58:53'),
+('92265ece-d6cd-4bf9-b87d-be50b85ce15f', 'App\\Notifications\\DemoProcessPending', 'App\\Models\\User', 1, '{\"title\":\"Demo Process Pending\",\"message\":\"Demo for Test Customer LS is pending. Demo Date: 03\\/09\\/2026, Timing: 12:00.\",\"demo_process_id\":3,\"customer_name\":\"Test Customer LS\",\"status\":\"Pending\"}', '2026-09-03 08:27:04', '2026-09-03 08:26:34', '2026-09-03 08:27:04'),
+('b30b1d9b-a792-4736-b894-5bce17808ed2', 'App\\Notifications\\DemoProcessFinished', 'App\\Models\\User', 7, '{\"title\":\"Demo Process Finished\",\"message\":\"Demo for ajis has been completed successfully.\",\"demo_process_id\":2,\"customer_name\":\"ajis\",\"status\":\"Finished\"}', '2026-09-03 08:16:44', '2026-09-03 08:16:26', '2026-09-03 08:16:44'),
+('b6d99bb8-f95d-4ce4-9f1e-d86159b4d0e1', 'App\\Notifications\\DemoProcessFinished', 'App\\Models\\User', 1, '{\"title\":\"Demo Process Finished\",\"message\":\"Demo for Ramesh Kumar has been completed successfully.\",\"demo_process_id\":1,\"customer_name\":\"Ramesh Kumar\",\"status\":\"Finished\"}', '2026-09-03 07:47:10', '2026-09-03 07:46:08', '2026-09-03 07:47:10'),
+('bf165a38-a7ba-4263-ae0d-8777fef437b2', 'App\\Notifications\\CreditRequestApprovedByAdmin', 'App\\Models\\User', 1, '{\"title\":\"Credit Request Approved\",\"message\":\"Super Admin has approved the Credit Request. Next, Product Manager approval is required.\",\"credit_request_id\":1,\"status\":\"Forwarded to Support\"}', '2026-09-03 05:23:53', '2026-09-03 05:21:57', '2026-09-03 05:23:53'),
+('c4479fb4-66e1-45a7-8f7b-938573a40687', 'App\\Notifications\\DemoProcessPending', 'App\\Models\\User', 1, '{\"title\":\"Demo Process Pending\",\"message\":\"Demo for 1 is pending. Demo Date: 03\\/09\\/2026, Timing: 10:00.\",\"demo_process_id\":1,\"customer_name\":\"1\",\"status\":\"Pending\"}', '2026-09-03 09:58:54', '2026-09-03 09:57:00', '2026-09-03 09:58:54'),
+('f19b81bc-51a3-4f10-b65b-06aa8e45b98a', 'App\\Notifications\\DemoProcessCreated', 'App\\Models\\User', 11, '{\"title\":\"Demo Process Created\",\"message\":\"New Demo Process created for ajis (9489042085). Product: . Date: 03\\/09\\/2026, Timing: 10:00. Created By: super admin.\",\"demo_process_id\":2,\"customer_name\":\"ajis\",\"status\":\"Pending\"}', '2026-09-03 08:10:56', '2026-09-03 08:10:18', '2026-09-03 08:10:56');
 
 -- --------------------------------------------------------
 
@@ -1926,6 +2079,7 @@ CREATE TABLE `payments` (
   `payment_id` bigint(20) UNSIGNED NOT NULL,
   `customer_id` bigint(20) UNSIGNED NOT NULL,
   `lead_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `lead_source_id` bigint(20) DEFAULT NULL,
   `amount` decimal(12,2) NOT NULL DEFAULT 0.00,
   `tax_percentage` decimal(5,2) NOT NULL DEFAULT 0.00,
   `tax_amount` decimal(12,2) NOT NULL DEFAULT 0.00,
@@ -1945,8 +2099,10 @@ CREATE TABLE `payments` (
 -- Dumping data for table `payments`
 --
 
-INSERT INTO `payments` (`payment_id`, `customer_id`, `lead_id`, `amount`, `tax_percentage`, `tax_amount`, `total_amount`, `payment_method`, `payment_date`, `payment_screenshot`, `tax_number`, `remarks`, `created_by`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, 1, 1, 50000.00, 9.00, 4500.00, 54500.00, 'Cash', '2026-08-21', 'uploads/payments/1787309452_WhatsApp_Image_2026-08-14_at_11.53.04_AM_(2)_(1).jpeg', NULL, NULL, 1, '2026-08-21 10:50:52', '2026-08-21 10:50:52', NULL);
+INSERT INTO `payments` (`payment_id`, `customer_id`, `lead_id`, `lead_source_id`, `amount`, `tax_percentage`, `tax_amount`, `total_amount`, `payment_method`, `payment_date`, `payment_screenshot`, `tax_number`, `remarks`, `created_by`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 1, 1, NULL, 50000.00, 9.00, 4500.00, 54500.00, 'Cash', '2026-08-21', 'uploads/payments/1787309452_WhatsApp_Image_2026-08-14_at_11.53.04_AM_(2)_(1).jpeg', NULL, NULL, 1, '2026-08-21 10:50:52', '2026-08-21 10:50:52', NULL),
+(2, 791, NULL, NULL, 26000.00, 18.00, 4680.00, 30680.00, 'Cash', '2026-09-02', 'uploads/payments/1788329025_WhatsApp_Image_2026-08-31_at_11.11.36_AM.jpeg', 'cxcxcxcx', NULL, 1, '2026-09-02 06:03:45', '2026-09-02 06:10:54', '2026-09-02 06:10:54'),
+(3, 794, NULL, 1, 45000.00, 18.00, 8100.00, 53100.00, 'Cash', '2026-09-02', 'uploads/payments/1788329474_WhatsApp_Image_2026-08-31_at_11.11.36_AM.jpeg', NULL, NULL, 1, '2026-09-02 06:11:14', '2026-09-02 06:11:14', NULL);
 
 -- --------------------------------------------------------
 
@@ -2059,7 +2215,20 @@ INSERT INTO `permissions` (`id`, `name`, `guard_name`, `created_at`, `updated_at
 (90, 'customer-settings.view', 'web', '2026-08-29 07:20:38', '2026-08-29 07:20:38'),
 (91, 'customer-settings.edit', 'web', '2026-08-29 07:20:38', '2026-08-29 07:20:38'),
 (92, 'followup-settings.view', 'web', '2026-08-31 04:08:41', '2026-08-31 04:08:41'),
-(93, 'followup-settings.edit', 'web', '2026-08-31 04:08:42', '2026-08-31 04:08:42');
+(93, 'followup-settings.edit', 'web', '2026-08-31 04:08:42', '2026-08-31 04:08:42'),
+(94, 'credit-request-settings.view', 'web', '2026-09-02 04:20:06', '2026-09-02 04:20:06'),
+(95, 'credit-request-settings.edit', 'web', '2026-09-02 04:20:06', '2026-09-02 04:20:06'),
+(96, 'coordinations.view', 'web', '2026-09-02 05:09:57', '2026-09-02 05:09:57'),
+(97, 'coordinations.create', 'web', '2026-09-02 05:09:57', '2026-09-02 05:09:57'),
+(98, 'coordinations.edit', 'web', '2026-09-02 05:09:57', '2026-09-02 05:09:57'),
+(99, 'coordinations.delete', 'web', '2026-09-02 05:09:57', '2026-09-02 05:09:57'),
+(100, 'demo-processes.view', 'web', '2026-09-03 07:43:49', '2026-09-03 07:43:49'),
+(101, 'demo-processes.create', 'web', '2026-09-03 07:43:49', '2026-09-03 07:43:49'),
+(102, 'demo-processes.edit', 'web', '2026-09-03 07:43:49', '2026-09-03 07:43:49'),
+(103, 'demo-processes.delete', 'web', '2026-09-03 07:43:49', '2026-09-03 07:43:49'),
+(104, 'demo-processes.assign', 'web', '2026-09-03 07:43:50', '2026-09-03 07:43:50'),
+(105, 'demo-process-settings.view', 'web', '2026-09-03 10:20:51', '2026-09-03 10:20:51'),
+(106, 'demo-process-settings.edit', 'web', '2026-09-03 10:20:51', '2026-09-03 10:20:51');
 
 -- --------------------------------------------------------
 
@@ -2114,15 +2283,17 @@ CREATE TABLE `referral_settings` (
   `customer_list_columns` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`customer_list_columns`)),
   `followup_list_columns` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`followup_list_columns`)),
   `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `credit_request_list_columns` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`credit_request_list_columns`)),
+  `demo_process_list_columns` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`demo_process_list_columns`))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `referral_settings`
 --
 
-INSERT INTO `referral_settings` (`id`, `referral_points`, `lead_list_columns`, `customer_list_columns`, `followup_list_columns`, `created_at`, `updated_at`) VALUES
-(1, 150, '[\"lead_title\",\"customer\",\"lead_source\",\"priority\",\"expected_amount\",\"assigned_to\",\"next_followup_date\",\"created_at\",\"created_by\",\"status\"]', '[\"customer_type\",\"name\",\"company_name\",\"mobile\",\"email\",\"alternate_mobile\",\"address\",\"city\",\"state\",\"country\",\"pincode\",\"created_at\",\"created_by\",\"status\"]', '[\"lead_info\",\"followup_type\",\"duration\",\"next_followup_date\",\"status\",\"forward_to\",\"created_by\",\"created_at\",\"remarks\"]', '2026-08-07 00:49:16', '2026-08-31 04:30:39');
+INSERT INTO `referral_settings` (`id`, `referral_points`, `lead_list_columns`, `customer_list_columns`, `followup_list_columns`, `created_at`, `updated_at`, `credit_request_list_columns`, `demo_process_list_columns`) VALUES
+(1, 150, '[\"lead_title\",\"customer\",\"lead_source\",\"priority\",\"expected_amount\",\"assigned_to\",\"next_followup_date\",\"created_at\",\"created_by\",\"status\"]', '[\"customer_type\",\"name\",\"company_name\",\"mobile\",\"email\",\"alternate_mobile\",\"address\",\"city\",\"state\",\"country\",\"pincode\",\"created_at\",\"created_by\",\"status\"]', '[\"lead_info\",\"followup_type\",\"duration\",\"next_followup_date\",\"status\",\"forward_to\",\"created_by\",\"created_at\",\"remarks\"]', '2026-08-07 00:49:16', '2026-09-03 10:40:55', NULL, '[\"customer_name\",\"customer_phone\",\"lead_source\",\"product_name\",\"demo_date\",\"demo_time\",\"customer_type\",\"created_by\",\"assigned_by\",\"sub_assigned_by\",\"status\",\"remarks\",\"created_at\"]');
 
 -- --------------------------------------------------------
 
@@ -2147,7 +2318,8 @@ INSERT INTO `roles` (`id`, `name`, `guard_name`, `created_at`, `updated_at`, `de
 (1, 'Super Admin', 'web', '2026-08-07 00:49:17', '2026-08-07 00:49:17', NULL),
 (2, 'manager', 'web', '2026-08-07 02:06:08', '2026-08-07 02:06:08', NULL),
 (3, 'support', 'web', '2026-08-21 05:30:09', '2026-08-21 05:30:09', NULL),
-(4, 'sales team', 'web', '2026-08-21 05:39:17', '2026-08-21 05:39:17', NULL);
+(4, 'sales team', 'web', '2026-08-21 05:39:17', '2026-08-21 05:39:17', NULL),
+(5, 'product manager', 'web', '2026-09-02 04:12:28', '2026-09-02 04:12:28', NULL);
 
 -- --------------------------------------------------------
 
@@ -2169,6 +2341,7 @@ INSERT INTO `role_has_permissions` (`permission_id`, `role_id`) VALUES
 (1, 2),
 (1, 3),
 (1, 4),
+(1, 5),
 (2, 1),
 (2, 2),
 (2, 4),
@@ -2195,32 +2368,32 @@ INSERT INTO `role_has_permissions` (`permission_id`, `role_id`) VALUES
 (12, 2),
 (12, 3),
 (12, 4),
+(12, 5),
 (13, 1),
-(13, 2),
 (13, 3),
 (13, 4),
 (14, 1),
-(14, 2),
 (14, 3),
 (14, 4),
 (15, 1),
-(15, 2),
 (15, 4),
 (16, 1),
-(16, 2),
 (16, 4),
 (17, 1),
 (17, 2),
 (17, 3),
 (17, 4),
+(17, 5),
 (18, 1),
 (18, 2),
 (18, 3),
 (18, 4),
+(18, 5),
 (19, 1),
 (19, 2),
 (19, 3),
 (19, 4),
+(19, 5),
 (20, 1),
 (20, 2),
 (20, 4),
@@ -2390,13 +2563,23 @@ INSERT INTO `role_has_permissions` (`permission_id`, `role_id`) VALUES
 (72, 2),
 (72, 4),
 (73, 1),
+(73, 2),
 (73, 4),
+(73, 5),
 (74, 1),
+(74, 2),
 (74, 4),
+(74, 5),
 (75, 1),
+(75, 2),
+(75, 5),
 (76, 1),
+(76, 2),
+(76, 5),
 (77, 1),
+(77, 2),
 (77, 4),
+(77, 5),
 (78, 1),
 (78, 4),
 (79, 1),
@@ -2417,7 +2600,23 @@ INSERT INTO `role_has_permissions` (`permission_id`, `role_id`) VALUES
 (90, 1),
 (91, 1),
 (92, 1),
-(93, 1);
+(93, 1),
+(94, 1),
+(94, 2),
+(95, 1),
+(95, 2),
+(96, 1),
+(96, 2),
+(97, 1),
+(98, 1),
+(99, 1),
+(100, 1),
+(101, 1),
+(102, 1),
+(103, 1),
+(104, 1),
+(105, 1),
+(106, 1);
 
 -- --------------------------------------------------------
 
@@ -2439,7 +2638,7 @@ CREATE TABLE `sessions` (
 --
 
 INSERT INTO `sessions` (`id`, `user_id`, `ip_address`, `user_agent`, `payload`, `last_activity`) VALUES
-('YI8zSncXUM3nIJlcOt1bhmgSs9pghDZs7t5PDsDr', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', 'YTo1OntzOjY6Il90b2tlbiI7czo0MDoiYWMxRXdrSmhNOHdXcXgybUNFUUlvVE9tbnZVNUU2akExbVM1YjUxcyI7czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6Mzk6Imh0dHA6Ly8xMjcuMC4wLjE6ODAwMC9hZG1pbi9lZGl0X3JvbGUvMSI7fXM6NjoiX2ZsYXNoIjthOjI6e3M6Mzoib2xkIjthOjA6e31zOjM6Im5ldyI7YTowOnt9fXM6NTA6ImxvZ2luX3dlYl81OWJhMzZhZGRjMmIyZjk0MDE1ODBmMDE0YzdmNThlYTRlMzA5ODlkIjtpOjE7czoxNzoicGFzc3dvcmRfaGFzaF93ZWIiO3M6NjA6IiQyeSQxMiRuNE1ieTF5MGVybWNMR3lEZFhGOGRPVDBJS1JCSVVpMU56SGFmLnNWZWt3VUFXUGxmWWdLaSI7fQ==', 1788151510);
+('ICURVENRZfalDXES5w90wKBrwGgLe4gMWuPR2frb', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', 'YTo1OntzOjY6Il90b2tlbiI7czo0MDoia0tERVhmNFM0eENNRjlVb3FlZVlpektYb2h0eEpZS2Y5UnpiZFV4ciI7czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6MzY6Imh0dHA6Ly8xMjcuMC4wLjE6ODAwMC9hZG1pbi9hZGRfcm9sZSI7fXM6NjoiX2ZsYXNoIjthOjI6e3M6Mzoib2xkIjthOjA6e31zOjM6Im5ldyI7YTowOnt9fXM6NTA6ImxvZ2luX3dlYl81OWJhMzZhZGRjMmIyZjk0MDE1ODBmMDE0YzdmNThlYTRlMzA5ODlkIjtpOjE7czoxNzoicGFzc3dvcmRfaGFzaF93ZWIiO3M6NjA6IiQyeSQxMiRuNE1ieTF5MGVybWNMR3lEZFhGOGRPVDBJS1JCSVVpMU56SGFmLnNWZWt3VUFXUGxmWWdLaSI7fQ==', 1788433006);
 
 -- --------------------------------------------------------
 
@@ -2508,7 +2707,8 @@ INSERT INTO `users` (`id`, `name`, `email`, `profile_image`, `mobile_number`, `a
 (8, 'Shanmuga Sundari', 'erixonindia@gmail.com', NULL, '7306803864', 'tirunelveli', NULL, NULL, NULL, NULL, 'Permanent', 0.00, 1.00, '09:00:00', 3, 0.00, NULL, '09:10:00', '18:00:00', 0, NULL, '$2y$12$QQguCNoMIZ2Bry5fb3rbvOwqnbLAEcyMC0UPS1j6gJs9xH6aqpVRy', NULL, '2026-08-24 08:55:11', '2026-08-28 10:25:05', '2026-08-28 10:25:05'),
 (9, 'tesst', 'test@gmail.com', NULL, NULL, NULL, 'Male', NULL, NULL, NULL, 'Temporary', 10000.00, 0.00, '09:00:00', 3, 0.00, NULL, '09:10:00', '18:00:00', 0, NULL, '$2y$12$ascvM6ov8dIjd2Vc7WgdMu/DK.qnrnPFAiwDt/iZs2gPQvgonhRXC', NULL, '2026-08-26 05:58:38', '2026-08-26 06:00:34', '2026-08-26 06:00:34'),
 (10, 'Baiju', 'baijuarun@gmail.com', NULL, '808 904 8830', NULL, 'Male', '1988-06-05', '2014-04-20', 'MD', 'Permanent', 0.00, 1.50, '09:00:00', 2, 0.00, NULL, '09:00:00', '18:00:00', 0, NULL, '$2y$12$o7npdlVaxg2mp0RTPqNV3eiyWYT3wQvK5pqS2GxDiAXkieI2cfdX.', NULL, '2026-08-28 10:30:10', '2026-08-28 10:30:10', NULL),
-(11, 'harini', 'harini@gmail.com', NULL, '859298830', NULL, NULL, NULL, NULL, NULL, 'Temporary', 0.00, 0.00, '09:00:00', 2, 0.00, NULL, '09:10:00', '18:00:00', 0, NULL, '$2y$12$gkRDaddti0.cMRRt0oOp2uwN8ddmsgeatNimoJGoxVeAP4u30c/ky', NULL, '2026-08-28 10:59:13', '2026-08-28 10:59:13', NULL);
+(11, 'harini', 'harini@gmail.com', NULL, '859298830', NULL, NULL, NULL, NULL, NULL, 'Temporary', 0.00, 0.00, '09:00:00', 2, 0.00, NULL, '09:10:00', '18:00:00', 0, NULL, '$2y$12$gkRDaddti0.cMRRt0oOp2uwN8ddmsgeatNimoJGoxVeAP4u30c/ky', NULL, '2026-08-28 10:59:13', '2026-08-28 10:59:13', NULL),
+(13, 'test', 'testtest@gmail.com', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Permanent', 0.00, 1.00, '09:00:00', 3, 0.00, NULL, '09:10:00', '18:00:00', 0, NULL, '$2y$12$C3azs5TsY6bkdZEEx0gAzuPgDozmIb3s6bpvx7gPuzoatEcjrbIGK', NULL, '2026-09-03 04:24:23', '2026-09-03 04:24:23', NULL);
 
 --
 -- Indexes for dumped tables
@@ -2552,15 +2752,39 @@ ALTER TABLE `call_recordings`
   ADD KEY `call_recordings_created_by_foreign` (`created_by`);
 
 --
+-- Indexes for table `coordinations`
+--
+ALTER TABLE `coordinations`
+  ADD PRIMARY KEY (`coordination_id`),
+  ADD KEY `coordinations_staff_id_foreign` (`staff_id`),
+  ADD KEY `coordinations_created_by_foreign` (`created_by`);
+
+--
+-- Indexes for table `coordination_joining_staff`
+--
+ALTER TABLE `coordination_joining_staff`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uniq_coord_user` (`coordination_id`,`user_id`),
+  ADD KEY `coordination_joining_staff_user_id_foreign` (`user_id`);
+
+--
 -- Indexes for table `credit_requests`
 --
 ALTER TABLE `credit_requests`
   ADD PRIMARY KEY (`credit_request_id`),
-  ADD KEY `credit_requests_lead_id_foreign` (`lead_id`),
   ADD KEY `credit_requests_customer_id_foreign` (`customer_id`),
   ADD KEY `credit_requests_admin_approved_by_foreign` (`admin_approved_by`),
   ADD KEY `credit_requests_support_approved_by_foreign` (`support_approved_by`),
-  ADD KEY `credit_requests_requested_by_foreign` (`requested_by`);
+  ADD KEY `credit_requests_requested_by_foreign` (`requested_by`),
+  ADD KEY `credit_requests_lead_id_foreign` (`lead_id`),
+  ADD KEY `credit_requests_lead_source_id_foreign` (`lead_source_id`);
+
+--
+-- Indexes for table `credit_request_custom_fields`
+--
+ALTER TABLE `credit_request_custom_fields`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `credit_request_custom_fields_field_name_unique` (`field_name`);
 
 --
 -- Indexes for table `customers`
@@ -2577,6 +2801,23 @@ ALTER TABLE `customers`
 ALTER TABLE `customer_custom_fields`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `customer_custom_fields_field_name_unique` (`field_name`);
+
+--
+-- Indexes for table `demo_processes`
+--
+ALTER TABLE `demo_processes`
+  ADD PRIMARY KEY (`demo_process_id`),
+  ADD KEY `demo_processes_lead_source_id_foreign` (`lead_source_id`),
+  ADD KEY `demo_processes_created_by_foreign` (`created_by`),
+  ADD KEY `demo_processes_assigned_by_foreign` (`assigned_by`),
+  ADD KEY `demo_processes_sub_assigned_by_foreign` (`sub_assigned_by`);
+
+--
+-- Indexes for table `demo_process_custom_fields`
+--
+ALTER TABLE `demo_process_custom_fields`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `demo_process_custom_fields_field_name_unique` (`field_name`);
 
 --
 -- Indexes for table `failed_jobs`
@@ -2737,7 +2978,8 @@ ALTER TABLE `payments`
   ADD PRIMARY KEY (`payment_id`),
   ADD KEY `payments_customer_id_foreign` (`customer_id`),
   ADD KEY `payments_lead_id_foreign` (`lead_id`),
-  ADD KEY `payments_created_by_foreign` (`created_by`);
+  ADD KEY `payments_created_by_foreign` (`created_by`),
+  ADD KEY `lead_source_id` (`lead_source_id`);
 
 --
 -- Indexes for table `permissions`
@@ -2827,10 +3069,28 @@ ALTER TABLE `call_recordings`
   MODIFY `call_id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
+-- AUTO_INCREMENT for table `coordinations`
+--
+ALTER TABLE `coordinations`
+  MODIFY `coordination_id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `coordination_joining_staff`
+--
+ALTER TABLE `coordination_joining_staff`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+
+--
 -- AUTO_INCREMENT for table `credit_requests`
 --
 ALTER TABLE `credit_requests`
   MODIFY `credit_request_id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `credit_request_custom_fields`
+--
+ALTER TABLE `credit_request_custom_fields`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `customers`
@@ -2842,6 +3102,18 @@ ALTER TABLE `customers`
 -- AUTO_INCREMENT for table `customer_custom_fields`
 --
 ALTER TABLE `customer_custom_fields`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `demo_processes`
+--
+ALTER TABLE `demo_processes`
+  MODIFY `demo_process_id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `demo_process_custom_fields`
+--
+ALTER TABLE `demo_process_custom_fields`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
@@ -2938,19 +3210,19 @@ ALTER TABLE `lost_reasons`
 -- AUTO_INCREMENT for table `migrations`
 --
 ALTER TABLE `migrations`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=42;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=46;
 
 --
 -- AUTO_INCREMENT for table `payments`
 --
 ALTER TABLE `payments`
-  MODIFY `payment_id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `payment_id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `permissions`
 --
 ALTER TABLE `permissions`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=94;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=107;
 
 --
 -- AUTO_INCREMENT for table `permission_requests`
@@ -2974,7 +3246,7 @@ ALTER TABLE `referral_settings`
 -- AUTO_INCREMENT for table `roles`
 --
 ALTER TABLE `roles`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `templates`
@@ -2986,7 +3258,7 @@ ALTER TABLE `templates`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- Constraints for dumped tables
@@ -3015,12 +3287,27 @@ ALTER TABLE `call_recordings`
   ADD CONSTRAINT `call_recordings_lead_id_foreign` FOREIGN KEY (`lead_id`) REFERENCES `leads` (`lead_id`) ON DELETE CASCADE;
 
 --
+-- Constraints for table `coordinations`
+--
+ALTER TABLE `coordinations`
+  ADD CONSTRAINT `coordinations_created_by_foreign` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `coordinations_staff_id_foreign` FOREIGN KEY (`staff_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `coordination_joining_staff`
+--
+ALTER TABLE `coordination_joining_staff`
+  ADD CONSTRAINT `coordination_joining_staff_coordination_id_foreign` FOREIGN KEY (`coordination_id`) REFERENCES `coordinations` (`coordination_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `coordination_joining_staff_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
 -- Constraints for table `credit_requests`
 --
 ALTER TABLE `credit_requests`
   ADD CONSTRAINT `credit_requests_admin_approved_by_foreign` FOREIGN KEY (`admin_approved_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `credit_requests_customer_id_foreign` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`customer_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `credit_requests_lead_id_foreign` FOREIGN KEY (`lead_id`) REFERENCES `leads` (`lead_id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `credit_requests_lead_source_id_foreign` FOREIGN KEY (`lead_source_id`) REFERENCES `lead_sources` (`lead_sources_id`) ON DELETE SET NULL,
   ADD CONSTRAINT `credit_requests_requested_by_foreign` FOREIGN KEY (`requested_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `credit_requests_support_approved_by_foreign` FOREIGN KEY (`support_approved_by`) REFERENCES `users` (`id`) ON DELETE SET NULL;
 
@@ -3029,6 +3316,15 @@ ALTER TABLE `credit_requests`
 --
 ALTER TABLE `customers`
   ADD CONSTRAINT `customers_created_by_foreign` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `demo_processes`
+--
+ALTER TABLE `demo_processes`
+  ADD CONSTRAINT `demo_processes_assigned_by_foreign` FOREIGN KEY (`assigned_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `demo_processes_created_by_foreign` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `demo_processes_lead_source_id_foreign` FOREIGN KEY (`lead_source_id`) REFERENCES `lead_sources` (`lead_sources_id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `demo_processes_sub_assigned_by_foreign` FOREIGN KEY (`sub_assigned_by`) REFERENCES `users` (`id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `followups`
