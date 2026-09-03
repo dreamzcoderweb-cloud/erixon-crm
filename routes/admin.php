@@ -124,6 +124,8 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
         ->middleware('permission:coordinations.edit');
     Route::delete('coordinations/delete/{id}', [CoordinationController::class, 'destroy'])
         ->middleware('permission:coordinations.delete');
+    Route::post('coordinations/toggle-join/{id}', [CoordinationController::class, 'toggleJoinStatus'])
+        ->middleware('permission:coordinations.view');
 
     // Lead Stages routes
     Route::get('lead-stages', [LeadStageController::class, 'index'])

@@ -95,8 +95,17 @@
             </li>
         @endcan
 
-        @canany(['lead-sources.view', 'coordinations.view', 'lead-stages.view', 'lead-requirements.view', 'lost-reasons.view', 'followups.view', 'leads.view', 'lead-documents.view', 'call-recordings.view', 'call-logs.view', 'call-log-reports.view'])
-            <li class="menu-item {{ request()->is('admin/lead-sources*') || request()->is('admin/coordinations*') || request()->is('admin/lead-stages*') || request()->is('admin/lead-requirements*') || request()->is('admin/lost-reasons*') || request()->is('admin/followups*') || request()->is('admin/leads*') || request()->is('admin/lead-documents*') || request()->is('admin/call-recordings*') || request()->is('admin/call-logs*') ? 'active open' : '' }}">
+        @can('coordinations.view')
+            <li class="menu-item {{ request()->is('admin/coordinations*') ? 'active' : '' }}">
+                <a href="{{ route('admin.coordinations.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-git-repo-forked"></i>
+                    <div class="text-truncate">Coordination</div>
+                </a>
+            </li>
+        @endcan
+
+        @canany(['lead-sources.view', 'lead-stages.view', 'lead-requirements.view', 'lost-reasons.view', 'followups.view', 'leads.view', 'lead-documents.view', 'call-recordings.view', 'call-logs.view', 'call-log-reports.view'])
+            <li class="menu-item {{ request()->is('admin/lead-sources*') || request()->is('admin/lead-stages*') || request()->is('admin/lead-requirements*') || request()->is('admin/lost-reasons*') || request()->is('admin/followups*') || request()->is('admin/leads*') || request()->is('admin/lead-documents*') || request()->is('admin/call-recordings*') || request()->is('admin/call-logs*') ? 'active open' : '' }}">
                 <a href="javascript:void(0);" class="menu-link menu-toggle">
                     <i class="menu-icon tf-icons bx bx-target-lock"></i>
                     <div class="text-truncate">Leads Management</div>
@@ -151,13 +160,7 @@
                             </a>
                         </li>
                     @endcan
-                    @can('coordinations.view')
-                        <li class="menu-item {{ request()->is('admin/coordinations*') ? 'active' : '' }}">
-                            <a href="{{ route('admin.coordinations.index') }}" class="menu-link">
-                                <div class="text-truncate">Coordination</div>
-                            </a>
-                        </li>
-                    @endcan
+
                     @can('lead-stages.view')
                         <li class="menu-item {{ request()->is('admin/lead-stages*') ? 'active' : '' }}">
                             <a href="{{ route('admin.lead-stages.index') }}" class="menu-link">

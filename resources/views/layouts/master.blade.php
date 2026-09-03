@@ -202,6 +202,7 @@
             z-index: 1050 !important;
         }
     </style>
+    @stack('css')
 </head>
 
 <body>

@@ -5,6 +5,44 @@ $(document).ready(function () {
         }
     });
 
+    // Initialize Select2 for multi-select dropdowns
+    function initSelect2() {
+        if ($.fn.select2) {
+            $('#add_joining_staff_ids').select2({
+                dropdownParent: $('#addCoordinationModal'),
+                placeholder: 'Select Joining Staff members...',
+                width: '100%',
+                allowClear: true
+            });
+
+            $('#edit_joining_staff_ids').select2({
+                dropdownParent: $('#editCoordinationModal'),
+                placeholder: 'Select Joining Staff members...',
+                width: '100%',
+                allowClear: true
+            });
+        }
+    }
+
+    // Re-initialize Select2 when modals are opened to ensure proper sizing and alignment
+    $('#addCoordinationModal, #editCoordinationModal').on('shown.bs.modal', function () {
+        initSelect2();
+    });
+
+    initSelect2();
+
+    // When Created Staff is changed in Add modal, auto-ensure it is selected in Joining Staff
+    $('#add_staff_id').on('change', function () {
+        let val = $(this).val();
+        if (val && $.fn.select2) {
+            let currentValues = $('#add_joining_staff_ids').val() || [];
+            if (!currentValues.includes(val)) {
+                currentValues.push(val);
+                $('#add_joining_staff_ids').val(currentValues).trigger('change');
+            }
+        }
+    });
+
     function formatDate(dateStr) {
         if (!dateStr) return 'N/A';
         let d = new Date(dateStr);
@@ -30,26 +68,69 @@ $(document).ready(function () {
             {
                 data: 'staff',
                 render: function (data, type, row) {
-                    let staffName = data && data.name ? data.name : 'N/A';
+                    let staffName = data && data.name ? data.name : (row.creator && row.creator.name ? row.creator.name : 'N/A');
                     if (type !== 'display') return staffName;
                     return `<strong>${staffName}</strong>`;
                 }
             },
             {
                 data: 'link',
-                render: function (data, type) {
+                render: function (data, type, row) {
                     if (!data) return '<span class="text-muted">N/A</span>';
                     if (type !== 'display') return data;
                     let targetUrl = data.startsWith('http://') || data.startsWith('https://') ? data : 'https://' + data;
-                    return `<a href="${targetUrl}" target="_blank" class="text-primary text-break"><i class="bx bx-link-external me-1"></i>${data}</a>`;
+                    return `<a href="${targetUrl}" target="_blank" class="text-primary text-break coordination-link-click" data-id="${row.coordination_id}"><i class="bx bx-link-external me-1"></i>${data}</a>`;
                 }
             },
             {
-                data: 'creator',
+                data: null,
                 render: function (data, type, row) {
-                    let creatorName = data && data.name ? data.name : (row.created_by ? 'User #' + row.created_by : 'N/A');
-                    if (type !== 'display') return creatorName;
-                    return `<span class="badge bg-label-info">${creatorName}</span>`;
+                    let total = row.total_joining || 0;
+                    let joinedCount = row.joined_count || 0;
+                    let pendingCount = row.pending_count || 0;
+
+                    let joinedNames = (row.joined_staff || []).map(s => s.name).join(', ');
+                    let pendingNames = (row.pending_staff || []).map(s => s.name).join(', ');
+
+                    if (type !== 'display') {
+                        return `Total: ${total}, Joined: ${joinedCount}, Pending: ${pendingCount}`;
+                    }
+
+                    let html = `<div class="d-flex flex-column gap-1">`;
+
+                    html += `<div class="d-flex align-items-center gap-1 flex-wrap">`;
+                    html += `<span class="badge bg-primary me-1" title="Total Joining Staff">Total: ${total}</span>`;
+                    html += `<span class="badge bg-success me-1" title="Joined Staff">Joined: ${joinedCount}</span>`;
+                    html += `<span class="badge bg-warning text-dark" title="Pending Staff">Pending: ${pendingCount}</span>`;
+                    html += `</div>`;
+
+                    if (joinedCount > 0) {
+                        html += `<div class="small"><span class="fw-semibold text-success"><i class="bx bx-check-circle me-1"></i>Joined (${joinedCount}):</span> <span class="text-muted">${joinedNames}</span></div>`;
+                    }
+
+                    if (pendingCount > 0) {
+                        html += `<div class="small"><span class="fw-semibold text-warning"><i class="bx bx-time-five me-1"></i>Pending (${pendingCount}):</span> <span class="text-muted">${pendingNames}</span></div>`;
+                    }
+
+                    html += `</div>`;
+                    return html;
+                }
+            },
+            {
+                data: null,
+                render: function (data, type, row) {
+                    let status = row.user_joined_status || 'Pending';
+                    if (type !== 'display') return status;
+
+                    if (status === 'Joined') {
+                        return `<button type="button" class="btn btn-xs btn-success btn-toggle-join" data-id="${row.coordination_id}" title="Click to change to Pending">
+                                    <i class="bx bx-check-circle me-1"></i> Joined
+                                </button>`;
+                    } else {
+                        return `<button type="button" class="btn btn-xs btn-outline-warning btn-toggle-join" data-id="${row.coordination_id}" title="Click to mark as Joined">
+                                    <i class="bx bx-time me-1"></i> Mark Joined
+                                </button>`;
+                    }
                 }
             },
             {
@@ -150,6 +231,45 @@ $(document).ready(function () {
         }
     });
 
+    // Automatically mark user as Joined when clicking the Coordination link
+    $(document).on('click', '.coordination-link-click', function () {
+        let id = $(this).data('id');
+        $.ajax({
+            url: APP_URL + '/admin/coordinations/toggle-join/' + id,
+            type: 'POST',
+            data: { force_join: 1 },
+            success: function (response) {
+                if (response.status && typeof coordinationTable !== 'undefined') {
+                    coordinationTable.ajax.reload(null, false);
+                }
+            }
+        });
+    });
+
+    // Toggle Join Status Handler
+    $(document).on('click', '.btn-toggle-join', function () {
+        let btn = $(this);
+        let id = btn.data('id');
+        btn.prop('disabled', true);
+
+        $.ajax({
+            url: APP_URL + '/admin/coordinations/toggle-join/' + id,
+            type: 'POST',
+            success: function (response) {
+                if (response.status) {
+                    coordinationTable.ajax.reload(null, false);
+                    showAlert('success', response.message);
+                }
+            },
+            error: function () {
+                showAlert('danger', 'Failed to update participation status.');
+            },
+            complete: function () {
+                btn.prop('disabled', false);
+            }
+        });
+    });
+
     // Add Coordination Form Submit
     $('#addCoordinationForm').on('submit', function (e) {
         e.preventDefault();
@@ -169,6 +289,9 @@ $(document).ready(function () {
                 if (response.status) {
                     $('#addCoordinationModal').modal('hide');
                     form[0].reset();
+                    if ($.fn.select2) {
+                        $('#add_joining_staff_ids').val(null).trigger('change');
+                    }
                     coordinationTable.ajax.reload(null, false);
                     showAlert('success', response.message);
                 }
@@ -202,6 +325,11 @@ $(document).ready(function () {
                     $('#edit_coordination_id').val(coordination.coordination_id);
                     $('#edit_staff_id').val(coordination.staff_id);
                     $('#edit_link').val(coordination.link);
+
+                    if (coordination.joining_staff && $.fn.select2) {
+                        let joiningIds = coordination.joining_staff.map(s => s.id);
+                        $('#edit_joining_staff_ids').val(joiningIds).trigger('change');
+                    }
 
                     $('#editCoordinationModal').modal('show');
                 }
