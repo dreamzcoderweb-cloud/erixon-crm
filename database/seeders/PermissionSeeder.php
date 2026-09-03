@@ -135,6 +135,12 @@ class PermissionSeeder extends Seeder
             'permissions.create',
             'permissions.approve',
             'permissions.delete',
+
+            'demo-processes.view',
+            'demo-processes.create',
+            'demo-processes.edit',
+            'demo-processes.delete',
+            'demo-processes.assign',
         ];
 
         foreach ($permissions as $name) {

@@ -401,6 +401,8 @@
     <script src="{{ asset('assets/js/custom-js/payment.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/incentive.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/notification.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="{{ asset('assets/js/custom-js/demo_process.js') }}"></script>
     <!-- Vendors JS -->
     <script src="{{ asset('assets/vendor/libs/apex-charts/apexcharts.js') }}"></script>
 

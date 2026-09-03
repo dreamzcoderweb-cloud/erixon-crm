@@ -104,6 +104,15 @@
             </li>
         @endcan
 
+        @can('demo-processes.view')
+            <li class="menu-item {{ request()->is('admin/demo-processes*') ? 'active' : '' }}">
+                <a href="{{ route('admin.demo-processes.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-slideshow"></i>
+                    <div class="text-truncate">Demo Process</div>
+                </a>
+            </li>
+        @endcan
+
         @canany(['lead-sources.view', 'lead-stages.view', 'lead-requirements.view', 'lost-reasons.view', 'followups.view', 'leads.view', 'lead-documents.view', 'call-recordings.view', 'call-logs.view', 'call-log-reports.view'])
             <li class="menu-item {{ request()->is('admin/lead-sources*') || request()->is('admin/lead-stages*') || request()->is('admin/lead-requirements*') || request()->is('admin/lost-reasons*') || request()->is('admin/followups*') || request()->is('admin/leads*') || request()->is('admin/lead-documents*') || request()->is('admin/call-recordings*') || request()->is('admin/call-logs*') ? 'active open' : '' }}">
                 <a href="javascript:void(0);" class="menu-link menu-toggle">

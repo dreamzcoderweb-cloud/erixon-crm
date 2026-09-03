@@ -24,6 +24,7 @@ use App\Http\Controllers\CallLogController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\IncentiveController;
+use App\Http\Controllers\DemoProcessController;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -126,6 +127,23 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
         ->middleware('permission:coordinations.delete');
     Route::post('coordinations/toggle-join/{id}', [CoordinationController::class, 'toggleJoinStatus'])
         ->middleware('permission:coordinations.view');
+
+    // Demo Process routes
+    Route::get('demo-processes', [DemoProcessController::class, 'index'])
+        ->middleware('permission:demo-processes.view')
+        ->name('demo-processes.index');
+    Route::get('demo-processes/data', [DemoProcessController::class, 'listData'])
+        ->middleware('permission:demo-processes.view');
+    Route::post('demo-processes/store', [DemoProcessController::class, 'store'])
+        ->middleware('permission:demo-processes.create');
+    Route::get('demo-processes/edit/{id}', [DemoProcessController::class, 'edit'])
+        ->middleware('permission:demo-processes.edit');
+    Route::post('demo-processes/update/{id}', [DemoProcessController::class, 'update'])
+        ->middleware('permission:demo-processes.edit');
+    Route::post('demo-processes/update-status/{id}', [DemoProcessController::class, 'updateStatus'])
+        ->middleware('permission:demo-processes.edit');
+    Route::delete('demo-processes/delete/{id}', [DemoProcessController::class, 'destroy'])
+        ->middleware('permission:demo-processes.delete');
 
     // Lead Stages routes
     Route::get('lead-stages', [LeadStageController::class, 'index'])
