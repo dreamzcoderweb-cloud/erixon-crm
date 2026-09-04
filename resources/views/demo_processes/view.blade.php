@@ -175,15 +175,28 @@
                 <table id="demo-processes-table" class="table table-hover align-middle w-100">
                     <thead class="table-light">
                         <tr>
-                            <th>#</th>
-                            <th>Customer Name</th>
-                            <th>Lead Source </th>
-                            <th>Demo Schedule</th>
-                            <th>Customer Type</th>
-                            <th>Created By (Sales)</th>
-                            <th>Assigned Team (PM / Support)</th>
-                            <th>Status</th>
-                            <th>Actions</th>
+                            <th class="text-center">#</th>
+                            @if (!empty($visibleColumns) && count($visibleColumns) > 0)
+                                @foreach ($visibleColumns as $col)
+                                    <th class="{{ in_array($col['key'], ['demo_date', 'demo_time', 'status', 'created_at']) ? 'text-center' : '' }}">
+                                        {{ $col['label'] }}
+                                    </th>
+                                @endforeach
+                            @else
+                                <th>Customer Name</th>
+                                <th>Phone Number</th>
+                                <th>Lead Source</th>
+                                <th>Demo Date</th>
+                                <th>Demo Timing</th>
+                                <th>Customer Type</th>
+                                <th>Created By (Sales)</th>
+                                <th>Assigned By (PM)</th>
+                                <th>Sub Assigned By (Support)</th>
+                                <th>Status</th>
+                                <th>Remarks</th>
+                                <th>Created Date</th>
+                            @endif
+                            <th class="text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -228,9 +241,9 @@
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label fw-semibold">Lead Source</label>
+                                <label class="form-label fw-semibold">Product Name <span class="text-muted">(Lead Source)</span></label>
                                 <select name="lead_source_id" id="add_lead_source_id" class="form-select">
-                                    <option value="">-- Select Lead Source --</option>
+                                    <option value="">-- Select Product Name --</option>
                                     @foreach ($leadSources as $ls)
                                         <option value="{{ $ls->lead_sources_id }}">{{ $ls->name }}</option>
                                     @endforeach
@@ -384,9 +397,9 @@
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label fw-semibold">Lead Source</label>
+                                <label class="form-label fw-semibold">Product Name <span class="text-muted">(Lead Source)</span></label>
                                 <select name="lead_source_id" id="edit_lead_source_id" class="form-select">
-                                    <option value="">-- Select Lead Source --</option>
+                                    <option value="">-- Select Product Name --</option>
                                     @foreach ($leadSources as $ls)
                                         <option value="{{ $ls->lead_sources_id }}">{{ $ls->name }}</option>
                                     @endforeach
@@ -534,5 +547,10 @@
             </div>
         </div>
     </div>
+
+    <script>
+        window.customDemoProcessFields = @json($customFields ?? []);
+        window.visibleDemoProcessColumns = @json($visibleColumns ?? []);
+    </script>
 @endsection
 

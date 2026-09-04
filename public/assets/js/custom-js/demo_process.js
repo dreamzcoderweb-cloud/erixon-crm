@@ -157,115 +157,194 @@ $(document).ready(function () {
         }
     });
 
-    // DataTables Initialization
-    let demoProcessTable = $('#demo-processes-table').DataTable({
-        order: [],
-        ajax: {
-            url: APP_URL + '/admin/demo-processes/data',
-            data: function (d) {
-                d.filter_type = $('#demo_filter_period').val();
-                d.date = $('#demo_filter_date').val();
-                d.month = $('#demo_filter_month').val();
-                d.start_date = $('#demo_filter_start_date').val();
-                d.end_date = $('#demo_filter_end_date').val();
-                d.status = $('#demo_filter_status').val();
-                d.created_by = $('#demo_filter_created_by').val();
-            },
-            dataSrc: 'data'
+    // Standard Field Renderers for Dynamic Table Columns
+    let standardRenderers = {
+        'customer_name': function (data, type, row) {
+            let name = row.customer_name || 'N/A';
+            if (type !== 'display') return name;
+            return `<strong>${name}</strong>`;
         },
-        columns: [
-            {
-                data: null,
-                render: function (data, type, row, meta) {
-                    return meta.row + 1;
-                }
-            },
-            {
-                data: 'customer_name',
-                render: function (data, type, row) {
-                    if (type !== 'display') return data;
-                    return `<strong>${data}</strong><br><small class="text-muted"><i class="bx bx-phone me-1"></i>${row.customer_phone || 'N/A'}</small>`;
-                }
-            },
-            {
-                data: 'product_text',
-                render: function (data, type, row) {
-                    if (type !== 'display') return data;
-                    let sourceBadge = `<span class="badge bg-label-info mb-1">${row.lead_source || 'N/A'}</span>`;
-                    return `${sourceBadge}<br><small class="text-dark">${data || 'N/A'}</small>`;
-                }
-            },
-            {
-                data: 'demo_date_formatted',
-                render: function (data, type, row) {
-                    if (type !== 'display') return data;
-                    return `<i class="bx bx-calendar me-1"></i>${data}<br><small class="text-muted"><i class="bx bx-time me-1"></i>${row.demo_time || 'N/A'}</small>`;
-                }
-            },
-            {
-                data: 'customer_type',
-                render: function (data, type) {
-                    if (type !== 'display') return data || 'User';
-                    return `<span class="badge bg-label-primary text-uppercase">${data || 'User'}</span>`;
-                }
-            },
-            {
-                data: 'creator',
-                render: function (data, type) {
-                    let name = data && data.name ? data.name : 'Sales Staff';
-                    if (type !== 'display') return name;
-                    return `<strong>${name}</strong>`;
-                }
-            },
-            {
-                data: null,
-                render: function (data, type, row) {
-                    let pmName = row.assigned_user ? row.assigned_user.name : '<span class="text-muted">Unassigned</span>';
-                    let supName = row.sub_assigned_user ? row.sub_assigned_user.name : '<span class="text-muted">Unassigned</span>';
-                    if (type !== 'display') return `${pmName} / ${supName}`;
-                    return `<small><strong>PM:</strong> ${pmName}</small><br><small><strong>Support:</strong> ${supName}</small>`;
-                }
-            },
-            {
-                data: 'status',
-                render: function (data, type, row) {
-                    let status = data || 'Pending';
-                    if (type !== 'display') return status;
+        'customer_phone': function (data, type, row) {
+            let phone = row.customer_phone || 'N/A';
+            if (type !== 'display') return phone;
+            return phone !== 'N/A' ? `<a href="tel:${phone}" class="text-body"><i class="bx bx-phone me-1"></i>${phone}</a>` : '<span class="text-muted">N/A</span>';
+        },
+        'lead_source': function (data, type, row) {
+            let source = row.lead_source || row.product_name || 'N/A';
+            if (type !== 'display') return source;
+            return source !== 'N/A' ? `<span class="badge bg-label-info">${source}</span>` : '<span class="text-muted">N/A</span>';
+        },
+        'product_name': function (data, type, row) {
+            let prod = row.product_name || row.lead_source || 'N/A';
+            if (type !== 'display') return prod;
+            return prod !== 'N/A' ? `<span class="badge bg-label-info">${prod}</span>` : '<span class="text-muted">N/A</span>';
+        },
+        'demo_date': function (data, type, row) {
+            let date = row.demo_date_formatted || (row.demo_date ? row.demo_date : 'N/A');
+            if (type !== 'display') return row.demo_date || '';
+            return date !== 'N/A' ? `<span class="badge bg-label-dark"><i class="bx bx-calendar me-1"></i>${date}</span>` : '<span class="text-muted">N/A</span>';
+        },
+        'demo_time': function (data, type, row) {
+            let time = row.demo_time || 'N/A';
+            if (type !== 'display') return time;
+            return time !== 'N/A' ? `<span class="badge bg-label-secondary"><i class="bx bx-time me-1"></i>${time}</span>` : '<span class="text-muted">N/A</span>';
+        },
+        'customer_type': function (data, type, row) {
+            let val = row.customer_type || 'User';
+            if (type !== 'display') return val;
+            return `<span class="badge bg-label-primary text-uppercase">${val}</span>`;
+        },
+        'created_by': function (data, type, row) {
+            let name = row.creator && row.creator.name ? row.creator.name : 'Sales Staff';
+            if (type !== 'display') return name;
+            return `<strong>${name}</strong>`;
+        },
+        'assigned_by': function (data, type, row) {
+            let name = row.assigned_user ? row.assigned_user.name : null;
+            if (type !== 'display') return name || 'Unassigned';
+            return name ? `<span class="badge bg-label-info">${name}</span>` : '<span class="text-muted">Unassigned</span>';
+        },
+        'sub_assigned_by': function (data, type, row) {
+            let name = row.sub_assigned_user ? row.sub_assigned_user.name : null;
+            if (type !== 'display') return name || 'Unassigned';
+            return name ? `<span class="badge bg-label-info">${name}</span>` : '<span class="text-muted">Unassigned</span>';
+        },
+        'status': function (data, type, row) {
+            let status = row.status || 'Pending';
+            if (type !== 'display') return status;
 
-                    if (status === 'Finished') {
-                        return `<button type="button" class="btn btn-xs btn-success btn-toggle-demo-status" data-id="${row.demo_process_id}" data-status="Pending" title="Click to change to Pending">
-                                    <i class="bx bx-check-circle me-1"></i> Finished
-                                </button>`;
-                    } else {
-                        return `<button type="button" class="btn btn-xs btn-outline-warning btn-toggle-demo-status" data-id="${row.demo_process_id}" data-status="Finished" title="Click to mark as Finished">
-                                    <i class="bx bx-time me-1"></i> Pending
-                                </button>`;
-                    }
-                }
-            },
-            {
-                data: null,
-                orderable: false,
-                render: function (data, type, row) {
-                    let custName = row.customer_name ? row.customer_name.replace(/'/g, "\\'") : '';
-                    return `
-                        <div class="dropdown">
-                            <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
-                                <i class="bx bx-dots-vertical-rounded"></i>
-                            </button>
-                            <div class="dropdown-menu dropdown-menu-end">
-                                <a class="dropdown-item btn-edit-demo" href="javascript:void(0);" data-id="${row.demo_process_id}">
-                                    <i class="bx bx-edit-alt me-1"></i> Edit
-                                </a>
-                                <a class="dropdown-item text-danger btn-delete-demo" href="javascript:void(0);" data-id="${row.demo_process_id}" data-name="${custName}">
-                                    <i class="bx bx-trash me-1"></i> Delete
-                                </a>
-                            </div>
-                        </div>
-                    `;
-                }
+            if (status === 'Finished') {
+                return `<button type="button" class="btn btn-xs btn-success btn-toggle-demo-status" data-id="${row.demo_process_id}" data-status="Pending" title="Click to change to Pending">
+                            <i class="bx bx-check-circle me-1"></i> Finished
+                        </button>`;
+            } else {
+                return `<button type="button" class="btn btn-xs btn-outline-warning btn-toggle-demo-status" data-id="${row.demo_process_id}" data-status="Finished" title="Click to mark as Finished">
+                            <i class="bx bx-time me-1"></i> Pending
+                        </button>`;
             }
-        ],
+        },
+        'remarks': function (data, type, row) {
+            let rem = row.remarks || '';
+            if (type !== 'display') return rem;
+            return rem ? `<span title="${rem}">${rem.length > 30 ? rem.substring(0, 30) + '...' : rem}</span>` : '<span class="text-muted">-</span>';
+        },
+        'created_at': function (data, type, row) {
+            let val = row.created_at || '';
+            if (type !== 'display') return val;
+            return val ? `<small class="text-muted">${val}</small>` : '<span class="text-muted">-</span>';
+        },
+        'demo_schedule': function (data, type, row) {
+            let date = row.demo_date_formatted || row.demo_date || 'N/A';
+            let time = row.demo_time || '';
+            if (type !== 'display') return `${date} ${time}`;
+            return `<i class="bx bx-calendar me-1"></i>${date}<br><small class="text-muted"><i class="bx bx-time me-1"></i>${time || 'N/A'}</small>`;
+        },
+        'assigned_team': function (data, type, row) {
+            let pmName = row.assigned_user ? row.assigned_user.name : '<span class="text-muted">Unassigned</span>';
+            let supName = row.sub_assigned_user ? row.sub_assigned_user.name : '<span class="text-muted">Unassigned</span>';
+            if (type !== 'display') return `${pmName} / ${supName}`;
+            return `<small><strong>PM:</strong> ${pmName}</small><br><small><strong>Support:</strong> ${supName}</small>`;
+        }
+    };
+
+    let columnsConfig = [
+        {
+            data: null,
+            className: 'text-center',
+            render: function (data, type, row, meta) {
+                return meta.row + 1;
+            }
+        }
+    ];
+
+    let visibleDemoCols = window.visibleDemoProcessColumns || [];
+    if (visibleDemoCols && visibleDemoCols.length > 0) {
+        visibleDemoCols.forEach(function (col) {
+            if (col.type === 'standard') {
+                let renderer = standardRenderers[col.key];
+                if (renderer) {
+                    columnsConfig.push({
+                        data: null,
+                        className: ['demo_date', 'demo_time', 'status', 'created_at'].includes(col.key) ? 'text-center' : '',
+                        render: renderer
+                    });
+                } else {
+                    columnsConfig.push({
+                        data: col.key,
+                        defaultContent: '-'
+                    });
+                }
+            } else if (col.type === 'custom') {
+                columnsConfig.push({
+                    data: null,
+                    render: function (data, type, row) {
+                        let cfVal = (row.custom_fields && row.custom_fields[col.key] !== undefined) ? row.custom_fields[col.key] : '-';
+                        if (cfVal === '1' && col.field && col.field.field_type === 'Checkbox') cfVal = 'Yes';
+                        if (cfVal === '0' && col.field && col.field.field_type === 'Checkbox') cfVal = 'No';
+                        return cfVal !== null && cfVal !== '' ? cfVal : '-';
+                    }
+                });
+            }
+        });
+    } else {
+        columnsConfig.push({ data: null, render: standardRenderers['customer_name'] });
+        columnsConfig.push({ data: null, render: standardRenderers['customer_phone'] });
+        columnsConfig.push({ data: null, render: standardRenderers['lead_source'] });
+        columnsConfig.push({ data: null, className: 'text-center', render: standardRenderers['demo_date'] });
+        columnsConfig.push({ data: null, className: 'text-center', render: standardRenderers['demo_time'] });
+        columnsConfig.push({ data: null, render: standardRenderers['customer_type'] });
+        columnsConfig.push({ data: null, render: standardRenderers['created_by'] });
+        columnsConfig.push({ data: null, render: standardRenderers['assigned_by'] });
+        columnsConfig.push({ data: null, render: standardRenderers['sub_assigned_by'] });
+        columnsConfig.push({ data: null, className: 'text-center', render: standardRenderers['status'] });
+        columnsConfig.push({ data: null, render: standardRenderers['remarks'] });
+        columnsConfig.push({ data: null, className: 'text-center', render: standardRenderers['created_at'] });
+    }
+
+    // Action column
+    columnsConfig.push({
+        data: null,
+        orderable: false,
+        className: 'text-center',
+        render: function (data, type, row) {
+            let custName = row.customer_name ? row.customer_name.replace(/'/g, "\\'") : '';
+            return `
+                <div class="dropdown">
+                    <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                        <i class="bx bx-dots-vertical-rounded"></i>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end">
+                        <a class="dropdown-item btn-edit-demo" href="javascript:void(0);" data-id="${row.demo_process_id}">
+                            <i class="bx bx-edit-alt me-1"></i> Edit
+                        </a>
+                        <a class="dropdown-item text-danger btn-delete-demo" href="javascript:void(0);" data-id="${row.demo_process_id}" data-name="${custName}">
+                            <i class="bx bx-trash me-1"></i> Delete
+                        </a>
+                    </div>
+                </div>
+            `;
+        }
+    });
+
+    // DataTables Initialization
+    let demoProcessTable = null;
+    if ($('#demo-processes-table').length) {
+        demoProcessTable = $('#demo-processes-table').DataTable({
+            order: [],
+            ajax: {
+                url: APP_URL + '/admin/demo-processes/data',
+                data: function (d) {
+                    d.filter_type = $('#demo_filter_period').val();
+                    d.date = $('#demo_filter_date').val();
+                    d.month = $('#demo_filter_month').val();
+                    d.start_date = $('#demo_filter_start_date').val();
+                    d.end_date = $('#demo_filter_end_date').val();
+                    d.status = $('#demo_filter_status').val();
+                    d.created_by = $('#demo_filter_created_by').val();
+                },
+                dataSrc: 'data'
+            },
+            columns: columnsConfig,
         layout: {
             topStart: [
                 'pageLength',
@@ -315,6 +394,7 @@ $(document).ready(function () {
             emptyTable: 'No Demo Process records found'
         }
     });
+    }
 
     // Clear validation on modal hide
     $('.modal').on('hidden.bs.modal', function () {
@@ -348,8 +428,9 @@ $(document).ready(function () {
                 if (response.status) {
                     $('#addDemoProcessModal').modal('hide');
                     form[0].reset();
-                    $('#add_product_names').val(null).trigger('change');
-                    demoProcessTable.ajax.reload();
+                    if (demoProcessTable) {
+                        demoProcessTable.ajax.reload();
+                    }
                     showAlert('success', response.message);
                 }
             },
@@ -388,11 +469,7 @@ $(document).ready(function () {
                     $('#edit_sub_assigned_by').val(d.sub_assigned_by || '');
                     $('#edit_remarks').val(d.remarks || '');
 
-                    if (d.product_names) {
-                        $('#edit_product_names').val(d.product_names).trigger('change');
-                    } else {
-                        $('#edit_product_names').val(null).trigger('change');
-                    }
+
 
                     // Populate custom fields
                     let editForm = $('#editDemoProcessForm');
@@ -441,7 +518,9 @@ $(document).ready(function () {
             success: function (response) {
                 if (response.status) {
                     $('#editDemoProcessModal').modal('hide');
-                    demoProcessTable.ajax.reload(null, false);
+                    if (demoProcessTable) {
+                        demoProcessTable.ajax.reload(null, false);
+                    }
                     showAlert('success', response.message);
                 }
             },
@@ -472,7 +551,9 @@ $(document).ready(function () {
             data: { status: newStatus },
             success: function (response) {
                 if (response.status) {
-                    demoProcessTable.ajax.reload(null, false);
+                    if (demoProcessTable) {
+                        demoProcessTable.ajax.reload(null, false);
+                    }
                     showAlert('success', response.message);
                 }
             },
@@ -488,7 +569,7 @@ $(document).ready(function () {
     // Open Delete Demo Process Modal
     $(document).on('click', '.btn-delete-demo', function () {
         deleteDemoProcessId = $(this).data('id');
-        let name = $(this).data('name');
+        let name = $(this).data('name') || 'this demo process';
         $('#delete_customer_name').text(name);
         $('#deleteDemoProcessModal').modal('show');
     });
@@ -506,7 +587,9 @@ $(document).ready(function () {
             success: function (response) {
                 if (response.status) {
                     $('#deleteDemoProcessModal').modal('hide');
-                    demoProcessTable.ajax.reload(null, false);
+                    if (demoProcessTable) {
+                        demoProcessTable.ajax.reload(null, false);
+                    }
                     showAlert('success', response.message);
                 }
             },
@@ -540,13 +623,17 @@ $(document).ready(function () {
             $('#demo_group_custom_end').removeClass('d-none');
         }
 
-        demoProcessTable.ajax.reload();
+        if (demoProcessTable) {
+            demoProcessTable.ajax.reload();
+        }
     });
 
     // Filter Form Submit
     $('#demoProcessFilterForm').on('submit', function (e) {
         e.preventDefault();
-        demoProcessTable.ajax.reload();
+        if (demoProcessTable) {
+            demoProcessTable.ajax.reload();
+        }
     });
 
     // Reset Filters
@@ -558,6 +645,8 @@ $(document).ready(function () {
         $('#demo_filter_status').val('');
         $('#demo_filter_created_by').val('');
         $('.demo-filter-date-group').addClass('d-none');
-        demoProcessTable.ajax.reload();
+        if (demoProcessTable) {
+            demoProcessTable.ajax.reload();
+        }
     });
 });

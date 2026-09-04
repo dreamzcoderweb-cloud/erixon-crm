@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\DemoProcess;
 use App\Models\DemoProcessCustomField;
+use App\Models\LeadSetting;
 use App\Models\LeadSource;
 use App\Models\Customer;
 use App\Models\LeadRequirement;
@@ -54,7 +55,68 @@ class DemoProcessController extends Controller
         $leadRequirements = LeadRequirement::orderBy('name', 'asc')->get();
         $customFields = DemoProcessCustomField::where('status', 1)->orderBy('sort_order', 'asc')->orderBy('id', 'asc')->get();
 
-        return view('demo_processes.view', compact('staffList', 'productManagers', 'supportTeam', 'leadSources', 'customers', 'leadRequirements', 'customFields'));
+        $setting = LeadSetting::getSettings();
+
+        $standardFields = [
+            'customer_name'   => 'Customer Name',
+            'customer_phone'  => 'Phone Number',
+            'lead_source'     => 'Lead Source',
+            'demo_date'       => 'Demo Date',
+            'demo_time'       => 'Demo Timing',
+            'customer_type'   => 'Customer Type',
+            'created_by'      => 'Created By (Sales)',
+            'assigned_by'     => 'Assigned By (PM)',
+            'sub_assigned_by' => 'Sub Assigned By (Support)',
+            'status'          => 'Status',
+            'remarks'         => 'Remarks',
+            'created_at'      => 'Created Date',
+        ];
+
+        $allAvailableFieldsMap = [];
+        foreach ($standardFields as $key => $label) {
+            $allAvailableFieldsMap[$key] = [
+                'key'   => $key,
+                'label' => $label,
+                'type'  => 'standard',
+            ];
+        }
+
+        foreach ($customFields as $cf) {
+            $allAvailableFieldsMap[$cf->field_name] = [
+                'key'   => $cf->field_name,
+                'label' => $cf->field_label,
+                'type'  => 'custom',
+                'field' => $cf,
+            ];
+        }
+
+        $savedColumns = $setting->demo_process_list_columns;
+
+        if (empty($savedColumns) || !is_array($savedColumns)) {
+            $savedColumns = array_keys($allAvailableFieldsMap);
+        } else {
+            $savedColumns = array_values(array_filter($savedColumns, function ($key) use ($allAvailableFieldsMap) {
+                return isset($allAvailableFieldsMap[$key]);
+            }));
+        }
+
+        $visibleColumns = [];
+        foreach ($savedColumns as $colKey) {
+            if (isset($allAvailableFieldsMap[$colKey])) {
+                $visibleColumns[] = $allAvailableFieldsMap[$colKey];
+            }
+        }
+
+        return view('demo_processes.view', compact(
+            'staffList',
+            'productManagers',
+            'supportTeam',
+            'leadSources',
+            'customers',
+            'leadRequirements',
+            'customFields',
+            'visibleColumns'
+        ));
     }
 
     public function listData(Request $request = null)
@@ -114,8 +176,8 @@ class DemoProcessController extends Controller
                 'customer_phone'  => $dp->customer_phone,
                 'lead_source_id'  => $dp->lead_source_id,
                 'lead_source'     => $dp->leadSource ? $dp->leadSource->name : 'N/A',
-                'product_names'   => $dp->product_names ?? [],
-                'product_text'    => is_array($dp->product_names) ? implode(', ', $dp->product_names) : ($dp->product_names ?? 'N/A'),
+                'product_name'    => $dp->leadSource ? $dp->leadSource->name : 'N/A',
+                'product_text'    => $dp->leadSource ? $dp->leadSource->name : 'N/A',
                 'demo_date'       => $dp->demo_date ? $dp->demo_date->format('Y-m-d') : null,
                 'demo_date_formatted' => $dp->demo_date ? $dp->demo_date->format('d/m/Y') : 'N/A',
                 'demo_time'       => $dp->demo_time,
@@ -129,6 +191,7 @@ class DemoProcessController extends Controller
                 'status'          => $dp->status,
                 'remarks'         => $dp->remarks,
                 'created_at'      => $dp->created_at ? $dp->created_at->format('d/m/Y H:i') : '',
+                'custom_fields'   => $dp->custom_fields ?? [],
             ];
         });
 
@@ -144,7 +207,6 @@ class DemoProcessController extends Controller
             'customer_name'   => 'required|string|max:255',
             'customer_phone'  => 'required|string|max:30',
             'lead_source_id'  => 'nullable|exists:lead_sources,lead_sources_id',
-            'product_names'   => 'nullable',
             'demo_date'       => 'required|date',
             'demo_time'       => 'required|string',
             'customer_type'   => 'nullable|string|max:100',
@@ -171,14 +233,12 @@ class DemoProcessController extends Controller
         }
 
         $user = Auth::user();
-        $rawProducts = $request->input('product_names');
-        $productArray = is_array($rawProducts) ? $rawProducts : (!empty($rawProducts) ? [$rawProducts] : []);
+
 
         $demoProcess = DemoProcess::create([
             'customer_name'   => $request->input('customer_name'),
             'customer_phone'  => $request->input('customer_phone'),
             'lead_source_id'  => $request->filled('lead_source_id') ? $request->input('lead_source_id') : null,
-            'product_names'   => $productArray,
             'demo_date'       => $request->input('demo_date'),
             'demo_time'       => $request->input('demo_time'),
             'customer_type'   => $request->input('customer_type'),
@@ -226,6 +286,7 @@ class DemoProcessController extends Controller
                 'sub_assigned_by' => $demoProcess->sub_assigned_by,
                 'status'          => $demoProcess->status,
                 'remarks'         => $demoProcess->remarks,
+                'custom_fields'   => $demoProcess->custom_fields ?? [],
             ],
         ]);
     }
@@ -246,7 +307,6 @@ class DemoProcessController extends Controller
             'customer_name'   => 'required|string|max:255',
             'customer_phone'  => 'required|string|max:30',
             'lead_source_id'  => 'nullable|exists:lead_sources,lead_sources_id',
-            'product_names'   => 'nullable',
             'demo_date'       => 'required|date',
             'demo_time'       => 'required|string',
             'customer_type'   => 'nullable|string|max:100',
@@ -278,14 +338,12 @@ class DemoProcessController extends Controller
 
 
 
-        $rawProducts = $request->input('product_names');
-        $productArray = is_array($rawProducts) ? $rawProducts : (!empty($rawProducts) ? [$rawProducts] : []);
+
 
         $demoProcess->update([
             'customer_name'   => $request->input('customer_name'),
             'customer_phone'  => $request->input('customer_phone'),
             'lead_source_id'  => $request->filled('lead_source_id') ? $request->input('lead_source_id') : null,
-            'product_names'   => $productArray,
             'demo_date'       => $request->input('demo_date'),
             'demo_time'       => $request->input('demo_time'),
             'customer_type'   => $request->input('customer_type'),
@@ -363,6 +421,8 @@ class DemoProcessController extends Controller
      */
     private function sendDemoNotifications(DemoProcess $demoProcess, string $type)
     {
+        $demoProcess->loadMissing('leadSource', 'creator');
+
         $recipientIds = array_values(array_filter(array_unique([
             $demoProcess->created_by,
             $demoProcess->assigned_by,

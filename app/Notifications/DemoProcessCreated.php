@@ -18,7 +18,9 @@ class DemoProcessCreated extends Notification
 
     public function toDatabase(object $notifiable): array
     {
-        $products = is_array($this->demoProcess->product_names) ? implode(', ', $this->demoProcess->product_names) : ($this->demoProcess->product_names ?? 'N/A');
+        $products = $this->demoProcess->leadSource 
+            ? $this->demoProcess->leadSource->name 
+            : (is_array($this->demoProcess->product_names) ? implode(', ', $this->demoProcess->product_names) : ($this->demoProcess->product_names ?? 'N/A'));
         $creatorName = $this->demoProcess->creator ? $this->demoProcess->creator->name : 'Sales Staff';
         $demoDate = $this->demoProcess->demo_date ? $this->demoProcess->demo_date->format('d/m/Y') : 'N/A';
         $demoTime = $this->demoProcess->demo_time ?? 'N/A';

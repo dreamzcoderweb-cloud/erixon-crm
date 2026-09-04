@@ -17,7 +17,6 @@ return new class extends Migration
                 $table->string('customer_name');
                 $table->string('customer_phone', 30)->nullable();
                 $table->unsignedBigInteger('lead_source_id')->nullable();
-                $table->json('product_names')->nullable();
                 $table->date('demo_date')->nullable();
                 $table->string('demo_time', 20)->nullable();
                 $table->string('customer_type', 100)->nullable();

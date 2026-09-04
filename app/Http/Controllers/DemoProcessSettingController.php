@@ -18,7 +18,6 @@ class DemoProcessSettingController extends Controller
             'customer_name'   => 'Customer Name',
             'customer_phone'  => 'Phone Number',
             'lead_source'     => 'Lead Source',
-            'product_name'    => 'Product Name',
             'demo_date'       => 'Demo Date',
             'demo_time'       => 'Demo Timing',
             'customer_type'   => 'Customer Type',
