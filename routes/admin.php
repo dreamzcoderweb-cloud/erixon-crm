@@ -26,10 +26,20 @@ use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\IncentiveController;
 use App\Http\Controllers\DemoProcessController;
 use App\Http\Controllers\DemoProcessSettingController;
-
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
+Route::get('/server-commands/clear-cache', function () {
+
+    // // Laravel caches
+    Artisan::call('optimize:clear');
+
+    // Spatie permission cache (IMPORTANT)
+    Artisan::call('permission:cache-reset');
+
+    return 'All caches cleared successfully!';
+});
 // Root admin route redirect
 Route::get('/', function () {
     return Auth::check() ? redirect()->route('admin.dashboard') : redirect('/');

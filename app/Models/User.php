@@ -82,13 +82,11 @@ class User extends Authenticatable
     }
 
     /**
-     * Scope to exclude Super Admin users and return staff members only
+     * Scope to exclude primary Super Admin account (ID 1) and return staff members only
      */
     public function scopeStaffOnly($query)
     {
-        return $query->whereDoesntHave('roles', function ($q) {
-            $q->whereIn('name', ['Super Admin', 'super admin', 'super-admin', 'Super-Admin']);
-        });
+        return $query->where('users.id', '!=', 1);
     }
 
     /**

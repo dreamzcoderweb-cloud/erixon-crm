@@ -96,8 +96,8 @@ class StaffController extends Controller
             return view('errors.404');
         }
 
-        if ($user->hasRole('Super Admin')) {
-            session()->flash('danger', 'Super Admin user cannot be edited from Staff module');
+        if ($user->id === 1) {
+            session()->flash('danger', 'Primary Super Admin user cannot be edited from Staff module');
             return redirect('admin/staff');
         }
 
