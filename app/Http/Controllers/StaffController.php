@@ -15,7 +15,6 @@ class StaffController extends Controller
         $user = auth()->user();
         if ($user->isSuperAdmin()) {
             $data['staffs'] = User::with('roles')
-                ->staffOnly()
                 ->orderBy('id', 'DESC')
                 ->get();
         } else {
@@ -96,7 +95,7 @@ class StaffController extends Controller
             return view('errors.404');
         }
 
-        if ($user->id === 1) {
+        if ($user->id === 1 && !auth()->user()->isSuperAdmin()) {
             session()->flash('danger', 'Primary Super Admin user cannot be edited from Staff module');
             return redirect('admin/staff');
         }
@@ -157,6 +156,12 @@ class StaffController extends Controller
         $role = Role::find($validated['role_id']);
         if ($role) {
             $user->syncRoles([$role]);
+            if ($user->id === 1 && $role->name !== 'Super Admin') {
+                $superAdminRole = Role::where('name', 'Super Admin')->first();
+                if ($superAdminRole) {
+                    $user->assignRole($superAdminRole);
+                }
+            }
         }
 
         session()->flash('success', 'Staff updated successfully');
@@ -170,7 +175,7 @@ class StaffController extends Controller
             return view('errors.404');
         }
 
-        if ($user->hasRole('Super Admin')) {
+        if ($user->id === 1 || $user->hasRole('Super Admin')) {
             session()->flash('danger', 'Super Admin user cannot be deleted');
             return redirect('admin/staff');
         }

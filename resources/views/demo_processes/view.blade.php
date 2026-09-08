@@ -1,5 +1,15 @@
 @extends('layouts.master')
 
+@php
+    if (!isset($isSalesTeam)) {
+        $currUser = auth()->user();
+        $isSalesTeam = $currUser && !$currUser->isSuperAdmin() && (
+            $currUser->hasRole('sales team') || 
+            $currUser->roles->contains(fn($r) => strtolower($r->name) === 'sales team')
+        );
+    }
+@endphp
+
 @section('title', 'Demo Process Management')
 
 @push('css')
@@ -282,7 +292,7 @@
 
                             <div class="col-md-4">
                                 <label class="form-label fw-semibold">Sub Assigned By <span class="text-muted">(Support Team)</span></label>
-                                <select name="sub_assigned_by" class="form-select">
+                                <select name="sub_assigned_by" class="form-select" {{ !empty($isSalesTeam) ? 'readonly style=pointer-events:none;background-color:#e9ecef;cursor:not-allowed; tabindex=-1 aria-disabled=true' : '' }}>
                                     <option value="">-- Select Support Team --</option>
                                     @foreach ($supportTeam as $st)
                                         <option value="{{ $st->id }}">{{ $st->name }} ({{ $st->email }})</option>
@@ -449,7 +459,7 @@
 
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Sub Assigned By <span class="text-muted">(Support)</span></label>
-                                <select name="sub_assigned_by" id="edit_sub_assigned_by" class="form-select">
+                                <select name="sub_assigned_by" id="edit_sub_assigned_by" class="form-select" {{ !empty($isSalesTeam) ? 'readonly style=pointer-events:none;background-color:#e9ecef;cursor:not-allowed; tabindex=-1 aria-disabled=true' : '' }}>
                                     <option value="">-- Select Support Team --</option>
                                     @foreach ($supportTeam as $st)
                                         <option value="{{ $st->id }}">{{ $st->name }} ({{ $st->email }})</option>

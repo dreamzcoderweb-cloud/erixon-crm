@@ -117,11 +117,13 @@
                                                     <i class="bx bx-edit-alt me-1"></i> Edit
                                                 </a>
                                             @endcan
-                                            @can('staff.delete')
-                                                <a class="dropdown-item text-danger btn-delete" href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#deleteModal" data-id="{{ $staff->id }}" data-name="admin/delete_staff">
-                                                    <i class="bx bx-trash me-1"></i> Delete
-                                                </a>
-                                            @endcan
+                                            @if(!$staff->hasRole('Super Admin') && $staff->id !== 1)
+                                                @can('staff.delete')
+                                                    <a class="dropdown-item text-danger btn-delete" href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#deleteModal" data-id="{{ $staff->id }}" data-name="admin/delete_staff">
+                                                        <i class="bx bx-trash me-1"></i> Delete
+                                                    </a>
+                                                @endcan
+                                            @endif
                                         </div>
                                     </div>
                                 </td>

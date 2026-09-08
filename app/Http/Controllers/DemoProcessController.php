@@ -107,6 +107,8 @@ class DemoProcessController extends Controller
             }
         }
 
+        $isSalesTeam = $this->isSalesTeamUser();
+
         return view('demo_processes.view', compact(
             'staffList',
             'productManagers',
@@ -115,7 +117,8 @@ class DemoProcessController extends Controller
             'customers',
             'leadRequirements',
             'customFields',
-            'visibleColumns'
+            'visibleColumns',
+            'isSalesTeam'
         ));
     }
 
@@ -233,7 +236,7 @@ class DemoProcessController extends Controller
         }
 
         $user = Auth::user();
-
+        $isSalesTeam = $this->isSalesTeamUser($user);
 
         $demoProcess = DemoProcess::create([
             'customer_name'   => $request->input('customer_name'),
@@ -244,7 +247,7 @@ class DemoProcessController extends Controller
             'customer_type'   => $request->input('customer_type'),
             'created_by'      => $user->id,
             'assigned_by'     => $request->filled('assigned_by') ? $request->input('assigned_by') : null,
-            'sub_assigned_by' => $request->filled('sub_assigned_by') ? $request->input('sub_assigned_by') : null,
+            'sub_assigned_by' => $isSalesTeam ? null : ($request->filled('sub_assigned_by') ? $request->input('sub_assigned_by') : null),
             'status'          => 'Pending',
             'remarks'         => $request->input('remarks'),
             'custom_fields'   => $request->input('custom_fields'),
@@ -340,6 +343,9 @@ class DemoProcessController extends Controller
 
 
 
+        $user = Auth::user();
+        $isSalesTeam = $this->isSalesTeamUser($user);
+
         $demoProcess->update([
             'customer_name'   => $request->input('customer_name'),
             'customer_phone'  => $request->input('customer_phone'),
@@ -348,7 +354,7 @@ class DemoProcessController extends Controller
             'demo_time'       => $request->input('demo_time'),
             'customer_type'   => $request->input('customer_type'),
             'assigned_by'     => $request->filled('assigned_by') ? $request->input('assigned_by') : null,
-            'sub_assigned_by' => $request->filled('sub_assigned_by') ? $request->input('sub_assigned_by') : null,
+            'sub_assigned_by' => $isSalesTeam ? $demoProcess->sub_assigned_by : ($request->filled('sub_assigned_by') ? $request->input('sub_assigned_by') : null),
             'status'          => $newStatus,
             'remarks'         => $request->input('remarks'),
             'custom_fields'   => $request->input('custom_fields'),
@@ -440,5 +446,20 @@ class DemoProcessController extends Controller
                 $recipient->notify(new DemoProcessFinished($demoProcess));
             }
         }
+    }
+
+    /**
+     * Check if user belongs to sales team role
+     */
+    protected function isSalesTeamUser($user = null): bool
+    {
+        $user = $user ?? Auth::user();
+        if (!$user || $user->isSuperAdmin()) {
+            return false;
+        }
+
+        return $user->hasRole('sales team') || $user->roles->contains(function ($r) {
+            return strtolower($r->name) === 'sales team';
+        });
     }
 }
