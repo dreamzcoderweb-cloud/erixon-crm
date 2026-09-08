@@ -42,7 +42,22 @@ $(document).ready(function () {
         'lead_source': function (data, type, row) {
             let name = row.lead_source ? row.lead_source.name : 'N/A';
             if (type !== 'display') return name;
-            return name !== 'N/A' ? `<span class="badge bg-label-secondary">${name}</span>` : '<span class="text-muted">N/A</span>';
+            return name !== 'N/A' ? `<span class="badge bg-label-info">${name}</span>` : '<span class="text-muted">N/A</span>';
+        },
+        'lead_stage': function (data, type, row) {
+            let name = (row.lead && row.lead.lead_stage) ? row.lead.lead_stage.name : (row.lead_stage ? row.lead_stage.name : 'N/A');
+            if (type !== 'display') return name;
+            return name !== 'N/A' ? `<span class="badge bg-label-warning">${name}</span>` : '<span class="text-muted">N/A</span>';
+        },
+        'lead_requirement': function (data, type, row) {
+            let name = (row.lead && row.lead.lead_requirement) ? row.lead.lead_requirement.name : (row.lead_requirement ? row.lead_requirement.name : 'N/A');
+            if (type !== 'display') return name;
+            return name !== 'N/A' ? `<span class="badge bg-label-primary">${name}</span>` : '<span class="text-muted">N/A</span>';
+        },
+        'lost_reason': function (data, type, row) {
+            let reason = (row.lead && row.lead.lost_reason) ? (row.lead.lost_reason.reason || row.lead.lost_reason.name) : (row.lost_reason ? (row.lost_reason.reason || row.lost_reason.name) : '-');
+            if (type !== 'display') return reason;
+            return reason !== '-' ? `<span class="badge bg-label-danger">${reason}</span>` : '<span class="text-muted">-</span>';
         },
         'created_at': function (data, type, row) {
             let date = row.created_at;

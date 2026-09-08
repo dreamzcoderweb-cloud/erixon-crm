@@ -15,14 +15,17 @@ class CreditRequestSettingController extends Controller
         $customFields = CreditRequestCustomField::orderBy('id', 'asc')->get();
 
         $standardFields = [
-            'customer_info' => 'Customer / User',
-            'contact_info'  => 'Phone / Email',
-            'lead_source'   => 'Lead Source',
-            'credit_amount' => 'Credit Amount',
-            'is_estimate'   => 'Type',
-            'status'        => 'Status',
-            'requested_by'  => 'Requested By',
-            'created_at'    => 'Date',
+            'customer_info'    => 'Customer / User',
+            'contact_info'     => 'Phone / Email',
+            'lead_source'      => 'Lead Source',
+            'lead_stage'       => 'Lead Stages',
+            'lead_requirement' => 'Lead Requirements',
+            'lost_reason'      => 'Lost Reason',
+            'credit_amount'    => 'Credit Amount',
+            'is_estimate'      => 'Type',
+            'status'           => 'Status',
+            'requested_by'     => 'Requested By',
+            'created_at'       => 'Date',
         ];
 
         $allAvailableFields = [];

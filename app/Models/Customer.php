@@ -73,6 +73,11 @@ class Customer extends Authenticatable
         return $this->hasMany(Lead::class, 'customer_id', 'customer_id');
     }
 
+    public function latestLead()
+    {
+        return $this->hasOne(Lead::class, 'customer_id', 'customer_id')->latestOfMany('lead_id');
+    }
+
     public function creditRequests()
     {
         return $this->hasMany(CreditRequest::class, 'customer_id', 'customer_id');

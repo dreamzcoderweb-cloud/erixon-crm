@@ -4,7 +4,7 @@
     if (!isset($isSalesTeam)) {
         $currUser = auth()->user();
         $isSalesTeam = $currUser && !$currUser->isSuperAdmin() && (
-            $currUser->hasRole('sales team') || 
+            $currUser->hasRole('sales team') ||
             $currUser->roles->contains(fn($r) => strtolower($r->name) === 'sales team')
         );
     }
@@ -195,7 +195,7 @@
                             @else
                                 <th>Customer Name</th>
                                 <th>Phone Number</th>
-                                <th>Lead Source</th>
+                                <th>Lead Requirement</th>
                                 <th>Demo Date</th>
                                 <th>Demo Timing</th>
                                 <th>Customer Type</th>
@@ -251,25 +251,27 @@
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label fw-semibold">Product Name <span class="text-muted">(Lead Source)</span></label>
-                                <select name="lead_source_id" id="add_lead_source_id" class="form-select">
+                                <label class="form-label fw-semibold">Product Name <span class="text-muted">(Lead Requirement)</span></label>
+                                <select name="lead_requirement_id" id="add_lead_requirement_id" class="form-select">
                                     <option value="">-- Select Product Name --</option>
-                                    @foreach ($leadSources as $ls)
-                                        <option value="{{ $ls->lead_sources_id }}">{{ $ls->name }}</option>
-                                    @endforeach
+                                    @if(isset($leadRequirements) && count($leadRequirements) > 0)
+                                        @foreach ($leadRequirements as $lr)
+                                            <option value="{{ $lr->lead_requirements_id }}">{{ $lr->name }}</option>
+                                        @endforeach
+                                    @endif
                                 </select>
                                 <div class="invalid-feedback"></div>
                             </div>
 
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Demo Date <span class="text-danger">*</span></label>
-                                <input type="date" name="demo_date" class="form-control" value="{{ date('Y-m-d') }}" required>
+                                <input type="date" name="demo_date" id="add_demo_date" class="form-control" value="{{ date('Y-m-d') }}" min="{{ date('Y-m-d') }}" required>
                                 <div class="invalid-feedback"></div>
                             </div>
 
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Demo Timing <span class="text-danger">*</span></label>
-                                <input type="time" name="demo_time" class="form-control" value="10:00" required>
+                                <input type="time" name="demo_time" id="add_demo_time" class="form-control" value="{{ date('H:i') }}" min="{{ date('H:i') }}" required>
                                 <div class="invalid-feedback"></div>
                             </div>
 
@@ -407,17 +409,17 @@
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label fw-semibold">Product Name <span class="text-muted">(Lead Source)</span></label>
-                                <select name="lead_source_id" id="edit_lead_source_id" class="form-select">
+                                <label class="form-label fw-semibold">Product Name <span class="text-muted">(Lead Requirement)</span></label>
+                                <select name="lead_requirement_id" id="edit_lead_requirement_id" class="form-select">
                                     <option value="">-- Select Product Name --</option>
-                                    @foreach ($leadSources as $ls)
-                                        <option value="{{ $ls->lead_sources_id }}">{{ $ls->name }}</option>
-                                    @endforeach
+                                    @if(isset($leadRequirements) && count($leadRequirements) > 0)
+                                        @foreach ($leadRequirements as $lr)
+                                            <option value="{{ $lr->lead_requirements_id }}">{{ $lr->name }}</option>
+                                        @endforeach
+                                    @endif
                                 </select>
                                 <div class="invalid-feedback"></div>
                             </div>
-
-
 
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Demo Date <span class="text-danger">*</span></label>

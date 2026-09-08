@@ -38,6 +38,10 @@ class FollowupController extends Controller
 
         $standardFields = [
             'lead_info'          => 'Lead Info',
+            'lead_source'        => 'Lead Source',
+            'lead_stage'         => 'Lead Stages',
+            'lead_requirement'   => 'Lead Requirements',
+            'lost_reason'        => 'Lost Reason',
             'followup_type'      => 'Type',
             'duration'           => 'Duration',
             'next_followup_date' => 'Next Follow-up Date',
@@ -103,8 +107,12 @@ class FollowupController extends Controller
         $endDate    = $request->input('end_date');
 
         $query = Followup::forUser($user)->with([
-            'lead:lead_id,lead_title,customer_id',
+            'lead:lead_id,lead_title,customer_id,lead_source_id,lead_stage_id,lead_requirement_id,lost_reason_id',
             'lead.customer:customer_id,name,mobile',
+            'lead.leadSource:lead_sources_id,name',
+            'lead.leadStage:lead_stage_id,name',
+            'lead.leadRequirement:lead_requirements_id,name',
+            'lead.lostReason:lost_reason_id,reason',
             'forwardToUser:id,name,is_on_leave',
             'creator:id,name'
         ]);

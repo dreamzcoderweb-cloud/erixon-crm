@@ -44,6 +44,34 @@ $(document).ready(function () {
                         return `<span class="badge bg-label-info">${data.name}</span>`;
                     }
                 });
+            } else if (key === 'lead_stage') {
+                leadTableColumns.push({
+                    data: 'lead_stage',
+                    render: function (data, type) {
+                        if (!data) return type !== 'display' ? 'N/A' : '<span class="text-muted">N/A</span>';
+                        if (type !== 'display') return data.name;
+                        return `<span class="badge bg-label-warning">${data.name}</span>`;
+                    }
+                });
+            } else if (key === 'lead_requirement') {
+                leadTableColumns.push({
+                    data: 'lead_requirement',
+                    render: function (data, type) {
+                        if (!data) return type !== 'display' ? 'N/A' : '<span class="text-muted">N/A</span>';
+                        if (type !== 'display') return data.name;
+                        return `<span class="badge bg-label-primary">${data.name}</span>`;
+                    }
+                });
+            } else if (key === 'lost_reason') {
+                leadTableColumns.push({
+                    data: 'lost_reason',
+                    render: function (data, type) {
+                        if (!data) return type !== 'display' ? '-' : '<span class="text-muted">-</span>';
+                        let reason = data.reason || data.name || '-';
+                        if (type !== 'display') return reason;
+                        return `<span class="badge bg-label-danger">${reason}</span>`;
+                    }
+                });
             } else if (key === 'priority') {
                 leadTableColumns.push({
                     data: 'priority',

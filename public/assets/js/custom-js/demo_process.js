@@ -64,11 +64,31 @@ $(document).ready(function () {
         });
     }
 
+    // Helper: Get Today Date String (YYYY-MM-DD)
+    function getTodayDateStr() {
+        let now = new Date();
+        let y = now.getFullYear();
+        let m = String(now.getMonth() + 1).padStart(2, '0');
+        let d = String(now.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+
+    // Helper: Get Current Time String (HH:mm)
+    function getCurrentTimeStr() {
+        let now = new Date();
+        let hh = String(now.getHours()).padStart(2, '0');
+        let mm = String(now.getMinutes()).padStart(2, '0');
+        return `${hh}:${mm}`;
+    }
+
     // Helper: Validate Required Fields Client-Side
     function validateDemoProcessForm(form) {
         clearValidationErrors(form);
         let isValid = true;
         let errors = {};
+
+        let today = getTodayDateStr();
+        let currentTime = getCurrentTimeStr();
 
         // 1. Check specific standard fields
         let customerName = form.find('[name="customer_name"]').val();
@@ -87,9 +107,16 @@ $(document).ready(function () {
         if (!demoDate || demoDate.trim() === '') {
             errors['demo_date'] = ['This field is required'];
             isValid = false;
+        } else if (demoDate < today) {
+            errors['demo_date'] = ['Demo date cannot be in the past'];
+            isValid = false;
         }
+
         if (!demoTime || demoTime.trim() === '') {
             errors['demo_time'] = ['This field is required'];
+            isValid = false;
+        } else if (demoDate === today && demoTime < currentTime) {
+            errors['demo_time'] = ['Demo timing cannot be in the past for today'];
             isValid = false;
         }
 
@@ -118,6 +145,47 @@ $(document).ready(function () {
         }
         return isValid;
     }
+
+    // Configure date & time constraints for Add Modal
+    $('#addDemoProcessModal').on('show.bs.modal', function () {
+        let today = getTodayDateStr();
+        let currentTime = getCurrentTimeStr();
+        let dateInput = $('#add_demo_date');
+        let timeInput = $('#add_demo_time');
+
+        dateInput.attr('min', today);
+        if (!dateInput.val() || dateInput.val() < today) {
+            dateInput.val(today);
+        }
+
+        timeInput.val(currentTime);
+        if (dateInput.val() === today) {
+            timeInput.attr('min', currentTime);
+        } else {
+            timeInput.removeAttr('min');
+        }
+    });
+
+    $(document).on('change', '#add_demo_date', function () {
+        let selectedDate = $(this).val();
+        let today = getTodayDateStr();
+        let currentTime = getCurrentTimeStr();
+        let timeInput = $('#add_demo_time');
+
+        if (selectedDate === today) {
+            timeInput.attr('min', currentTime);
+            if (timeInput.val() && timeInput.val() < currentTime) {
+                timeInput.val(currentTime);
+            }
+        } else {
+            timeInput.removeAttr('min');
+        }
+    });
+
+    $('#editDemoProcessModal').on('show.bs.modal', function () {
+        let today = getTodayDateStr();
+        $('#edit_demo_date').attr('min', today);
+    });
 
     // Initialize Select2 with Search option for Customer Name inside Modals
     $('#addDemoProcessModal').on('shown.bs.modal', function () {
@@ -170,14 +238,29 @@ $(document).ready(function () {
             return phone !== 'N/A' ? `<a href="tel:${phone}" class="text-body"><i class="bx bx-phone me-1"></i>${phone}</a>` : '<span class="text-muted">N/A</span>';
         },
         'lead_source': function (data, type, row) {
-            let source = row.lead_source || row.product_name || 'N/A';
+            let source = row.lead_source || 'N/A';
             if (type !== 'display') return source;
             return source !== 'N/A' ? `<span class="badge bg-label-info">${source}</span>` : '<span class="text-muted">N/A</span>';
         },
         'product_name': function (data, type, row) {
-            let prod = row.product_name || row.lead_source || 'N/A';
+            let prod = row.lead_requirement || row.product_name || 'N/A';
             if (type !== 'display') return prod;
-            return prod !== 'N/A' ? `<span class="badge bg-label-info">${prod}</span>` : '<span class="text-muted">N/A</span>';
+            return prod !== 'N/A' ? `<span class="badge bg-label-primary">${prod}</span>` : '<span class="text-muted">N/A</span>';
+        },
+        'lead_stage': function (data, type, row) {
+            let name = (row.lead && row.lead.lead_stage) ? row.lead.lead_stage.name : (row.lead_stage ? row.lead_stage.name : 'N/A');
+            if (type !== 'display') return name;
+            return name !== 'N/A' ? `<span class="badge bg-label-warning">${name}</span>` : '<span class="text-muted">N/A</span>';
+        },
+        'lead_requirement': function (data, type, row) {
+            let name = row.lead_requirement || (row.leadRequirement ? row.leadRequirement.name : ((row.lead && row.lead.lead_requirement) ? row.lead.lead_requirement.name : 'N/A'));
+            if (type !== 'display') return name;
+            return name !== 'N/A' ? `<span class="badge bg-label-primary">${name}</span>` : '<span class="text-muted">N/A</span>';
+        },
+        'lost_reason': function (data, type, row) {
+            let reason = (row.lead && row.lead.lost_reason) ? (row.lead.lost_reason.reason || row.lead.lost_reason.name) : (row.lost_reason ? (row.lost_reason.reason || row.lost_reason.name) : '-');
+            if (type !== 'display') return reason;
+            return reason !== '-' ? `<span class="badge bg-label-danger">${reason}</span>` : '<span class="text-muted">-</span>';
         },
         'demo_date': function (data, type, row) {
             let date = row.demo_date_formatted || (row.demo_date ? row.demo_date : 'N/A');
@@ -289,7 +372,7 @@ $(document).ready(function () {
     } else {
         columnsConfig.push({ data: null, render: standardRenderers['customer_name'] });
         columnsConfig.push({ data: null, render: standardRenderers['customer_phone'] });
-        columnsConfig.push({ data: null, render: standardRenderers['lead_source'] });
+        columnsConfig.push({ data: null, render: standardRenderers['lead_requirement'] });
         columnsConfig.push({ data: null, className: 'text-center', render: standardRenderers['demo_date'] });
         columnsConfig.push({ data: null, className: 'text-center', render: standardRenderers['demo_time'] });
         columnsConfig.push({ data: null, render: standardRenderers['customer_type'] });
@@ -460,7 +543,7 @@ $(document).ready(function () {
                     $('#edit_demo_process_id').val(d.demo_process_id);
                     $('#edit_customer_name').val(d.customer_name).trigger('change');
                     $('#edit_customer_phone').val(d.customer_phone);
-                    $('#edit_lead_source_id').val(d.lead_source_id);
+                    $('#edit_lead_requirement_id').val(d.lead_requirement_id || '');
                     $('#edit_demo_date').val(d.demo_date);
                     $('#edit_demo_time').val(d.demo_time);
                     $('#edit_customer_type').val(d.customer_type || 'User');

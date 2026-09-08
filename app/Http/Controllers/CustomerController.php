@@ -44,6 +44,10 @@ class CustomerController extends Controller
             'state'            => 'State',
             'country'          => 'Country',
             'pincode'          => 'Pincode',
+            'lead_source'      => 'Lead Source',
+            'lead_stage'       => 'Lead Stages',
+            'lead_requirement' => 'Lead Requirements',
+            'lost_reason'      => 'Lost Reason',
             'created_at'       => 'Created At',
             'created_by'       => 'Created By',
             'status'           => 'Status',
@@ -133,7 +137,15 @@ class CustomerController extends Controller
             }
         }
 
-        $customers = (clone $query)->with(['creator:id,name', 'owner:id,name', 'assignedBy:id,name'])
+        $customers = (clone $query)->with([
+            'creator:id,name',
+            'owner:id,name',
+            'assignedBy:id,name',
+            'latestLead.leadSource:lead_sources_id,name',
+            'latestLead.leadStage:lead_stage_id,name',
+            'latestLead.leadRequirement:lead_requirements_id,name',
+            'latestLead.lostReason:lost_reason_id,reason',
+        ])
             ->orderBy('customer_id', 'DESC')
             ->get();
 

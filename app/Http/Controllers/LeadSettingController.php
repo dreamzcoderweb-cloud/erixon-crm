@@ -17,7 +17,10 @@ class LeadSettingController extends Controller
         $standardFields = [
             'lead_title'         => 'Lead Title',
             'customer'           => 'Customer',
-            'lead_source'        => 'Source',
+            'lead_source'        => 'Lead Source',
+            'lead_stage'         => 'Lead Stages',
+            'lead_requirement'   => 'Lead Requirements',
+            'lost_reason'        => 'Lost Reason',
             'priority'           => 'Priority',
             'expected_amount'    => 'Expected Amount',
             'assigned_to'        => 'Assigned To',

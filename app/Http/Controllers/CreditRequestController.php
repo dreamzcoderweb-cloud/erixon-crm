@@ -28,14 +28,17 @@ class CreditRequestController extends Controller
         $customFields = \App\Models\CreditRequestCustomField::where('status', 1)->orderBy('sort_order', 'asc')->orderBy('id', 'asc')->get();
 
         $standardFields = [
-            'customer_info' => 'Customer / User',
-            'contact_info'  => 'Phone / Email',
-            'lead_source'   => 'Lead Source',
-            'credit_amount' => 'Credit Amount',
-            'is_estimate'   => 'Type',
-            'status'        => 'Status',
-            'requested_by'  => 'Requested By',
-            'created_at'    => 'Date',
+            'customer_info'    => 'Customer / User',
+            'contact_info'     => 'Phone / Email',
+            'lead_source'      => 'Lead Source',
+            'lead_stage'       => 'Lead Stages',
+            'lead_requirement' => 'Lead Requirements',
+            'lost_reason'      => 'Lost Reason',
+            'credit_amount'    => 'Credit Amount',
+            'is_estimate'      => 'Type',
+            'status'           => 'Status',
+            'requested_by'     => 'Requested By',
+            'created_at'       => 'Date',
         ];
 
         $allAvailableFieldsMap = [];
@@ -86,8 +89,11 @@ class CreditRequestController extends Controller
         $status = $request->input('status');
 
         $query = CreditRequest::forUser($user)->with([
-            'lead:lead_id,lead_title,customer_id',
+            'lead:lead_id,lead_title,customer_id,lead_source_id,lead_stage_id,lead_requirement_id,lost_reason_id',
             'lead.customer:customer_id,name,mobile,email',
+            'lead.leadStage:lead_stage_id,name',
+            'lead.leadRequirement:lead_requirements_id,name',
+            'lead.lostReason:lost_reason_id,reason',
             'customer:customer_id,name,mobile,email,credit_balance',
             'leadSource:lead_sources_id,name',
             'adminApprover:id,name',

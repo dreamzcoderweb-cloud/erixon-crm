@@ -213,6 +213,46 @@ $(document).ready(function () {
                             return `<div><strong>${title}</strong><br><small class="text-muted">${customerName ? '<i class="bx bx-user me-1"></i>' + customerName : ''} ${mobile ? ' (' + mobile + ')' : ''}</small></div>`;
                         }
                     });
+                } else if (key === 'lead_source') {
+                    followupTableColumns.push({
+                        data: null,
+                        render: function (data, type, row) {
+                            let name = (row.lead && row.lead.lead_source) ? row.lead.lead_source.name : null;
+                            if (!name) return type !== 'display' ? 'N/A' : '<span class="text-muted">N/A</span>';
+                            if (type !== 'display') return name;
+                            return `<span class="badge bg-label-info">${name}</span>`;
+                        }
+                    });
+                } else if (key === 'lead_stage') {
+                    followupTableColumns.push({
+                        data: null,
+                        render: function (data, type, row) {
+                            let name = (row.lead && row.lead.lead_stage) ? row.lead.lead_stage.name : null;
+                            if (!name) return type !== 'display' ? 'N/A' : '<span class="text-muted">N/A</span>';
+                            if (type !== 'display') return name;
+                            return `<span class="badge bg-label-warning">${name}</span>`;
+                        }
+                    });
+                } else if (key === 'lead_requirement') {
+                    followupTableColumns.push({
+                        data: null,
+                        render: function (data, type, row) {
+                            let name = (row.lead && row.lead.lead_requirement) ? row.lead.lead_requirement.name : null;
+                            if (!name) return type !== 'display' ? 'N/A' : '<span class="text-muted">N/A</span>';
+                            if (type !== 'display') return name;
+                            return `<span class="badge bg-label-primary">${name}</span>`;
+                        }
+                    });
+                } else if (key === 'lost_reason') {
+                    followupTableColumns.push({
+                        data: null,
+                        render: function (data, type, row) {
+                            let reason = (row.lead && row.lead.lost_reason) ? (row.lead.lost_reason.reason || row.lead.lost_reason.name) : null;
+                            if (!reason) return type !== 'display' ? '-' : '<span class="text-muted">-</span>';
+                            if (type !== 'display') return reason;
+                            return `<span class="badge bg-label-danger">${reason}</span>`;
+                        }
+                    });
                 } else if (key === 'followup_type') {
                     followupTableColumns.push({
                         data: 'followup_type',

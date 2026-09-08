@@ -17,6 +17,7 @@ class DemoProcess extends Model
         'customer_name',
         'customer_phone',
         'lead_source_id',
+        'lead_requirement_id',
         'demo_date',
         'demo_time',
         'customer_type',
@@ -63,6 +64,14 @@ class DemoProcess extends Model
     public function leadSource()
     {
         return $this->belongsTo(LeadSource::class, 'lead_source_id', 'lead_sources_id');
+    }
+
+    /**
+     * Relationship to Lead Requirement
+     */
+    public function leadRequirement()
+    {
+        return $this->belongsTo(LeadRequirement::class, 'lead_requirement_id', 'lead_requirements_id');
     }
 
     /**

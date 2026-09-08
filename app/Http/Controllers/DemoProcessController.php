@@ -61,6 +61,9 @@ class DemoProcessController extends Controller
             'customer_name'   => 'Customer Name',
             'customer_phone'  => 'Phone Number',
             'lead_source'     => 'Lead Source',
+            'lead_stage'      => 'Lead Stages',
+            'lead_requirement'=> 'Lead Requirements',
+            'lost_reason'     => 'Lost Reason',
             'demo_date'       => 'Demo Date',
             'demo_time'       => 'Demo Timing',
             'customer_type'   => 'Customer Type',
@@ -167,20 +170,24 @@ class DemoProcessController extends Controller
                 'creator:id,name,email',
                 'assignedUser:id,name,email',
                 'subAssignedUser:id,name,email',
-                'leadSource:lead_sources_id,name'
+                'leadSource:lead_sources_id,name',
+                'leadRequirement:lead_requirements_id,name'
             ])
             ->orderBy('demo_process_id', 'DESC')
             ->get();
 
         $data = $demoProcesses->map(function ($dp) {
+            $reqName = $dp->leadRequirement ? $dp->leadRequirement->name : ($dp->leadSource ? $dp->leadSource->name : 'N/A');
             return [
                 'demo_process_id' => $dp->demo_process_id,
                 'customer_name'   => $dp->customer_name,
                 'customer_phone'  => $dp->customer_phone,
                 'lead_source_id'  => $dp->lead_source_id,
                 'lead_source'     => $dp->leadSource ? $dp->leadSource->name : 'N/A',
-                'product_name'    => $dp->leadSource ? $dp->leadSource->name : 'N/A',
-                'product_text'    => $dp->leadSource ? $dp->leadSource->name : 'N/A',
+                'lead_requirement_id' => $dp->lead_requirement_id,
+                'lead_requirement'=> $reqName,
+                'product_name'    => $reqName,
+                'product_text'    => $reqName,
                 'demo_date'       => $dp->demo_date ? $dp->demo_date->format('Y-m-d') : null,
                 'demo_date_formatted' => $dp->demo_date ? $dp->demo_date->format('d/m/Y') : 'N/A',
                 'demo_time'       => $dp->demo_time,
@@ -207,15 +214,16 @@ class DemoProcessController extends Controller
     public function store(Request $request)
     {
         $rules = [
-            'customer_name'   => 'required|string|max:255',
-            'customer_phone'  => 'required|string|max:30',
-            'lead_source_id'  => 'nullable|exists:lead_sources,lead_sources_id',
-            'demo_date'       => 'required|date',
-            'demo_time'       => 'required|string',
-            'customer_type'   => 'nullable|string|max:100',
-            'assigned_by'     => 'nullable|exists:users,id',
-            'sub_assigned_by' => 'nullable|exists:users,id',
-            'remarks'         => 'nullable|string',
+            'customer_name'       => 'required|string|max:255',
+            'customer_phone'      => 'required|string|max:30',
+            'lead_requirement_id' => 'nullable|exists:lead_requirements,lead_requirements_id',
+            'lead_source_id'      => 'nullable|exists:lead_sources,lead_sources_id',
+            'demo_date'           => 'required|date|after_or_equal:today',
+            'demo_time'           => 'required|string',
+            'customer_type'       => 'nullable|string|max:100',
+            'assigned_by'         => 'nullable|exists:users,id',
+            'sub_assigned_by'     => 'nullable|exists:users,id',
+            'remarks'             => 'nullable|string',
         ];
 
         $requiredCustomFields = DemoProcessCustomField::where('status', 1)->where('is_required', 'Yes')->get();
@@ -235,22 +243,36 @@ class DemoProcessController extends Controller
             ], 422);
         }
 
+        // Validate demo_time cannot be in the past if demo_date is today
+        if ($request->input('demo_date') === date('Y-m-d')) {
+            $currentTime = date('H:i');
+            if ($request->input('demo_time') < $currentTime) {
+                return response()->json([
+                    'status' => false,
+                    'errors' => [
+                        'demo_time' => ['Demo timing cannot be in the past for today.']
+                    ]
+                ], 422);
+            }
+        }
+
         $user = Auth::user();
         $isSalesTeam = $this->isSalesTeamUser($user);
 
         $demoProcess = DemoProcess::create([
-            'customer_name'   => $request->input('customer_name'),
-            'customer_phone'  => $request->input('customer_phone'),
-            'lead_source_id'  => $request->filled('lead_source_id') ? $request->input('lead_source_id') : null,
-            'demo_date'       => $request->input('demo_date'),
-            'demo_time'       => $request->input('demo_time'),
-            'customer_type'   => $request->input('customer_type'),
-            'created_by'      => $user->id,
-            'assigned_by'     => $request->filled('assigned_by') ? $request->input('assigned_by') : null,
-            'sub_assigned_by' => $isSalesTeam ? null : ($request->filled('sub_assigned_by') ? $request->input('sub_assigned_by') : null),
-            'status'          => 'Pending',
-            'remarks'         => $request->input('remarks'),
-            'custom_fields'   => $request->input('custom_fields'),
+            'customer_name'       => $request->input('customer_name'),
+            'customer_phone'      => $request->input('customer_phone'),
+            'lead_requirement_id' => $request->filled('lead_requirement_id') ? $request->input('lead_requirement_id') : null,
+            'lead_source_id'      => $request->filled('lead_source_id') ? $request->input('lead_source_id') : null,
+            'demo_date'           => $request->input('demo_date'),
+            'demo_time'           => $request->input('demo_time'),
+            'customer_type'       => $request->input('customer_type'),
+            'created_by'          => $user->id,
+            'assigned_by'         => $request->filled('assigned_by') ? $request->input('assigned_by') : null,
+            'sub_assigned_by'     => $isSalesTeam ? null : ($request->filled('sub_assigned_by') ? $request->input('sub_assigned_by') : null),
+            'status'              => 'Pending',
+            'remarks'             => $request->input('remarks'),
+            'custom_fields'       => $request->input('custom_fields'),
         ]);
 
         // Send Notifications to involved recipients
@@ -278,18 +300,19 @@ class DemoProcessController extends Controller
         return response()->json([
             'status' => true,
             'data'   => [
-                'demo_process_id' => $demoProcess->demo_process_id,
-                'customer_name'   => $demoProcess->customer_name,
-                'customer_phone'  => $demoProcess->customer_phone,
-                'lead_source_id'  => $demoProcess->lead_source_id,
-                'demo_date'       => $demoProcess->demo_date ? $demoProcess->demo_date->format('Y-m-d') : '',
-                'demo_time'       => $demoProcess->demo_time,
-                'customer_type'   => $demoProcess->customer_type,
-                'assigned_by'     => $demoProcess->assigned_by,
-                'sub_assigned_by' => $demoProcess->sub_assigned_by,
-                'status'          => $demoProcess->status,
-                'remarks'         => $demoProcess->remarks,
-                'custom_fields'   => $demoProcess->custom_fields ?? [],
+                'demo_process_id'     => $demoProcess->demo_process_id,
+                'customer_name'       => $demoProcess->customer_name,
+                'customer_phone'      => $demoProcess->customer_phone,
+                'lead_requirement_id' => $demoProcess->lead_requirement_id,
+                'lead_source_id'      => $demoProcess->lead_source_id,
+                'demo_date'           => $demoProcess->demo_date ? $demoProcess->demo_date->format('Y-m-d') : '',
+                'demo_time'           => $demoProcess->demo_time,
+                'customer_type'       => $demoProcess->customer_type,
+                'assigned_by'         => $demoProcess->assigned_by,
+                'sub_assigned_by'     => $demoProcess->sub_assigned_by,
+                'status'              => $demoProcess->status,
+                'remarks'             => $demoProcess->remarks,
+                'custom_fields'       => $demoProcess->custom_fields ?? [],
             ],
         ]);
     }
@@ -307,16 +330,17 @@ class DemoProcessController extends Controller
         }
 
         $rules = [
-            'customer_name'   => 'required|string|max:255',
-            'customer_phone'  => 'required|string|max:30',
-            'lead_source_id'  => 'nullable|exists:lead_sources,lead_sources_id',
-            'demo_date'       => 'required|date',
-            'demo_time'       => 'required|string',
-            'customer_type'   => 'nullable|string|max:100',
-            'assigned_by'     => 'nullable|exists:users,id',
-            'sub_assigned_by' => 'nullable|exists:users,id',
-            'status'          => 'required|in:Pending,Finished',
-            'remarks'         => 'nullable|string',
+            'customer_name'       => 'required|string|max:255',
+            'customer_phone'      => 'required|string|max:30',
+            'lead_requirement_id' => 'nullable|exists:lead_requirements,lead_requirements_id',
+            'lead_source_id'      => 'nullable|exists:lead_sources,lead_sources_id',
+            'demo_date'           => 'required|date',
+            'demo_time'           => 'required|string',
+            'customer_type'       => 'nullable|string|max:100',
+            'assigned_by'         => 'nullable|exists:users,id',
+            'sub_assigned_by'     => 'nullable|exists:users,id',
+            'status'              => 'required|in:Pending,Finished',
+            'remarks'             => 'nullable|string',
         ];
 
         $requiredCustomFields = DemoProcessCustomField::where('status', 1)->where('is_required', 'Yes')->get();
@@ -347,15 +371,16 @@ class DemoProcessController extends Controller
         $isSalesTeam = $this->isSalesTeamUser($user);
 
         $demoProcess->update([
-            'customer_name'   => $request->input('customer_name'),
-            'customer_phone'  => $request->input('customer_phone'),
-            'lead_source_id'  => $request->filled('lead_source_id') ? $request->input('lead_source_id') : null,
-            'demo_date'       => $request->input('demo_date'),
-            'demo_time'       => $request->input('demo_time'),
-            'customer_type'   => $request->input('customer_type'),
-            'assigned_by'     => $request->filled('assigned_by') ? $request->input('assigned_by') : null,
-            'sub_assigned_by' => $isSalesTeam ? $demoProcess->sub_assigned_by : ($request->filled('sub_assigned_by') ? $request->input('sub_assigned_by') : null),
-            'status'          => $newStatus,
+            'customer_name'       => $request->input('customer_name'),
+            'customer_phone'      => $request->input('customer_phone'),
+            'lead_requirement_id' => $request->filled('lead_requirement_id') ? $request->input('lead_requirement_id') : null,
+            'lead_source_id'      => $request->filled('lead_source_id') ? $request->input('lead_source_id') : null,
+            'demo_date'           => $request->input('demo_date'),
+            'demo_time'           => $request->input('demo_time'),
+            'customer_type'       => $request->input('customer_type'),
+            'assigned_by'         => $request->filled('assigned_by') ? $request->input('assigned_by') : null,
+            'sub_assigned_by'     => $isSalesTeam ? $demoProcess->sub_assigned_by : ($request->filled('sub_assigned_by') ? $request->input('sub_assigned_by') : null),
+            'status'              => $newStatus,
             'remarks'         => $request->input('remarks'),
             'custom_fields'   => $request->input('custom_fields'),
         ]);

@@ -101,6 +101,46 @@ $(document).ready(function () {
                         return data ? data : '<span class="text-muted">N/A</span>';
                     }
                 });
+            } else if (key === 'lead_source') {
+                customerTableColumns.push({
+                    data: null,
+                    render: function (data, type, row) {
+                        let name = (row.latest_lead && row.latest_lead.lead_source) ? row.latest_lead.lead_source.name : null;
+                        if (!name) return type !== 'display' ? 'N/A' : '<span class="text-muted">N/A</span>';
+                        if (type !== 'display') return name;
+                        return `<span class="badge bg-label-info">${name}</span>`;
+                    }
+                });
+            } else if (key === 'lead_stage') {
+                customerTableColumns.push({
+                    data: null,
+                    render: function (data, type, row) {
+                        let name = (row.latest_lead && row.latest_lead.lead_stage) ? row.latest_lead.lead_stage.name : null;
+                        if (!name) return type !== 'display' ? 'N/A' : '<span class="text-muted">N/A</span>';
+                        if (type !== 'display') return name;
+                        return `<span class="badge bg-label-warning">${name}</span>`;
+                    }
+                });
+            } else if (key === 'lead_requirement') {
+                customerTableColumns.push({
+                    data: null,
+                    render: function (data, type, row) {
+                        let name = (row.latest_lead && row.latest_lead.lead_requirement) ? row.latest_lead.lead_requirement.name : null;
+                        if (!name) return type !== 'display' ? 'N/A' : '<span class="text-muted">N/A</span>';
+                        if (type !== 'display') return name;
+                        return `<span class="badge bg-label-primary">${name}</span>`;
+                    }
+                });
+            } else if (key === 'lost_reason') {
+                customerTableColumns.push({
+                    data: null,
+                    render: function (data, type, row) {
+                        let reason = (row.latest_lead && row.latest_lead.lost_reason) ? (row.latest_lead.lost_reason.reason || row.latest_lead.lost_reason.name) : null;
+                        if (!reason) return type !== 'display' ? '-' : '<span class="text-muted">-</span>';
+                        if (type !== 'display') return reason;
+                        return `<span class="badge bg-label-danger">${reason}</span>`;
+                    }
+                });
             } else if (key === 'created_at') {
                 customerTableColumns.push({
                     data: 'created_at',

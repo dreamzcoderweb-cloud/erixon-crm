@@ -193,11 +193,47 @@
                                 </div>
                             </div>
 
+                            @php
+                                $leadOptionKeys = ['lead_source', 'lead_stage', 'lead_requirement', 'lost_reason'];
+                                $leadOptionFields = [];
+                                $otherAvailableFields = [];
+                                foreach ($allAvailableFields as $fKey => $fItem) {
+                                    if (in_array($fKey, $leadOptionKeys)) {
+                                        $leadOptionFields[$fKey] = $fItem;
+                                    } else {
+                                        $otherAvailableFields[$fKey] = $fItem;
+                                    }
+                                }
+                            @endphp
+
+                            <!-- Section: Lead Master Options (Separate) -->
+                            @if (count($leadOptionFields) > 0)
+                                <div class="mb-4 p-3 rounded-3 border bg-light">
+                                    <h6 class="fw-bold text-primary mb-2 fs-6 d-flex align-items-center">
+                                        <i class="bx bx-target-lock me-2"></i> Lead Master Options
+                                    </h6>
+                                    <p class="text-muted small mb-3">Select the lead master options you want to display in the list table.</p>
+                                    <div class="row row-cols-1 row-cols-md-2 g-3">
+                                        @foreach ($leadOptionFields as $key => $item)
+                                            @php $isChecked = in_array($key, $selectedColumns); @endphp
+                                            <div class="col">
+                                                <div class="form-check d-flex align-items-center p-2 rounded border bg-white shadow-xs">
+                                                    <input class="form-check-input available-field-checkbox me-2 ms-1" type="checkbox" value="{{ $key }}" id="chk_col_{{ $key }}" {{ $isChecked ? 'checked' : '' }} style="width: 1.15rem; height: 1.15rem;">
+                                                    <label class="form-check-label fw-semibold text-dark cursor-pointer select-none mb-0" for="chk_col_{{ $key }}">
+                                                        {{ $item['label'] }}
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+
                             <!-- Section: Available Fields -->
                             <div>
                                 <h6 class="fw-bold text-dark mb-3 fs-6">Available Fields</h6>
                                 <div class="row row-cols-1 row-cols-md-2 g-3" id="availableFieldsList">
-                                    @foreach ($allAvailableFields as $key => $item)
+                                    @foreach ($otherAvailableFields as $key => $item)
                                         @php $isChecked = in_array($key, $selectedColumns); @endphp
                                         <div class="col">
                                             <div class="form-check d-flex align-items-center">

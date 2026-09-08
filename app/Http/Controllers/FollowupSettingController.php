@@ -16,6 +16,10 @@ class FollowupSettingController extends Controller
 
         $standardFields = [
             'lead_info'          => 'Lead Info',
+            'lead_source'        => 'Lead Source',
+            'lead_stage'         => 'Lead Stages',
+            'lead_requirement'   => 'Lead Requirements',
+            'lost_reason'        => 'Lost Reason',
             'followup_type'      => 'Type',
             'duration'           => 'Duration',
             'next_followup_date' => 'Next Follow-up Date',
