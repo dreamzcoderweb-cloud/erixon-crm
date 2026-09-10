@@ -5,6 +5,15 @@ $(document).ready(function () {
         }
     });
 
+    // Initialize Select2 Search for Lead Filter Customer Dropdown
+    if ($('#lead_filter_customer_id').length && $.fn.select2) {
+        $('#lead_filter_customer_id').select2({
+            placeholder: '-- All Customers --',
+            allowClear: true,
+            width: '100%'
+        });
+    }
+
     let leadTableColumns = [
         {
             data: null,
@@ -521,7 +530,7 @@ $(document).ready(function () {
         $('.btn-lead-period[data-period="all"]').addClass('active');
         $('#lead_filter_period').val('all');
         $('#lead_filter_title').val('');
-        $('#lead_filter_customer_id').val('');
+        $('#lead_filter_customer_id').val('').trigger('change');
         $('#lead_filter_source_id').val('');
         $('#lead_filter_created_by').val('');
         $('#lead_filter_status').val('');

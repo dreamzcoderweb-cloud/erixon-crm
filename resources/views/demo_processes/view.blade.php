@@ -235,7 +235,7 @@
                                     <option value="">-- Select Customer --</option>
                                     @if(isset($customers) && count($customers) > 0)
                                         @foreach ($customers as $customer)
-                                            <option value="{{ $customer->name }}" data-phone="{{ $customer->mobile }}" data-type="{{ $customer->customer_type }}">
+                                            <option value="{{ $customer->name }}" data-phone="{{ $customer->mobile }}" data-type="{{ $customer->customer_type }}" data-requirement-id="{{ $customer->latestLead?->lead_requirement_id }}">
                                                 {{ $customer->name }} ({{ $customer->mobile }})
                                             </option>
                                         @endforeach
@@ -393,7 +393,7 @@
                                     <option value="">-- Select Customer --</option>
                                     @if(isset($customers) && count($customers) > 0)
                                         @foreach ($customers as $customer)
-                                            <option value="{{ $customer->name }}" data-phone="{{ $customer->mobile }}" data-type="{{ $customer->customer_type }}">
+                                            <option value="{{ $customer->name }}" data-phone="{{ $customer->mobile }}" data-type="{{ $customer->customer_type }}" data-requirement-id="{{ $customer->latestLead?->lead_requirement_id }}">
                                                 {{ $customer->name }} ({{ $customer->mobile }})
                                             </option>
                                         @endforeach

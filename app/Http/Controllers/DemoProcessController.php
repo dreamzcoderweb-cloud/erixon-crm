@@ -8,6 +8,7 @@ use App\Models\LeadSetting;
 use App\Models\LeadSource;
 use App\Models\Customer;
 use App\Models\LeadRequirement;
+use App\Models\Lead;
 use App\Models\User;
 use App\Notifications\DemoProcessCreated;
 use App\Notifications\DemoProcessPending;
@@ -51,7 +52,7 @@ class DemoProcessController extends Controller
         }
 
         $leadSources = LeadSource::orderBy('name', 'asc')->get();
-        $customers = Customer::orderBy('name', 'asc')->get();
+        $customers = Customer::with('latestLead')->orderBy('name', 'asc')->get();
         $leadRequirements = LeadRequirement::orderBy('name', 'asc')->get();
         $customFields = DemoProcessCustomField::where('status', 1)->orderBy('sort_order', 'asc')->orderBy('id', 'asc')->get();
 
@@ -259,10 +260,20 @@ class DemoProcessController extends Controller
         $user = Auth::user();
         $isSalesTeam = $this->isSalesTeamUser($user);
 
+        $leadReqId = $request->filled('lead_requirement_id') ? $request->input('lead_requirement_id') : null;
+        if (!$leadReqId && $request->filled('customer_phone')) {
+            $matchedLead = Lead::whereHas('customer', function ($q) use ($request) {
+                $q->where('mobile', $request->input('customer_phone'));
+            })->latest('lead_id')->first();
+            if ($matchedLead && $matchedLead->lead_requirement_id) {
+                $leadReqId = $matchedLead->lead_requirement_id;
+            }
+        }
+
         $demoProcess = DemoProcess::create([
             'customer_name'       => $request->input('customer_name'),
             'customer_phone'      => $request->input('customer_phone'),
-            'lead_requirement_id' => $request->filled('lead_requirement_id') ? $request->input('lead_requirement_id') : null,
+            'lead_requirement_id' => $leadReqId,
             'lead_source_id'      => $request->filled('lead_source_id') ? $request->input('lead_source_id') : null,
             'demo_date'           => $request->input('demo_date'),
             'demo_time'           => $request->input('demo_time'),
@@ -452,7 +463,7 @@ class DemoProcessController extends Controller
      */
     private function sendDemoNotifications(DemoProcess $demoProcess, string $type)
     {
-        $demoProcess->loadMissing('leadSource', 'creator');
+        $demoProcess->loadMissing('leadRequirement', 'leadSource', 'creator');
 
         $recipientIds = array_values(array_filter(array_unique([
             $demoProcess->created_by,

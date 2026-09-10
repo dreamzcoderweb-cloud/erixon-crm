@@ -204,24 +204,32 @@ $(document).ready(function () {
         });
     });
 
-    // Autofill Phone Number & Customer Type when Customer Name is selected
+    // Autofill Phone Number, Customer Type & Product Name (Lead Requirement) when Customer Name is selected
     $(document).on('change', '#add_customer_name', function () {
         let selectedOpt = $(this).find(':selected');
         let phone = selectedOpt.data('phone') || '';
         let type = selectedOpt.data('type') || 'User';
+        let reqId = selectedOpt.data('requirement-id') || '';
         $('#add_customer_phone').val(phone);
         $('#add_customer_type').val(type);
+        if (reqId) {
+            $('#add_lead_requirement_id').val(reqId).trigger('change');
+        }
     });
 
     $(document).on('change', '#edit_customer_name', function () {
         let selectedOpt = $(this).find(':selected');
         let phone = selectedOpt.data('phone') || '';
         let type = selectedOpt.data('type') || 'User';
+        let reqId = selectedOpt.data('requirement-id') || '';
         if (phone) {
             $('#edit_customer_phone').val(phone);
         }
         if (type) {
             $('#edit_customer_type').val(type);
+        }
+        if (reqId && !$('#edit_lead_requirement_id').val()) {
+            $('#edit_lead_requirement_id').val(reqId).trigger('change');
         }
     });
 

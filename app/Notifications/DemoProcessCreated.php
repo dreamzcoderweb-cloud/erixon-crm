@@ -18,9 +18,25 @@ class DemoProcessCreated extends Notification
 
     public function toDatabase(object $notifiable): array
     {
-        $products = $this->demoProcess->leadSource 
-            ? $this->demoProcess->leadSource->name 
-            : (is_array($this->demoProcess->product_names) ? implode(', ', $this->demoProcess->product_names) : ($this->demoProcess->product_names ?? 'N/A'));
+        $products = 'N/A';
+        if ($this->demoProcess->leadRequirement) {
+            $products = $this->demoProcess->leadRequirement->name;
+        } elseif ($this->demoProcess->lead_requirement_id) {
+            $req = \App\Models\LeadRequirement::find($this->demoProcess->lead_requirement_id);
+            if ($req) {
+                $products = $req->name;
+            }
+        } elseif ($this->demoProcess->customer_phone) {
+            $lead = \App\Models\Lead::with('leadRequirement')
+                ->whereHas('customer', function ($q) {
+                    $q->where('mobile', $this->demoProcess->customer_phone);
+                })
+                ->latest('lead_id')
+                ->first();
+            if ($lead && $lead->leadRequirement) {
+                $products = $lead->leadRequirement->name;
+            }
+        }
         $creatorName = $this->demoProcess->creator ? $this->demoProcess->creator->name : 'Sales Staff';
         $demoDate = $this->demoProcess->demo_date ? $this->demoProcess->demo_date->format('d/m/Y') : 'N/A';
         $demoTime = $this->demoProcess->demo_time ?? 'N/A';

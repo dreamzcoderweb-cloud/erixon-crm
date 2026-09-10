@@ -30,6 +30,7 @@
     <link rel="stylesheet" href="{{ asset('assets/vendor/css/theme-default.css') }}"
         class="template-customizer-theme-css" />
     <link rel="stylesheet" href="{{ asset('assets/css/demo.css') }}" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" />
 
     <!-- Vendors CSS -->
     <link rel="stylesheet" href="{{ asset('assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css') }}" />
@@ -112,6 +113,12 @@
             color: #ffffff !important;
         }
 
+        /* Sidebar Scroll White Blur / Inner Shadow Fix */
+        .menu-inner-shadow,
+        .bg-menu-theme .menu-inner-shadow {
+            display: none !important;
+        }
+
         .bg-menu-theme .menu-link,
         .bg-menu-theme .menu-header,
         .bg-menu-theme .menu-icon,
@@ -176,6 +183,50 @@
                 {{ $themeColor }}
                 !important;
             color: #ffffff !important;
+        }
+
+        /* Global Select2 Styling to match Sneat & Theme Color */
+        .select2-container--default .select2-selection--single {
+            height: calc(1.375em + 0.633rem + 2px) !important;
+            padding: 0.25rem 0.6rem !important;
+            font-size: 0.8125rem !important;
+            border: 1px solid #d9dee3 !important;
+            border-radius: 0.375rem !important;
+            display: flex !important;
+            align-items: center !important;
+            background-color: #fff !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: normal !important;
+            padding-left: 0 !important;
+            padding-right: 1.5rem !important;
+            color: #566a7f !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 100% !important;
+            top: 0 !important;
+            right: 6px !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__clear {
+            margin-right: 18px !important;
+            font-weight: bold !important;
+            color: #8592a3 !important;
+        }
+        .select2-container--default.select2-container--focus .select2-selection--single,
+        .select2-container--default.select2-container--open .select2-selection--single {
+            border-color: {{ $themeColor }} !important;
+            box-shadow: 0 0 0 0.25rem {{ $themeColor }}25 !important;
+        }
+        .select2-dropdown {
+            border-color: #d9dee3 !important;
+            box-shadow: 0 0.25rem 1rem rgba(161, 172, 184, 0.45) !important;
+            border-radius: 0.375rem !important;
+            font-size: 0.8125rem !important;
+            z-index: 1095 !important;
+        }
+        .select2-results__option--highlighted[aria-selected] {
+            background-color: {{ $themeColor }} !important;
+            color: #fff !important;
         }
 
         /* Nav Pills Active State */
@@ -378,6 +429,9 @@
     <script src="{{ asset('assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js') }}"></script>
     <script src="{{ asset('assets/vendor/js/menu.js') }}"></script>
 
+    <!-- Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
     <!-- Custom JS -->
     <script src="{{ asset('assets/js/custom-js/date_formatter.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/customer.js') }}"></script>
@@ -401,7 +455,6 @@
     <script src="{{ asset('assets/js/custom-js/payment.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/incentive.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/notification.js') }}"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="{{ asset('assets/js/custom-js/demo_process.js') }}"></script>
     <!-- Vendors JS -->
     <script src="{{ asset('assets/vendor/libs/apex-charts/apexcharts.js') }}"></script>

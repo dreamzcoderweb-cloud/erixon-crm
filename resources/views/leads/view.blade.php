@@ -84,7 +84,7 @@
 
                         <div class="col-md-3">
                             <label class="form-label fw-semibold">Customer</label>
-                            <select name="customer_id" id="lead_filter_customer_id" class="form-select form-select-sm">
+                            <select name="customer_id" id="lead_filter_customer_id" class="form-select form-select-sm select2-search">
                                 <option value="">-- All Customers --</option>
                                 @if(isset($customers) && count($customers) > 0)
                                     @foreach ($customers as $cust)
