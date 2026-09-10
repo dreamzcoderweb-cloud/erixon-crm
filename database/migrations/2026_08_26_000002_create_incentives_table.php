@@ -11,7 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('incentives', function (Blueprint $table) {
+        if (!Schema::hasTable('incentives')) {
+            Schema::create('incentives', function (Blueprint $table) {
             $table->bigIncrements('incentive_id');
             $table->unsignedBigInteger('staff_id');
             $table->string('month', 20);
@@ -24,6 +25,7 @@ return new class extends Migration
             $table->foreign('staff_id')->references('id')->on('users')->onDelete('cascade');
             $table->foreign('created_by')->references('id')->on('users')->onDelete('set null');
         });
+        }
     }
 
     /**

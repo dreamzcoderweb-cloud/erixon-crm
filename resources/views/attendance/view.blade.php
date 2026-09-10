@@ -5,11 +5,14 @@
         <div id="alert-container"></div>
         @php
         $user = auth()->user();
-        $isSuperAdmin = $user->hasAnyRole(['super admin', 'super-admin','Super Admin']);
+        $sessions = !empty($myTodayAttendance) ? $myTodayAttendance->sessions_list : [];
+        $lastSession = !empty($sessions) ? end($sessions) : null;
+        $isCurrentlyCheckedIn = $lastSession && empty($lastSession['check_out']);
+        $currentSessionNumber = $lastSession ? ($isCurrentlyCheckedIn ? (int)($lastSession['session'] ?? count($sessions)) : (int)($lastSession['session'] ?? count($sessions)) + 1) : 1;
         @endphp
-        @if(!$isSuperAdmin)
+
         <!-- Quick Attendance Widget for Logged In User -->
-        {{-- <div class="card mb-4 bg-label-primary border-0 shadow-sm">
+        <div class="card mb-4 bg-label-primary border-0 shadow-sm">
             <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
                 <div>
                     <h5 class="mb-1 text-primary"><i class="bx bx-time-five me-1"></i> Today's Attendance Quick Action</h5>
@@ -21,33 +24,41 @@
                         </strong>
                     </small>
                 </div>
-                <div class="d-flex align-items-center gap-2">
-                    @if(empty($myTodayAttendance))
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    @if(empty($myTodayAttendance) || empty($sessions))
                         <button class="btn btn-success btn-mark-self-attendance" data-type="check_in">
                             <i class="bx bx-log-in me-1"></i> Check In Now
                         </button>
-                    @elseif(empty($myTodayAttendance->check_out))
-                        <span class="badge bg-success fs-6 me-2">Session 1 Checked In: {{ \Carbon\Carbon::parse($myTodayAttendance->check_in)->format('h:i A') }} ({{ $myTodayAttendance->status }})</span>
-                        <button class="btn btn-danger btn-mark-self-attendance" data-type="check_out">
-                            <i class="bx bx-log-out me-1"></i> Session 1 Check Out
-                        </button>
-                    @elseif(empty($myTodayAttendance->second_check_in))
-                        <span class="badge bg-info fs-6 me-2">Session 1: {{ \Carbon\Carbon::parse($myTodayAttendance->check_in)->format('h:i A') }} - {{ \Carbon\Carbon::parse($myTodayAttendance->check_out)->format('h:i A') }}</span>
-                        <button class="btn btn-primary btn-mark-self-attendance" data-type="check_in">
-                            <i class="bx bx-log-in me-1"></i> Session 2 Check In
-                        </button>
-                    @elseif(empty($myTodayAttendance->second_check_out))
-                        <span class="badge bg-success fs-6 me-2">Session 2 Checked In: {{ \Carbon\Carbon::parse($myTodayAttendance->second_check_in)->format('h:i A') }}</span>
-                        <button class="btn btn-danger btn-mark-self-attendance" data-type="check_out">
-                            <i class="bx bx-log-out me-1"></i> Session 2 Check Out
-                        </button>
                     @else
-                        <span class="badge bg-primary fs-6"><i class="bx bx-check-circle me-1"></i> Completed Today (Total Worked: {{ $myTodayAttendance->working_hours }})</span>
+                        @foreach($sessions as $s)
+                            @if(!empty($s['check_in']) && !empty($s['check_out']))
+                                <span class="badge bg-label-info">
+                                    <i class="bx bx-check-circle me-1"></i>S{{ $s['session'] }}: {{ \Carbon\Carbon::parse($s['check_in'])->format('h:i A') }} – {{ \Carbon\Carbon::parse($s['check_out'])->format('h:i A') }}
+                                </span>
+                            @endif
+                        @endforeach
+
+                        @if($isCurrentlyCheckedIn)
+                            <span class="badge bg-success text-white fs-6 px-3 py-2 rounded-pill me-2 d-inline-flex align-items-center fw-semibold">
+                                <i class="bx bx-time-five me-1"></i>Session {{ $currentSessionNumber }}: {{ \Carbon\Carbon::parse($lastSession['check_in'])->format('h:i A') }} <span class="badge bg-white text-success ms-2 px-2 py-0 rounded-pill fw-bold text-uppercase" style="font-size: 0.68rem;">Active</span>
+                            </span>
+                            <button class="btn btn-danger btn-mark-self-attendance" data-type="check_out">
+                                <i class="bx bx-log-out me-1"></i> Session {{ $currentSessionNumber }} Check Out
+                            </button>
+                        @else
+                            @if(!empty($myTodayAttendance->working_hours))
+                                <span class="badge bg-label-primary fs-6 px-3 py-2 rounded-pill me-2">
+                                    <i class="bx bx-briefcase me-1"></i>Worked: {{ $myTodayAttendance->working_hours }}
+                                </span>
+                            @endif
+                            <button class="btn btn-primary btn-mark-self-attendance" data-type="check_in">
+                                <i class="bx bx-log-in-circle me-1"></i> Session {{ $currentSessionNumber }} Check In
+                            </button>
+                        @endif
                     @endif
                 </div>
             </div>
-        </div> --}}
-        @endif
+        </div>
 
         <!-- Analytics KPI Cards -->
         <div class="row g-3 mb-4">

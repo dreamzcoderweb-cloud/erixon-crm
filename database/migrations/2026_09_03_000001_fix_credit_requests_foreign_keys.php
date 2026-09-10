@@ -27,21 +27,25 @@ return new class extends Migration
             }
 
             // Re-add correct foreign keys
-            Schema::table('credit_requests', function (Blueprint $table) {
-                if (Schema::hasColumn('credit_requests', 'lead_id') && Schema::hasTable('leads')) {
-                    $table->foreign('lead_id', 'credit_requests_lead_id_foreign')
-                          ->references('lead_id')
-                          ->on('leads')
-                          ->onDelete('set null');
-                }
+            try {
+                Schema::table('credit_requests', function (Blueprint $table) {
+                    if (Schema::hasColumn('credit_requests', 'lead_id') && Schema::hasTable('leads')) {
+                        $table->foreign('lead_id', 'credit_requests_lead_id_foreign')
+                              ->references('lead_id')
+                              ->on('leads')
+                              ->onDelete('set null');
+                    }
 
-                if (Schema::hasColumn('credit_requests', 'lead_source_id') && Schema::hasTable('lead_sources')) {
-                    $table->foreign('lead_source_id', 'credit_requests_lead_source_id_foreign')
-                          ->references('lead_sources_id')
-                          ->on('lead_sources')
-                          ->onDelete('set null');
-                }
-            });
+                    if (Schema::hasColumn('credit_requests', 'lead_source_id') && Schema::hasTable('lead_sources')) {
+                        $table->foreign('lead_source_id', 'credit_requests_lead_source_id_foreign')
+                              ->references('lead_sources_id')
+                              ->on('lead_sources')
+                              ->onDelete('set null');
+                    }
+                });
+            } catch (\Throwable $e) {
+                // Ignore if constraint already exists or mismatched column types
+            }
         }
     }
 

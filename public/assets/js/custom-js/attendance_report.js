@@ -138,8 +138,10 @@ $(document).ready(function () {
                     data: 'session_2',
                     render: function (data, type) {
                         let text = data || '-';
-                        if (type !== 'display') return text;
-                        return text !== '-' ? `<span class="badge bg-label-success"><i class="bx bx-log-in-circle me-1"></i>${text}</span>` : '<span class="text-muted">-</span>';
+                        if (type !== 'display') return text.replace(/<br>/g, ', ');
+                        if (text === '-') return '<span class="text-muted">-</span>';
+                        let parts = text.split('<br>');
+                        return parts.map(p => `<span class="badge bg-label-success mb-1 d-inline-block"><i class="bx bx-log-in-circle me-1"></i>${p}</span>`).join('<br>');
                     }
                 },
                 {

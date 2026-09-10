@@ -185,7 +185,17 @@ $(document).ready(function () {
                 {
                     data: 'check_in',
                     className: 'text-center',
-                    render: function (data, type) {
+                    render: function (data, type, row) {
+                        let sessions = row.sessions_list || row.sessions;
+                        if (sessions && sessions.length > 1) {
+                            if (type !== 'display') {
+                                return sessions.map(s => 'S' + s.session + ': ' + (s.check_in || '-')).join(', ');
+                            }
+                            return sessions.map(s => {
+                                let time = s.check_in || '-';
+                                return `<span class="badge bg-label-success mb-1 d-inline-block"><i class="bx bx-log-in me-1"></i>S${s.session}: ${time}</span>`;
+                            }).join('<br>');
+                        }
                         if (!data) return '-';
                         if (type !== 'display') return data;
                         return `<span class="badge bg-label-success"><i class="bx bx-log-in me-1"></i>${data}</span>`;
@@ -195,6 +205,22 @@ $(document).ready(function () {
                     data: null,
                     className: 'text-center',
                     render: function (data, type, row) {
+                        let sessions = row.sessions_list || row.sessions;
+                        if (sessions && sessions.length > 1) {
+                            let validLocs = sessions.filter(s => s.latitude && s.longitude);
+                            if (validLocs.length === 0) {
+                                return '<span class="text-muted"><i class="bx bx-map-pin me-1"></i>N/A</span>';
+                            }
+                            if (type !== 'display') {
+                                return validLocs.map(s => `S${s.session}: ${s.latitude}, ${s.longitude}`).join(' | ');
+                            }
+                            return validLocs.map(s => {
+                                let mapsUrl = `https://maps.google.com/?q=${s.latitude},${s.longitude}`;
+                                let color = s.session === 1 ? 'info' : (s.session === 2 ? 'primary' : 'dark');
+                                return `<a href="${mapsUrl}" target="_blank" class="badge bg-label-${color} mb-1 d-inline-block text-decoration-none" title="View Session ${s.session} Location on Google Maps"><i class="bx bx-map-pin me-1"></i>S${s.session}: ${s.latitude}, ${s.longitude}</a>`;
+                            }).join('<br>');
+                        }
+
                         if (!row.latitude || !row.longitude) {
                             return '<span class="text-muted"><i class="bx bx-map-pin me-1"></i>N/A</span>';
                         }
@@ -211,7 +237,20 @@ $(document).ready(function () {
                 {
                     data: 'check_out',
                     className: 'text-center',
-                    render: function (data, type) {
+                    render: function (data, type, row) {
+                        let sessions = row.sessions_list || row.sessions;
+                        if (sessions && sessions.length > 1) {
+                            if (type !== 'display') {
+                                return sessions.map(s => 'S' + s.session + ': ' + (s.check_out || 'Active')).join(', ');
+                            }
+                            return sessions.map(s => {
+                                if (s.check_out) {
+                                    return `<span class="badge bg-label-danger mb-1 d-inline-block"><i class="bx bx-log-out me-1"></i>S${s.session}: ${s.check_out}</span>`;
+                                } else {
+                                    return `<span class="badge bg-label-warning mb-1 d-inline-block"><i class="bx bx-loader-alt me-1"></i>S${s.session}: Active</span>`;
+                                }
+                            }).join('<br>');
+                        }
                         if (!data) return '<span class="text-muted">Not Checked Out</span>';
                         if (type !== 'display') return data;
                         return `<span class="badge bg-label-danger"><i class="bx bx-log-out me-1"></i>${data}</span>`;

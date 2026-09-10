@@ -22,7 +22,7 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        if ($user && !$user->isSuperAdmin()) {
+        if ($user) {
             $data['myTodayAttendance'] = Attendance::where('user_id', $user->id)
                 ->whereDate('date', date('Y-m-d'))
                 ->first();

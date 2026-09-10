@@ -329,6 +329,16 @@ class AttendanceController extends Controller
                 // Session 1 Check-In
                 $status = $this->determineAttendanceStatus($user, $nowTime, 'Auto');
 
+                $sessions = [
+                    [
+                        'session'   => 1,
+                        'check_in'  => $nowTime,
+                        'check_out' => null,
+                        'latitude'  => $lat,
+                        'longitude' => $lng,
+                    ]
+                ];
+
                 $createData = [
                     'user_id'       => $user->id,
                     'date'          => $today,
@@ -338,6 +348,7 @@ class AttendanceController extends Controller
                     'status'        => $status,
                     'latitude'      => $lat,
                     'longitude'     => $lng,
+                    'sessions'      => $sessions,
                 ];
 
                 if ($approvedPermission) {
@@ -354,55 +365,57 @@ class AttendanceController extends Controller
                     'data'    => $attendance
                 ]);
             } else {
-                // Attendance record already exists for today
-                if (empty($attendance->check_out)) {
+                $sessions = $attendance->sessions_list;
+                $lastSession = !empty($sessions) ? end($sessions) : null;
+
+                // Check if currently checked in
+                if ($lastSession && empty($lastSession['check_out'])) {
+                    $currSessNum = $lastSession['session'] ?? 1;
                     return response()->json([
                         'status'  => false,
-                        'message' => 'You are currently checked in for Session 1.'
+                        'message' => "You are currently checked in for Session {$currSessNum}."
                     ], 422);
                 }
 
-                if (!empty($attendance->check_in) && !empty($attendance->check_out) && empty($attendance->second_check_in)) {
-                    // Session 2 Check-In
-                    $updateData = [
-                        'second_check_in'           => $nowTime,
-                        'second_check_in_latitude'  => $lat,
-                        'second_check_in_longitude' => $lng,
-                    ];
+                // Append new session
+                $nextSessionNum = $lastSession ? ((int) ($lastSession['session'] ?? count($sessions)) + 1) : 1;
+                $newSession = [
+                    'session'   => $nextSessionNum,
+                    'check_in'  => $nowTime,
+                    'check_out' => null,
+                    'latitude'  => $lat,
+                    'longitude' => $lng,
+                ];
+                $sessions[] = $newSession;
 
-                    if (empty($attendance->latitude) && !is_null($lat)) {
-                        $updateData['latitude']  = $lat;
-                        $updateData['longitude'] = $lng;
-                    }
+                $updateData = [
+                    'sessions' => $sessions,
+                ];
 
-                    if ($approvedPermission && empty($attendance->permission_id)) {
-                        $updateData['permission_start'] = $approvedPermission->start_time;
-                        $updateData['permission_end']   = $approvedPermission->end_time;
-                        $updateData['permission_id']    = $approvedPermission->id;
-                    }
-
-                    $attendance->update($updateData);
-
-                    return response()->json([
-                        'status'  => true,
-                        'message' => "Checked in for Session 2 at {$nowTime}.",
-                        'data'    => $attendance
-                    ]);
+                if ($nextSessionNum === 2) {
+                    $updateData['second_check_in']           = $nowTime;
+                    $updateData['second_check_in_latitude']  = $lat;
+                    $updateData['second_check_in_longitude'] = $lng;
                 }
 
-                if (!empty($attendance->second_check_in) && empty($attendance->second_check_out)) {
-                    return response()->json([
-                        'status'  => false,
-                        'message' => 'You are currently checked in for Session 2.'
-                    ], 422);
+                if (empty($attendance->latitude) && !is_null($lat)) {
+                    $updateData['latitude']  = $lat;
+                    $updateData['longitude'] = $lng;
                 }
 
-                if (!empty($attendance->second_check_out)) {
-                    return response()->json([
-                        'status'  => false,
-                        'message' => 'You have already completed all work sessions for today.'
-                    ], 422);
+                if ($approvedPermission && empty($attendance->permission_id)) {
+                    $updateData['permission_start'] = $approvedPermission->start_time;
+                    $updateData['permission_end']   = $approvedPermission->end_time;
+                    $updateData['permission_id']    = $approvedPermission->id;
                 }
+
+                $attendance->update($updateData);
+
+                return response()->json([
+                    'status'  => true,
+                    'message' => "Checked in for Session {$nextSessionNum} at {$nowTime}.",
+                    'data'    => $attendance
+                ]);
             }
         } elseif ($type === 'check_out') {
             if (!$attendance) {
@@ -412,38 +425,41 @@ class AttendanceController extends Controller
                 ], 422);
             }
 
-            if (!empty($attendance->second_check_in) && empty($attendance->second_check_out)) {
-                // Session 2 Check-Out
-                $workingHours = $this->calculateWorkingHours($attendance->check_in, $attendance->check_out, $attendance->second_check_in, $nowTime);
-                $attendance->update([
-                    'second_check_out' => $nowTime,
-                    'working_hours'    => $workingHours,
-                ]);
+            $sessions = $attendance->sessions_list;
+            $lastIndex = !empty($sessions) ? count($sessions) - 1 : -1;
 
-                return response()->json([
-                    'status'  => true,
-                    'message' => "Checked out for Session 2 at {$nowTime}.",
-                    'data'    => $attendance
-                ]);
-            } elseif (!empty($attendance->check_in) && empty($attendance->check_out)) {
-                // Session 1 Check-Out
-                $workingHours = $this->calculateWorkingHours($attendance->check_in, $nowTime);
-                $attendance->update([
-                    'check_out'     => $nowTime,
-                    'working_hours' => $workingHours,
-                ]);
-
-                return response()->json([
-                    'status'  => true,
-                    'message' => "Checked out for Session 1 at {$nowTime}.",
-                    'data'    => $attendance
-                ]);
-            } else {
+            if ($lastIndex < 0 || !empty($sessions[$lastIndex]['check_out'])) {
                 return response()->json([
                     'status'  => false,
                     'message' => 'No active check-in session found to check out.'
                 ], 422);
             }
+
+            $currentSessionNum = $sessions[$lastIndex]['session'] ?? ($lastIndex + 1);
+            $sessions[$lastIndex]['check_out'] = $nowTime;
+
+            $workingHours = $this->calculateWorkingHours(null, null, null, null, $sessions);
+
+            $updateData = [
+                'sessions'      => $sessions,
+                'working_hours' => $workingHours,
+            ];
+
+            if ($currentSessionNum === 1) {
+                $updateData['check_out'] = $nowTime;
+            } elseif ($currentSessionNum === 2) {
+                $updateData['second_check_out'] = $nowTime;
+            } else {
+                $updateData['check_out'] = $nowTime;
+            }
+
+            $attendance->update($updateData);
+
+            return response()->json([
+                'status'  => true,
+                'message' => "Checked out for Session {$currentSessionNum} at {$nowTime}.",
+                'data'    => $attendance
+            ]);
         }
 
         return response()->json(['status' => false, 'message' => 'Invalid action.'], 400);
@@ -663,10 +679,12 @@ class AttendanceController extends Controller
                 $rec->permission_id    = $permReq->id;
             }
 
-            // Session 1 breakdown
-            $s1CheckIn  = !empty($rec->check_in) ? Carbon::parse($rec->check_in)->format('h:i A') : '-';
-            $s1CheckOut = !empty($rec->check_out) ? Carbon::parse($rec->check_out)->format('h:i A') : '-';
-            $rec->session_1 = ($rec->check_in) ? "{$s1CheckIn} → {$s1CheckOut}" : '-';
+            // Sessions breakdown
+            $sessList = $rec->sessions_list;
+            $s1 = (!empty($sessList) && count($sessList) > 0) ? $sessList[0] : null;
+            $s1CheckIn  = $s1 ? (!empty($s1['check_in']) ? Carbon::parse($s1['check_in'])->format('h:i A') : '-') : (!empty($rec->check_in) ? Carbon::parse($rec->check_in)->format('h:i A') : '-');
+            $s1CheckOut = $s1 ? (!empty($s1['check_out']) ? Carbon::parse($s1['check_out'])->format('h:i A') : '-') : (!empty($rec->check_out) ? Carbon::parse($rec->check_out)->format('h:i A') : '-');
+            $rec->session_1 = ($s1CheckIn !== '-') ? "{$s1CheckIn} → {$s1CheckOut}" : '-';
 
             // Permission breakdown & duration
             $pStart = !empty($rec->permission_start) ? Carbon::parse($rec->permission_start)->format('h:i A') : null;
@@ -687,13 +705,24 @@ class AttendanceController extends Controller
             $pMins  = $pDurationMins % 60;
             $rec->permission_duration = $pDurationMins > 0 ? ($pHours > 0 ? "{$pHours} hrs " : "") . ($pMins > 0 ? "{$pMins} mins" : "") : '-';
 
-            // Session 2 breakdown
-            $s2CheckIn  = !empty($rec->second_check_in) ? Carbon::parse($rec->second_check_in)->format('h:i A') : '-';
-            $s2CheckOut = !empty($rec->second_check_out) ? Carbon::parse($rec->second_check_out)->format('h:i A') : '-';
-            $rec->session_2 = ($rec->second_check_in) ? "{$s2CheckIn} → {$s2CheckOut}" : '-';
+            // Additional sessions breakdown (Session 2, 3, etc.)
+            $extraSessions = [];
+            if (!empty($sessList) && count($sessList) > 1) {
+                foreach (array_slice($sessList, 1) as $idx => $s) {
+                    $sNum = $s['session'] ?? ($idx + 2);
+                    $sIn  = !empty($s['check_in']) ? Carbon::parse($s['check_in'])->format('h:i A') : '-';
+                    $sOut = !empty($s['check_out']) ? Carbon::parse($s['check_out'])->format('h:i A') : 'Active';
+                    $extraSessions[] = "S{$sNum}: {$sIn} → {$sOut}";
+                }
+            } elseif (!empty($rec->second_check_in)) {
+                $s2CheckIn  = Carbon::parse($rec->second_check_in)->format('h:i A');
+                $s2CheckOut = !empty($rec->second_check_out) ? Carbon::parse($rec->second_check_out)->format('h:i A') : '-';
+                $extraSessions[] = "{$s2CheckIn} → {$s2CheckOut}";
+            }
+            $rec->session_2 = !empty($extraSessions) ? implode('<br>', $extraSessions) : '-';
 
             // Total working hours
-            $computedWorkedHours = $this->calculateWorkingHours($rec->check_in, $rec->check_out, $rec->second_check_in, $rec->second_check_out);
+            $computedWorkedHours = $this->calculateWorkingHours($rec->check_in, $rec->check_out, $rec->second_check_in, $rec->second_check_out, $rec->sessions_list);
             if ($computedWorkedHours) {
                 $rec->working_hours = $computedWorkedHours;
             }
@@ -732,25 +761,41 @@ class AttendanceController extends Controller
         // Calculate Total Working Hours across all work sessions
         $totalMinutes = 0;
         foreach ($records as $rec) {
-            if (!empty($rec->check_in) && !empty($rec->check_out)) {
-                try {
-                    $in  = Carbon::parse($rec->check_in);
-                    $out = Carbon::parse($rec->check_out);
-                    if ($out->lessThan($in)) {
-                        $out->addDay();
+            $sessList = $rec->sessions_list;
+            if (!empty($sessList)) {
+                foreach ($sessList as $s) {
+                    if (!empty($s['check_in']) && !empty($s['check_out'])) {
+                        try {
+                            $in  = Carbon::parse($s['check_in']);
+                            $out = Carbon::parse($s['check_out']);
+                            if ($out->lessThan($in)) {
+                                $out->addDay();
+                            }
+                            $totalMinutes += $in->diffInMinutes($out);
+                        } catch (\Exception $e) {}
                     }
-                    $totalMinutes += $in->diffInMinutes($out);
-                } catch (\Exception $e) {}
-            }
-            if (!empty($rec->second_check_in) && !empty($rec->second_check_out)) {
-                try {
-                    $in2  = Carbon::parse($rec->second_check_in);
-                    $out2 = Carbon::parse($rec->second_check_out);
-                    if ($out2->lessThan($in2)) {
-                        $out2->addDay();
-                    }
-                    $totalMinutes += $in2->diffInMinutes($out2);
-                } catch (\Exception $e) {}
+                }
+            } else {
+                if (!empty($rec->check_in) && !empty($rec->check_out)) {
+                    try {
+                        $in  = Carbon::parse($rec->check_in);
+                        $out = Carbon::parse($rec->check_out);
+                        if ($out->lessThan($in)) {
+                            $out->addDay();
+                        }
+                        $totalMinutes += $in->diffInMinutes($out);
+                    } catch (\Exception $e) {}
+                }
+                if (!empty($rec->second_check_in) && !empty($rec->second_check_out)) {
+                    try {
+                        $in2  = Carbon::parse($rec->second_check_in);
+                        $out2 = Carbon::parse($rec->second_check_out);
+                        if ($out2->lessThan($in2)) {
+                            $out2->addDay();
+                        }
+                        $totalMinutes += $in2->diffInMinutes($out2);
+                    } catch (\Exception $e) {}
+                }
             }
         }
 
@@ -776,30 +821,45 @@ class AttendanceController extends Controller
         ]);
     }
 
-    private function calculateWorkingHours($checkIn, $checkOut, $secondCheckIn = null, $secondCheckOut = null)
+    private function calculateWorkingHours($checkIn = null, $checkOut = null, $secondCheckIn = null, $secondCheckOut = null, $sessions = null)
     {
         $totalMinutes = 0;
 
-        if (!empty($checkIn) && !empty($checkOut)) {
-            try {
-                $in = Carbon::parse($checkIn);
-                $out = Carbon::parse($checkOut);
-                if ($out->lessThan($in)) {
-                    $out->addDay();
+        if (!empty($sessions) && is_array($sessions)) {
+            foreach ($sessions as $s) {
+                if (!empty($s['check_in']) && !empty($s['check_out'])) {
+                    try {
+                        $in = Carbon::parse($s['check_in']);
+                        $out = Carbon::parse($s['check_out']);
+                        if ($out->lessThan($in)) {
+                            $out->addDay();
+                        }
+                        $totalMinutes += $in->diffInMinutes($out);
+                    } catch (\Exception $e) {}
                 }
-                $totalMinutes += $in->diffInMinutes($out);
-            } catch (\Exception $e) {}
-        }
+            }
+        } else {
+            if (!empty($checkIn) && !empty($checkOut)) {
+                try {
+                    $in = Carbon::parse($checkIn);
+                    $out = Carbon::parse($checkOut);
+                    if ($out->lessThan($in)) {
+                        $out->addDay();
+                    }
+                    $totalMinutes += $in->diffInMinutes($out);
+                } catch (\Exception $e) {}
+            }
 
-        if (!empty($secondCheckIn) && !empty($secondCheckOut)) {
-            try {
-                $in2 = Carbon::parse($secondCheckIn);
-                $out2 = Carbon::parse($secondCheckOut);
-                if ($out2->lessThan($in2)) {
-                    $out2->addDay();
-                }
-                $totalMinutes += $in2->diffInMinutes($out2);
-            } catch (\Exception $e) {}
+            if (!empty($secondCheckIn) && !empty($secondCheckOut)) {
+                try {
+                    $in2 = Carbon::parse($secondCheckIn);
+                    $out2 = Carbon::parse($secondCheckOut);
+                    if ($out2->lessThan($in2)) {
+                        $out2->addDay();
+                    }
+                    $totalMinutes += $in2->diffInMinutes($out2);
+                } catch (\Exception $e) {}
+            }
         }
 
         if ($totalMinutes <= 0) {
