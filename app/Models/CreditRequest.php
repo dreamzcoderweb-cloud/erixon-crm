@@ -15,6 +15,7 @@ class CreditRequest extends Model
 
     protected $fillable = [
         'lead_source_id',
+        'lead_requirement_id',
         'customer_id',
         'username',
         'phone',
@@ -48,6 +49,11 @@ class CreditRequest extends Model
     public function leadSource()
     {
         return $this->belongsTo(LeadSource::class, 'lead_source_id', 'lead_sources_id');
+    }
+
+    public function leadRequirement()
+    {
+        return $this->belongsTo(LeadRequirement::class, 'lead_requirement_id', 'lead_requirements_id');
     }
 
     public function customer()

@@ -137,6 +137,16 @@
 
                                 <!-- Row 10 -->
                                 <div class="col-md-6 mb-3">
+                                    <label class="form-label" for="status">Status <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="status" name="status">
+                                        <option value="1" {{ (string) old('status', $staff->status ?? 1) === '1' ? 'selected' : '' }}>Active</option>
+                                        <option value="0" {{ (string) old('status', $staff->status ?? 1) === '0' ? 'selected' : '' }}>Inactive</option>
+                                    </select>
+                                    <span class="text-danger small">{{ $errors->first('status') }}</span>
+                                </div>
+
+                                <!-- Row 11 -->
+                                <div class="col-md-6 mb-3">
                                     <label class="form-label" for="password">New Password</label>
                                     <input type="password" class="form-control" id="password" name="password" autocomplete="new-password" placeholder="Leave blank to keep current" />
                                     <span class="text-danger small">{{ $errors->first('password') }}</span>

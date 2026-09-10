@@ -50,7 +50,7 @@ $(document).ready(function () {
             return name !== 'N/A' ? `<span class="badge bg-label-warning">${name}</span>` : '<span class="text-muted">N/A</span>';
         },
         'lead_requirement': function (data, type, row) {
-            let name = (row.lead && row.lead.lead_requirement) ? row.lead.lead_requirement.name : (row.lead_requirement ? row.lead_requirement.name : 'N/A');
+            let name = row.lead_requirement ? row.lead_requirement.name : ((row.lead && row.lead.lead_requirement) ? row.lead.lead_requirement.name : (row.lead_requirement ? row.lead_requirement.name : 'N/A'));
             if (type !== 'display') return name;
             return name !== 'N/A' ? `<span class="badge bg-label-primary">${name}</span>` : '<span class="text-muted">N/A</span>';
         },
@@ -138,6 +138,9 @@ $(document).ready(function () {
 
             if (row.status === 'Pending Admin Approval' || row.status === 'Forwarded to Support') {
                 menuItems += `
+                    <a class="dropdown-item btn-edit-credit text-primary" href="javascript:void(0);" data-id="${row.credit_request_id}">
+                        <i class="bx bx-edit me-1"></i> Edit
+                    </a>
                     <a class="dropdown-item reject-credit-btn text-warning" href="javascript:void(0);" data-id="${row.credit_request_id}">
                         <i class="bx bx-x-circle me-1"></i> Reject
                     </a>
@@ -384,6 +387,81 @@ $(document).ready(function () {
             },
             complete: function () {
                 submitBtn.prop('disabled', false);
+            }
+        });
+    });
+
+    // Open Edit Credit Request Modal
+    $(document).on('click', '.btn-edit-credit', function () {
+        let id = $(this).data('id');
+        let form = $('#editCreditRequestForm');
+        clearValidationErrors(form);
+
+        $.ajax({
+            url: APP_URL + '/admin/credit-requests/edit/' + id,
+            type: 'GET',
+            success: function (res) {
+                if (res.status && res.data) {
+                    let d = res.data;
+                    $('#edit_credit_request_id').val(d.credit_request_id);
+                    $('#edit_customer_id').val(d.customer_id);
+                    $('#edit_lead_source_id').val(d.lead_source_id || '');
+                    $('#edit_lead_requirement_id').val(d.lead_requirement_id || (d.lead ? d.lead.lead_requirement_id : ''));
+                    $('#edit_credit_amount').val(d.credit_amount);
+                    $('#edit_is_estimate').prop('checked', !!d.is_estimate);
+
+                    // Populate custom fields
+                    if (d.custom_fields) {
+                        $.each(d.custom_fields, function (key, val) {
+                            let el = $(`#edit_cf_${key}`);
+                            if (el.length) {
+                                if (el.is(':checkbox')) {
+                                    el.prop('checked', val === '1' || val === 1 || val === true);
+                                } else {
+                                    el.val(val);
+                                }
+                            }
+                        });
+                    }
+
+                    $('#editCreditRequestModal').modal('show');
+                }
+            },
+            error: function () {
+                showAlert('danger', 'Failed to fetch credit request details.');
+            }
+        });
+    });
+
+    // Submit Edit Credit Request Form
+    $('#editCreditRequestForm').on('submit', function (e) {
+        e.preventDefault();
+        let form = $(this);
+        let id = $('#edit_credit_request_id').val();
+        let submitBtn = $('#editCreditSubmitBtn');
+
+        submitBtn.prop('disabled', true);
+        clearValidationErrors(form);
+
+        $.ajax({
+            url: APP_URL + '/admin/credit-requests/update/' + id,
+            type: 'POST',
+            data: form.serialize(),
+            success: function (response) {
+                submitBtn.prop('disabled', false);
+                if (response.status) {
+                    $('#editCreditRequestModal').modal('hide');
+                    creditTable.ajax.reload(null, false);
+                    showAlert('success', response.message);
+                }
+            },
+            error: function (xhr) {
+                submitBtn.prop('disabled', false);
+                if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
+                    showValidationErrors(form, xhr.responseJSON.errors);
+                } else {
+                    showAlert('danger', xhr.responseJSON?.message || 'Failed to update credit request.');
+                }
             }
         });
     });

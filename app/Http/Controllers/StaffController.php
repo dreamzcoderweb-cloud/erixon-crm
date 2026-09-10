@@ -54,6 +54,7 @@ class StaffController extends Controller
                 'increment_amount' => ['nullable', 'numeric', 'min:0'],
                 'increment_date' => ['nullable', 'date'],
                 'check_out_time' => ['nullable'],
+                'status' => ['nullable', 'in:0,1'],
             ]
         );
 
@@ -75,6 +76,7 @@ class StaffController extends Controller
         $user->increment_amount = $validated['increment_amount'] ?? 0.00;
         $user->increment_date = $validated['increment_date'] ?? null;
         $user->check_out_time = $validated['check_out_time'] ?? null;
+        $user->status = isset($validated['status']) ? (int) $validated['status'] : 1;
         $user->is_on_leave = false;
         $user->password = Hash::make($validated['password']);
         $user->save();
@@ -128,6 +130,7 @@ class StaffController extends Controller
                 'increment_amount' => ['nullable', 'numeric', 'min:0'],
                 'increment_date' => ['nullable', 'date'],
                 'check_out_time' => ['nullable'],
+                'status' => ['nullable', 'in:0,1'],
             ]
         );
 
@@ -148,6 +151,9 @@ class StaffController extends Controller
         $user->increment_amount = $validated['increment_amount'] ?? 0.00;
         $user->increment_date = $validated['increment_date'] ?? null;
         $user->check_out_time = $validated['check_out_time'] ?? null;
+        if (isset($validated['status'])) {
+            $user->status = (int) $validated['status'];
+        }
         if (!empty($validated['password'])) {
             $user->password = Hash::make($validated['password']);
         }

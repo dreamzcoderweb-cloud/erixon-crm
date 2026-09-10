@@ -41,6 +41,7 @@ class User extends Authenticatable
         'increment_amount',
         'increment_date',
         'check_out_time',
+        'status',
     ];
 
     /**

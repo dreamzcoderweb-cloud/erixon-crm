@@ -95,7 +95,7 @@ class CustomerApiController extends Controller
                     'owner_by' => $currentUser ? $currentUser->id : null,
                     'owner_by_name' => $currentUser ? $currentUser->name : null,
                     'assign_by' => null,
-                    'status' => 1,
+                    'status' => $currentUser ? $currentUser->status : null,
 
                 ],
             ],
@@ -245,7 +245,7 @@ class CustomerApiController extends Controller
 
         $user = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
         $creatorId = $request->filled('created_by') ? (int) $request->input('created_by') : ($user ? $user->id : 1);
-        $ownerId = $request->filled('owner_by') ? (int) $request->input('owner_by') : ($user ? $user->id : null);
+        $ownerId = $request->filled('owner_by') ? (int) $request->input('owner_by') :  null;
         $assignId = $request->filled('assign_by') ? (int) $request->input('assign_by') : null;
 
         try {

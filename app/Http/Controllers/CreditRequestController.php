@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CreditRequest;
 use App\Models\Customer;
 use App\Models\Lead;
+use App\Models\LeadRequirement;
 use App\Models\LeadSource;
 use App\Models\User;
 use App\Notifications\CreditRequestApprovedByAdmin;
@@ -21,9 +22,10 @@ class CreditRequestController extends Controller
         }
 
         $user = Auth::user();
-        $data['leads']       = Lead::forUser($user)->with('customer')->orderBy('lead_id', 'DESC')->get();
-        $data['leadSources'] = LeadSource::where('status', 1)->orderBy('lead_sources_id')->get();
-        $data['customers']   = Customer::forUser($user)->where('status', 1)->orderBy('name')->get();
+        $data['leads']            = Lead::forUser($user)->with('customer')->orderBy('lead_id', 'DESC')->get();
+        $data['leadSources']      = LeadSource::where('status', 1)->orderBy('lead_sources_id')->get();
+        $data['leadRequirements'] = LeadRequirement::where('status', 1)->orderBy('name')->get();
+        $data['customers']        = Customer::forUser($user)->where('status', 1)->orderBy('name')->get();
 
         $customFields = \App\Models\CreditRequestCustomField::where('status', 1)->orderBy('sort_order', 'asc')->orderBy('id', 'asc')->get();
 
@@ -96,6 +98,7 @@ class CreditRequestController extends Controller
             'lead.lostReason:lost_reason_id,reason',
             'customer:customer_id,name,mobile,email,credit_balance',
             'leadSource:lead_sources_id,name',
+            'leadRequirement:lead_requirements_id,name',
             'adminApprover:id,name',
             'supportApprover:id,name',
             'requester:id,name'
@@ -116,13 +119,14 @@ class CreditRequestController extends Controller
     public function store(Request $request)
     {
         $rules = [
-            'customer_id'   => ['required', 'exists:customers,customer_id'],
-            'lead_source_id' => ['nullable', 'exists:lead_sources,lead_sources_id'],
-            'credit_amount' => ['required', 'numeric', 'min:0.01'],
-            'is_estimate'   => ['nullable', 'boolean'],
-            'username'      => ['nullable', 'string', 'max:255'],
-            'phone'         => ['nullable', 'string', 'max:30'],
-            'email'         => ['nullable', 'email', 'max:255'],
+            'customer_id'         => ['required', 'exists:customers,customer_id'],
+            'lead_source_id'      => ['nullable', 'exists:lead_sources,lead_sources_id'],
+            'lead_requirement_id' => ['nullable', 'exists:lead_requirements,lead_requirements_id'],
+            'credit_amount'       => ['required', 'numeric', 'min:0.01'],
+            'is_estimate'         => ['nullable', 'boolean'],
+            'username'            => ['nullable', 'string', 'max:255'],
+            'phone'               => ['nullable', 'string', 'max:30'],
+            'email'               => ['nullable', 'email', 'max:255'],
         ];
 
         [$cfRules, $cfAttributes] = $this->getCustomFieldsRules();
@@ -134,16 +138,17 @@ class CreditRequestController extends Controller
         $customFieldsData = $this->processCustomFieldsPayload($request->input('custom_fields', []));
 
         $creditRequest = CreditRequest::create([
-            'customer_id'   => $validated['customer_id'],
-            'lead_source_id' => $validated['lead_source_id'] ?? null,
-            'credit_amount' => $validated['credit_amount'],
-            'is_estimate'   => !empty($validated['is_estimate']) ? true : false,
-            'username'      => $validated['username'] ?? $customer->name ?? null,
-            'phone'         => $validated['phone'] ?? $customer->mobile ?? null,
-            'email'         => $validated['email'] ?? $customer->email ?? null,
-            'status'        => 'Pending Admin Approval',
-            'requested_by'  => Auth::id(),
-            'custom_fields' => $customFieldsData,
+            'customer_id'         => $validated['customer_id'],
+            'lead_source_id'      => $validated['lead_source_id'] ?? null,
+            'lead_requirement_id' => $validated['lead_requirement_id'] ?? null,
+            'credit_amount'       => $validated['credit_amount'],
+            'is_estimate'         => !empty($validated['is_estimate']) ? true : false,
+            'username'            => $validated['username'] ?? $customer->name ?? null,
+            'phone'               => $validated['phone'] ?? $customer->mobile ?? null,
+            'email'               => $validated['email'] ?? $customer->email ?? null,
+            'status'              => 'Pending Admin Approval',
+            'requested_by'        => Auth::id(),
+            'custom_fields'       => $customFieldsData,
         ]);
 
         $msgType = !empty($validated['is_estimate']) ? 'Estimate Credit Request' : 'Credit Request';
@@ -157,7 +162,7 @@ class CreditRequestController extends Controller
 
     public function edit($id)
     {
-        $creditRequest = CreditRequest::forUser(Auth::user())->with(['customer', 'lead', 'requester'])->find($id);
+        $creditRequest = CreditRequest::forUser(Auth::user())->with(['customer', 'lead', 'requester', 'leadSource', 'leadRequirement'])->find($id);
         if (!$creditRequest) {
             return response()->json([
                 'status'  => false,
@@ -182,13 +187,14 @@ class CreditRequestController extends Controller
         }
 
         $rules = [
-            'customer_id'   => ['required', 'exists:customers,customer_id'],
-            'lead_source_id' => ['nullable', 'exists:lead_sources,lead_sources_id'],
-            'credit_amount' => ['required', 'numeric', 'min:0.01'],
-            'is_estimate'   => ['nullable', 'boolean'],
-            'username'      => ['nullable', 'string', 'max:255'],
-            'phone'         => ['nullable', 'string', 'max:30'],
-            'email'         => ['nullable', 'email', 'max:255'],
+            'customer_id'         => ['required', 'exists:customers,customer_id'],
+            'lead_source_id'      => ['nullable', 'exists:lead_sources,lead_sources_id'],
+            'lead_requirement_id' => ['nullable', 'exists:lead_requirements,lead_requirements_id'],
+            'credit_amount'       => ['required', 'numeric', 'min:0.01'],
+            'is_estimate'         => ['nullable', 'boolean'],
+            'username'            => ['nullable', 'string', 'max:255'],
+            'phone'               => ['nullable', 'string', 'max:30'],
+            'email'               => ['nullable', 'email', 'max:255'],
         ];
 
         [$cfRules, $cfAttributes] = $this->getCustomFieldsRules();
@@ -200,14 +206,15 @@ class CreditRequestController extends Controller
         $customFieldsData = $this->processCustomFieldsPayload($request->input('custom_fields', []));
 
         $creditRequest->update([
-            'customer_id'   => $validated['customer_id'],
-            'lead_source_id' => $validated['lead_source_id'] ?? null,
-            'credit_amount' => $validated['credit_amount'],
-            'is_estimate'   => !empty($validated['is_estimate']) ? true : false,
-            'username'      => $validated['username'] ?? $customer->name ?? null,
-            'phone'         => $validated['phone'] ?? $customer->mobile ?? null,
-            'email'         => $validated['email'] ?? $customer->email ?? null,
-            'custom_fields' => $customFieldsData,
+            'customer_id'         => $validated['customer_id'],
+            'lead_source_id'      => $validated['lead_source_id'] ?? null,
+            'lead_requirement_id' => $validated['lead_requirement_id'] ?? null,
+            'credit_amount'       => $validated['credit_amount'],
+            'is_estimate'         => !empty($validated['is_estimate']) ? true : false,
+            'username'            => $validated['username'] ?? $customer->name ?? null,
+            'phone'               => $validated['phone'] ?? $customer->mobile ?? null,
+            'email'               => $validated['email'] ?? $customer->email ?? null,
+            'custom_fields'       => $customFieldsData,
         ]);
 
         return response()->json([
