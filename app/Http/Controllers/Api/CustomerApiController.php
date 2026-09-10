@@ -329,14 +329,6 @@ class CustomerApiController extends Controller
             $query->where('status', $request->input('status'));
         }
 
-        if ($request->filled('owner_by')) {
-            $query->where('owner_by', $request->input('owner_by'));
-        }
-
-        if ($request->filled('created_by')) {
-            $query->where('created_by', $request->input('created_by'));
-        }
-
         $perPage = (int) $request->input('per_page', 20);
         $customers = $query->paginate($perPage);
 

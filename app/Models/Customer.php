@@ -53,6 +53,51 @@ class Customer extends Authenticatable
         'remember_token',
     ];
 
+    protected $appends = [
+        'owner_by_name',
+        'assign_by_name',
+        'created_by_name',
+        'owner_name',
+        'assign_name',
+        'assigned_by_name',
+        'creator_name',
+    ];
+
+    public function getOwnerByNameAttribute()
+    {
+        return $this->owner?->name;
+    }
+
+    public function getOwnerNameAttribute()
+    {
+        return $this->owner?->name;
+    }
+
+    public function getAssignByNameAttribute()
+    {
+        return $this->assignedBy?->name ?? $this->assignBy?->name;
+    }
+
+    public function getAssignNameAttribute()
+    {
+        return $this->assignedBy?->name ?? $this->assignBy?->name;
+    }
+
+    public function getAssignedByNameAttribute()
+    {
+        return $this->assignedBy?->name ?? $this->assignBy?->name;
+    }
+
+    public function getCreatedByNameAttribute()
+    {
+        return $this->creator?->name;
+    }
+
+    public function getCreatorNameAttribute()
+    {
+        return $this->creator?->name;
+    }
+
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -64,6 +109,11 @@ class Customer extends Authenticatable
     }
 
     public function assignedBy()
+    {
+        return $this->belongsTo(User::class, 'assign_by');
+    }
+
+    public function assignBy()
     {
         return $this->belongsTo(User::class, 'assign_by');
     }
