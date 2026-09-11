@@ -170,12 +170,90 @@ class LeadApiController extends Controller
             $query->where('customer_id', $request->input('customer_id'));
         }
 
-        if ($request->filled('lead_source_id')) {
-            $query->where('lead_source_id', $request->input('lead_source_id'));
+        // Filter by Lead Source (supports ID or static names e.g., 'Google', 'Referral', 'Cold Call', single or array)
+        $rawSource = $request->input('lead_source_id', $request->input('lead_source', $request->input('source_id', $request->input('source'))));
+        if ($rawSource !== null && $rawSource !== '') {
+            $sourceList = is_array($rawSource) ? $rawSource : explode(',', (string) $rawSource);
+            $cleanSources = [];
+            foreach ($sourceList as $src) {
+                $val = trim((string) $src);
+                if ($val !== '' && strtolower($val) !== 'all') {
+                    $cleanSources[] = $val;
+                }
+            }
+            if (!empty($cleanSources)) {
+                $sourceIds = [];
+                $sourceNames = [];
+                foreach ($cleanSources as $val) {
+                    if (is_numeric($val)) {
+                        $sourceIds[] = (int) $val;
+                    } else {
+                        $sourceObj = LeadSource::where('name', $val)
+                            ->orWhere('name', 'like', "%{$val}%")
+                            ->first();
+                        if ($sourceObj) {
+                            $sourceIds[] = $sourceObj->lead_sources_id;
+                        } else {
+                            $sourceNames[] = $val;
+                        }
+                    }
+                }
+                $query->where(function ($sq) use ($sourceIds, $sourceNames) {
+                    if (!empty($sourceIds)) {
+                        $sq->whereIn('lead_source_id', $sourceIds);
+                    }
+                    if (!empty($sourceNames)) {
+                        foreach ($sourceNames as $name) {
+                            $sq->orWhereHas('leadSource', function ($lsq) use ($name) {
+                                $lsq->where('name', 'like', "%{$name}%");
+                            });
+                        }
+                    }
+                });
+            }
         }
 
-        if ($request->filled('lead_stage_id')) {
-            $query->where('lead_stage_id', $request->input('lead_stage_id'));
+        // Filter by Lead Stage (supports ID or static names e.g., 'New', 'Contacted', 'Qualified', single or array)
+        $rawStage = $request->input('lead_stage_id', $request->input('lead_stage', $request->input('stage_id', $request->input('stage'))));
+        if ($rawStage !== null && $rawStage !== '') {
+            $stageList = is_array($rawStage) ? $rawStage : explode(',', (string) $rawStage);
+            $cleanStages = [];
+            foreach ($stageList as $st) {
+                $val = trim((string) $st);
+                if ($val !== '' && strtolower($val) !== 'all') {
+                    $cleanStages[] = $val;
+                }
+            }
+            if (!empty($cleanStages)) {
+                $stageIds = [];
+                $stageNames = [];
+                foreach ($cleanStages as $val) {
+                    if (is_numeric($val)) {
+                        $stageIds[] = (int) $val;
+                    } else {
+                        $stageObj = LeadStage::where('name', $val)
+                            ->orWhere('name', 'like', "%{$val}%")
+                            ->first();
+                        if ($stageObj) {
+                            $stageIds[] = $stageObj->lead_stage_id;
+                        } else {
+                            $stageNames[] = $val;
+                        }
+                    }
+                }
+                $query->where(function ($sq) use ($stageIds, $stageNames) {
+                    if (!empty($stageIds)) {
+                        $sq->whereIn('lead_stage_id', $stageIds);
+                    }
+                    if (!empty($stageNames)) {
+                        foreach ($stageNames as $name) {
+                            $sq->orWhereHas('leadStage', function ($lsq) use ($name) {
+                                $lsq->where('name', 'like', "%{$name}%");
+                            });
+                        }
+                    }
+                });
+            }
         }
 
         if ($request->filled('lead_requirement_id')) {
@@ -194,8 +272,20 @@ class LeadApiController extends Controller
             $query->where('created_by', $request->input('created_by'));
         }
 
-        if ($request->filled('priority')) {
-            $query->where('priority', $request->input('priority'));
+        // Filter by Priority (supports case-insensitive e.g. 'High', 'Medium', 'Low', ignores 'All')
+        if ($request->has('priority') && $request->input('priority') !== '' && $request->input('priority') !== null) {
+            $rawPriority = $request->input('priority');
+            $priorityList = is_array($rawPriority) ? $rawPriority : explode(',', (string) $rawPriority);
+            $validPriorities = [];
+            foreach ($priorityList as $p) {
+                $clean = strtolower(trim((string) $p));
+                if ($clean !== '' && $clean !== 'all') {
+                    $validPriorities[] = $clean;
+                }
+            }
+            if (!empty($validPriorities)) {
+                $query->whereIn('priority', $validPriorities);
+            }
         }
 
         if ($request->has('status') && $request->input('status') !== '' && $request->input('status') !== null) {
