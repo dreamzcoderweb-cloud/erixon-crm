@@ -145,6 +145,34 @@ class FollowupApiController extends Controller
             });
         }
 
+        // Filter by Follow-up Type (supports 'follow_type', 'followup_type', or 'type', case-insensitive, single or array/comma-separated)
+        $rawType = $request->input('follow_type', $request->input('followup_type', $request->input('type')));
+        $cleanTypes = [];
+        if ($rawType !== null && $rawType !== '') {
+            $typeList = is_array($rawType) ? $rawType : explode(',', (string) $rawType);
+            $validTypeMap = [
+                'call'     => 'Call',
+                'meeting'  => 'Meeting',
+                'email'    => 'Email',
+                'whatsapp' => 'WhatsApp',
+                'other'    => 'Other',
+            ];
+            foreach ($typeList as $t) {
+                $val = trim((string) $t);
+                $lowerVal = strtolower($val);
+                if ($val !== '' && $lowerVal !== 'all') {
+                    if (isset($validTypeMap[$lowerVal])) {
+                        $cleanTypes[] = $validTypeMap[$lowerVal];
+                    } else {
+                        $cleanTypes[] = $val;
+                    }
+                }
+            }
+            if (!empty($cleanTypes)) {
+                $query->whereIn('followup_type', $cleanTypes);
+            }
+        }
+
 
         // Filter by Status (handles 'status' or 'followup_status', case-insensitive)
         $statusInput = $request->input('status', $request->input('followup_status'));
@@ -168,14 +196,26 @@ class FollowupApiController extends Controller
             });
         }
 
-        // Date period filtering matching Admin Panel
+        // Date period filtering (supports from_date, to_date, start_date, end_date, etc.)
         $filterType = $request->input('filter_type', 'all');
         $customDate = $request->input('date');
         $month      = $request->input('month');
-        $startDate  = $request->input('start_date');
-        $endDate    = $request->input('end_date');
+        $fromDate   = $request->input('from_date', $request->input('start_date', $request->input('from')));
+        $toDate     = $request->input('to_date', $request->input('end_date', $request->input('to')));
 
-        if ($filterType === 'today') {
+        // Date column to filter: defaults to 'next_followup_date', or 'created_at' if specified
+        $dateColumn = ($request->input('date_field') === 'created_at' || $request->input('date_column') === 'created_at')
+            ? 'created_at'
+            : 'next_followup_date';
+
+        if (!empty($fromDate) || !empty($toDate)) {
+            if (!empty($fromDate)) {
+                $query->whereDate($dateColumn, '>=', $fromDate);
+            }
+            if (!empty($toDate)) {
+                $query->whereDate($dateColumn, '<=', $toDate);
+            }
+        } elseif ($filterType === 'today') {
             $query->whereDate('next_followup_date', '=', $today);
         } elseif ($filterType === 'tomorrow' || $filterType === 'upcoming') {
             $query->whereDate('next_followup_date', '>', $today);
@@ -185,7 +225,7 @@ class FollowupApiController extends Controller
         } elseif ($filterType === 'daily' && !empty($customDate)) {
             $query->whereDate('next_followup_date', '=', $customDate);
         } elseif ($filterType === 'weekly') {
-            $refDate = !empty($startDate) ? Carbon::parse($startDate) : Carbon::today();
+            $refDate = !empty($fromDate) ? Carbon::parse($fromDate) : Carbon::today();
             $query->whereBetween('next_followup_date', [
                 $refDate->copy()->startOfWeek(),
                 $refDate->copy()->endOfWeek(),
@@ -194,13 +234,14 @@ class FollowupApiController extends Controller
             [$year, $selectedMonth] = array_pad(explode('-', $month), 2, null);
             $query->whereYear('next_followup_date', $year ?: date('Y'))
                 ->whereMonth('next_followup_date', $selectedMonth ?: date('m'));
-        } elseif ($filterType === 'custom') {
-            if (!empty($startDate)) {
-                $query->whereDate('next_followup_date', '>=', $startDate);
-            }
-            if (!empty($endDate)) {
-                $query->whereDate('next_followup_date', '<=', $endDate);
-            }
+        }
+
+        // Additional optional created_at range filter
+        if ($request->filled('created_from_date')) {
+            $query->whereDate('created_at', '>=', $request->input('created_from_date'));
+        }
+        if ($request->filled('created_to_date')) {
+            $query->whereDate('created_at', '<=', $request->input('created_to_date'));
         }
 
         // Calculate counts for badges/KPIs
