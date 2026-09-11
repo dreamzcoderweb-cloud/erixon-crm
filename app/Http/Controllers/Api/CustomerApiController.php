@@ -325,8 +325,13 @@ class CustomerApiController extends Controller
             $query->where('customer_type', $request->input('customer_type'));
         }
 
-        if ($request->filled('status')) {
-            $query->where('status', $request->input('status'));
+        if ($request->has('status') && $request->input('status') !== '' && $request->input('status') !== null) {
+            $rawStatus = strtolower(trim((string) $request->input('status')));
+            if ($rawStatus === 'active' || $rawStatus === '1' || $rawStatus === 'true') {
+                $query->where('status', 1);
+            } elseif ($rawStatus === 'inactive' || $rawStatus === 'closed' || $rawStatus === '0' || $rawStatus === 'false') {
+                $query->where('status', 0);
+            }
         }
 
         $perPage = (int) $request->input('per_page', 20);

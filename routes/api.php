@@ -2,7 +2,8 @@
 
 use App\Http\Controllers\Api\StaffAuthController;
 use App\Http\Controllers\Api\CustomerApiController;
-// use App\Http\Controllers\Api\SlotController;
+use App\Http\Controllers\Api\LeadApiController;
+
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -26,6 +27,18 @@ Route::prefix('v1')->group(function () {
         Route::post('customers/update/{id}', [CustomerApiController::class, 'update']);
         Route::delete('customers/delete/{id}', [CustomerApiController::class, 'destroy']);
         Route::post('customers/change-status/{id}', [CustomerApiController::class, 'changeStatus']);
+
+        // Mobile App Lead Management & Additional Custom Fields
+        Route::get('leads/form-data', [LeadApiController::class, 'getFormData']);
+        Route::get('leads', [LeadApiController::class, 'index']);
+        Route::post('leads', [LeadApiController::class, 'store']);
+        Route::get('leads/edit/{id}', [LeadApiController::class, 'edit']);
+        Route::get('leads/{id}', [LeadApiController::class, 'show']);
+        Route::post('leads/update/{id}', [LeadApiController::class, 'update']);
+        Route::put('leads/{id}', [LeadApiController::class, 'update']);
+        Route::delete('leads/delete/{id}', [LeadApiController::class, 'destroy']);
+        Route::delete('leads/{id}', [LeadApiController::class, 'destroy']);
+        Route::post('leads/change-status/{id}', [LeadApiController::class, 'changeStatus']);
     });
 
     // Public / External API route for credit request submission
