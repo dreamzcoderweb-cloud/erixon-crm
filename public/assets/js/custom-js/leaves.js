@@ -334,6 +334,47 @@ $(document).ready(function () {
 
     // Salary & Excess Leave Deduction Report DataTable
     let salaryReportTable = null;
+    let canEditSalaryReport = false;
+
+    function renderEditableSalaryCell(field, val, isEdited, autoVal, row) {
+        let formattedVal = '₹' + val.toLocaleString('en-IN', {minimumFractionDigits: 2});
+        let badgeClass = field === 'ot_income'
+            ? (val > 0 ? 'bg-label-success fw-bold' : 'text-muted')
+            : (val > 0 ? 'bg-label-danger fw-bold' : 'text-muted');
+        let prefix = field === 'ot_income' ? (val > 0 ? '+' : '') : (val > 0 ? '-' : '');
+
+        let html = `<div class="inline-salary-cell" data-field="${field}" data-user-id="${row.user_id}" data-current-val="${val}">`;
+        html += `<span class="badge ${badgeClass} cell-val-display">${prefix}${formattedVal}</span>`;
+
+        if (isEdited) {
+            html += `<span class="badge bg-label-warning badge-edited-tag" title="Custom manually edited value (Auto: ₹${autoVal.toFixed(2)})">Edited</span>`;
+        }
+
+        if (canEditSalaryReport) {
+            html += `<button type="button" class="btn btn-outline-primary btn-inline-edit btn-trigger-edit" title="Edit ${field === 'ot_income' ? 'OT Income' : 'Leave Deduction'}"><i class="bx bx-edit-alt"></i></button>`;
+            if (isEdited) {
+                html += `<button type="button" class="btn btn-outline-secondary btn-inline-reset btn-trigger-reset" title="Reset to auto-calculated (₹${autoVal.toFixed(2)})"><i class="bx bx-undo"></i></button>`;
+            }
+        }
+
+        html += `</div>`;
+        return html;
+    }
+
+    function recalculateKpisFromTable() {
+        if (!salaryReportTable) return;
+        let data = salaryReportTable.rows().data().toArray();
+        let totalDeductions = 0;
+        let totalNetSalary = 0;
+
+        $.each(data, function (index, item) {
+            totalDeductions += parseFloat(item.salary_deduction || 0);
+            totalNetSalary += parseFloat(item.net_salary || 0);
+        });
+
+        $('#kpi_total_deductions').text('₹' + totalDeductions.toLocaleString('en-IN', {minimumFractionDigits: 2}));
+        $('#kpi_total_net_salary').text('₹' + totalNetSalary.toLocaleString('en-IN', {minimumFractionDigits: 2}));
+    }
 
     function initSalaryReportTable() {
         if (!$('#salary-report-table').length) return;
@@ -349,6 +390,7 @@ $(document).ready(function () {
                 },
                 dataSrc: function (json) {
                     if (json.status) {
+                        canEditSalaryReport = json.can_edit || false;
                         $('#kpi_month_title').text(json.month_name);
                         $('#kpi_working_days').text(json.working_days + ' days');
                         $('#kpi_days_breakdown').text(`(${json.total_days} total - ${json.sundays} Sundays)`);
@@ -408,10 +450,12 @@ $(document).ready(function () {
                 {
                     data: 'ot_income',
                     className: 'text-center align-middle',
-                    render: function (data, type) {
+                    render: function (data, type, row) {
                         let val = parseFloat(data || 0);
                         if (type !== 'display') return val;
-                        return val > 0 ? `<span class="badge bg-label-success fw-bold">+₹${val.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>` : '<span class="text-muted">₹0.00</span>';
+                        let isEdited = row.is_ot_edited || false;
+                        let autoVal = parseFloat(row.auto_ot_income || 0);
+                        return renderEditableSalaryCell('ot_income', val, isEdited, autoVal, row);
                     }
                 },
                 {
@@ -476,10 +520,12 @@ $(document).ready(function () {
                 {
                     data: 'leave_deduction',
                     className: 'text-center align-middle',
-                    render: function (data, type) {
+                    render: function (data, type, row) {
                         let val = parseFloat(data || 0);
                         if (type !== 'display') return val;
-                        return val > 0 ? `<span class="badge bg-label-danger fw-bold">-₹${val.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>` : '<span class="text-muted">₹0.00</span>';
+                        let isEdited = row.is_leave_edited || false;
+                        let autoVal = parseFloat(row.auto_leave_deduction || 0);
+                        return renderEditableSalaryCell('leave_deduction', val, isEdited, autoVal, row);
                     }
                 },
                 {
@@ -554,6 +600,154 @@ $(document).ready(function () {
         initSalaryReportTable();
     }
 
+    // Trigger inline edit form
+    $(document).on('click', '.btn-trigger-edit', function (e) {
+        e.stopPropagation();
+        let container = $(this).closest('.inline-salary-cell');
+        let currentVal = parseFloat(container.data('current-val') || 0);
+
+        // Store previous HTML in case user cancels
+        container.data('prev-html', container.html());
+
+        let formHtml = `
+            <div class="inline-edit-form">
+                <input type="number" step="0.01" min="0" class="form-control form-control-sm inline-edit-input" value="${currentVal}">
+                <button type="button" class="btn btn-success btn-xs btn-inline-save" title="Save"><i class="bx bx-check"></i></button>
+                <button type="button" class="btn btn-secondary btn-xs btn-inline-cancel" title="Cancel"><i class="bx bx-x"></i></button>
+            </div>
+        `;
+
+        container.html(formHtml);
+        let input = container.find('.inline-edit-input');
+        input.focus().select();
+    });
+
+    // Cancel inline edit
+    $(document).on('click', '.btn-inline-cancel', function (e) {
+        e.stopPropagation();
+        let container = $(this).closest('.inline-salary-cell');
+        let prevHtml = container.data('prev-html');
+        if (prevHtml) {
+            container.html(prevHtml);
+        }
+    });
+
+    // Handle Enter and Escape key in inline edit input
+    $(document).on('keydown', '.inline-edit-input', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            $(this).siblings('.btn-inline-save').click();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            $(this).siblings('.btn-inline-cancel').click();
+        }
+    });
+
+    // Save inline edit
+    $(document).on('click', '.btn-inline-save', function (e) {
+        e.stopPropagation();
+        let saveBtn = $(this);
+        let container = saveBtn.closest('.inline-salary-cell');
+        let input = container.find('.inline-edit-input');
+        let field = container.data('field');
+        let userId = container.data('user-id');
+        let val = parseFloat(input.val());
+
+        if (isNaN(val) || val < 0) {
+            input.addClass('is-invalid');
+            return;
+        }
+
+        let now = new Date();
+        let localMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+        let selectedMonth = $('#salary_month').val() || localMonth;
+
+        saveBtn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i>');
+
+        $.ajax({
+            url: APP_URL + '/admin/leaves/salary-report/update-adjustment',
+            type: 'POST',
+            data: {
+                user_id: userId,
+                month: selectedMonth,
+                field: field,
+                value: val
+            },
+            success: function (response) {
+                if (response.status && response.data) {
+                    let tr = container.closest('tr');
+                    let rowObj = salaryReportTable.row(tr);
+                    rowObj.data(response.data).draw(false);
+
+                    let updatedTr = salaryReportTable.row(rowObj.index()).node();
+                    $(updatedTr).find('td').addClass('cell-highlight-flash');
+                    setTimeout(function () {
+                        $(updatedTr).find('td').removeClass('cell-highlight-flash');
+                    }, 1500);
+
+                    recalculateKpisFromTable();
+                    showAlert('success', response.message);
+                }
+            },
+            error: function (xhr) {
+                saveBtn.prop('disabled', false).html('<i class="bx bx-check"></i>');
+                let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Failed to update adjustment.';
+                showAlert('danger', msg);
+            }
+        });
+    });
+
+    // Reset inline edit back to auto-calculated value
+    $(document).on('click', '.btn-trigger-reset', function (e) {
+        e.stopPropagation();
+        let resetBtn = $(this);
+        let container = resetBtn.closest('.inline-salary-cell');
+        let field = container.data('field');
+        let userId = container.data('user-id');
+        let fieldLabel = field === 'ot_income' ? 'OT Income' : 'Leave Deduction';
+
+        if (!confirm(`Are you sure you want to reset ${fieldLabel} back to the auto-calculated value?`)) {
+            return;
+        }
+
+        let now = new Date();
+        let localMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+        let selectedMonth = $('#salary_month').val() || localMonth;
+
+        resetBtn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i>');
+
+        $.ajax({
+            url: APP_URL + '/admin/leaves/salary-report/reset-adjustment',
+            type: 'POST',
+            data: {
+                user_id: userId,
+                month: selectedMonth,
+                field: field
+            },
+            success: function (response) {
+                if (response.status && response.data) {
+                    let tr = container.closest('tr');
+                    let rowObj = salaryReportTable.row(tr);
+                    rowObj.data(response.data).draw(false);
+
+                    let updatedTr = salaryReportTable.row(rowObj.index()).node();
+                    $(updatedTr).find('td').addClass('cell-highlight-flash');
+                    setTimeout(function () {
+                        $(updatedTr).find('td').removeClass('cell-highlight-flash');
+                    }, 1500);
+
+                    recalculateKpisFromTable();
+                    showAlert('success', response.message);
+                }
+            },
+            error: function (xhr) {
+                resetBtn.prop('disabled', false).html('<i class="bx bx-undo"></i>');
+                let msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Failed to reset adjustment.';
+                showAlert('danger', msg);
+            }
+        });
+    });
+
     function reloadSalaryReport() {
         if (salaryReportTable) {
             salaryReportTable.ajax.reload();
@@ -573,3 +767,4 @@ $(document).ready(function () {
         reloadSalaryReport();
     });
 });
+

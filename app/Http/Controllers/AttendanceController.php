@@ -758,6 +758,41 @@ class AttendanceController extends Controller
         $totalAbsent   = $records->where('status', 'Absent')->count();
         $totalOnLeave  = $records->where('status', 'On Leave')->count();
 
+        // Calculate Total Permissions count in filtered scope
+        $permissionAttendanceCount = $records->filter(function ($rec) {
+            return !empty($rec->permission_start)
+                || !empty($rec->permission_id)
+                || (!empty($rec->permission_period) && $rec->permission_period !== '-');
+        })->count();
+
+        $permReqQuery = \App\Models\PermissionRequest::where('status', 'Approved');
+        if (!empty($userId)) {
+            $permReqQuery->where('user_id', $userId);
+        }
+        if ($filterType === 'daily') {
+            $permReqQuery->whereDate('date', $date);
+        } elseif ($filterType === 'weekly') {
+            $refDate   = !empty($startDate) ? Carbon::parse($startDate) : Carbon::today();
+            $weekStart = $refDate->copy()->startOfWeek();
+            $weekEnd   = $refDate->copy()->endOfWeek();
+            $permReqQuery->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()]);
+        } elseif ($filterType === 'monthly') {
+            $parts = explode('-', $month);
+            $y = $parts[0] ?? date('Y');
+            $m = $parts[1] ?? date('m');
+            $permReqQuery->whereYear('date', $y)->whereMonth('date', $m);
+        } elseif ($filterType === 'custom') {
+            if (!empty($startDate) && !empty($endDate)) {
+                $permReqQuery->whereBetween('date', [$startDate, $endDate]);
+            } elseif (!empty($startDate)) {
+                $permReqQuery->whereDate('date', '>=', $startDate);
+            } elseif (!empty($endDate)) {
+                $permReqQuery->whereDate('date', '<=', $endDate);
+            }
+        }
+        $approvedPermRequestsCount = $permReqQuery->count();
+        $totalPermission = max($permissionAttendanceCount, $approvedPermRequestsCount);
+
         // Calculate Total Working Hours across all work sessions
         $totalMinutes = 0;
         foreach ($records as $rec) {
@@ -809,6 +844,7 @@ class AttendanceController extends Controller
             'total_late'           => $totalLate,
             'total_half_day'       => $totalHalfDay,
             'total_absent'         => $totalAbsent,
+            'total_permission'     => $totalPermission,
             'total_on_leave'       => $totalOnLeave,
             'total_working_hours'  => $totalHrsText,
             'total_late_deduction' => round($totalLateDeductions, 2),

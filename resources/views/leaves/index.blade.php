@@ -64,6 +64,65 @@
             align-items: center;
             justify-content: flex-end;
         }
+
+        /* Inline editing styles for Salary table */
+        .inline-salary-cell {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            position: relative;
+        }
+
+        .btn-inline-edit {
+            padding: 2px 5px !important;
+            font-size: 0.75rem !important;
+            line-height: 1;
+            border-radius: 4px;
+            opacity: 0.75;
+            transition: all 0.2s ease;
+        }
+
+        .inline-salary-cell:hover .btn-inline-edit {
+            opacity: 1;
+        }
+
+        .inline-edit-form {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .inline-edit-input {
+            width: 90px !important;
+            height: 28px !important;
+            font-size: 0.8rem !important;
+            padding: 2px 6px !important;
+            text-align: right;
+            border-radius: 4px;
+        }
+
+        .btn-inline-save, .btn-inline-cancel, .btn-inline-reset {
+            padding: 3px 6px !important;
+            font-size: 0.75rem !important;
+            line-height: 1;
+            border-radius: 4px;
+        }
+
+        .badge-edited-tag {
+            font-size: 0.65rem !important;
+            padding: 1px 4px !important;
+            border-radius: 3px;
+        }
+
+        @keyframes cellFlashSuccess {
+            0% { background-color: rgba(40, 199, 111, 0.35); }
+            100% { background-color: transparent; }
+        }
+
+        .cell-highlight-flash {
+            animation: cellFlashSuccess 1.5s ease-out;
+        }
     </style>
     <div class="container-xxl flex-grow-1 container-p-y">
         <div id="alert-container"></div>

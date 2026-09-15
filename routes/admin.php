@@ -480,6 +480,10 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
         ->middleware('permission:leaves.delete');
     Route::get('leaves/salary-report', [LeaveController::class, 'salaryReportData'])
         ->middleware('permission:salary.view');
+    Route::post('leaves/salary-report/update-adjustment', [LeaveController::class, 'updateSalaryAdjustment'])
+        ->middleware('permission:salary.view');
+    Route::post('leaves/salary-report/reset-adjustment', [LeaveController::class, 'resetSalaryAdjustment'])
+        ->middleware('permission:salary.view');
 
     // Customer additional routes (Search & Import)
     Route::get('customers/search', [CustomerController::class, 'search'])

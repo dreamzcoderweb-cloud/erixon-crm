@@ -74,7 +74,7 @@
 
         <!-- Analytics KPI Cards -->
         <div class="row g-3 mb-4">
-            <div class="col-6 col-md-4 col-lg-2">
+            <div class="col-6 col-md-4 col-xl">
                 <div class="card shadow-sm border-start border-primary border-4">
                     <div class="card-body p-3 text-center">
                         <small class="text-muted text-uppercase fw-semibold d-block">Present</small>
@@ -82,7 +82,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-6 col-md-4 col-lg-2">
+            <div class="col-6 col-md-4 col-xl">
                 <div class="card shadow-sm border-start border-warning border-4">
                     <div class="card-body p-3 text-center">
                         <small class="text-muted text-uppercase fw-semibold d-block">Late</small>
@@ -90,7 +90,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-6 col-md-4 col-lg-2">
+            <div class="col-6 col-md-4 col-xl">
                 <div class="card shadow-sm border-start border-info border-4">
                     <div class="card-body p-3 text-center">
                         <small class="text-muted text-uppercase fw-semibold d-block">Half Day</small>
@@ -98,7 +98,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-6 col-md-4 col-lg-2">
+            <div class="col-6 col-md-4 col-xl">
                 <div class="card shadow-sm border-start border-danger border-4">
                     <div class="card-body p-3 text-center">
                         <small class="text-muted text-uppercase fw-semibold d-block">Absent</small>
@@ -106,7 +106,15 @@
                     </div>
                 </div>
             </div>
-            <div class="col-6 col-md-4 col-lg-2">
+            <div class="col-6 col-md-4 col-xl">
+                <div class="card shadow-sm border-start border-secondary border-4">
+                    <div class="card-body p-3 text-center">
+                        <small class="text-muted text-uppercase fw-semibold d-block">Permission</small>
+                        <h3 class="mb-0 text-primary fw-bold mt-1" id="kpi_permission">0</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-xl">
                 <div class="card shadow-sm border-start border-danger border-4">
                     <div class="card-body p-3 text-center">
                         <small class="text-muted text-uppercase fw-semibold d-block">Late Deduction</small>
@@ -114,7 +122,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-6 col-md-4 col-lg-2">
+            <div class="col-6 col-md-4 col-xl">
                 <div class="card shadow-sm border-start border-dark border-4">
                     <div class="card-body p-3 text-center">
                         <small class="text-muted text-uppercase fw-semibold d-block">Total Hours</small>

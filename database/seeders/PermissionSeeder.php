@@ -121,6 +121,9 @@ class PermissionSeeder extends Seeder
             'leaves.approve',
             'leaves.delete',
             'salary.view',
+            'salary.create',
+            'salary.edit',
+            'salary.delete',
 
             'credit-requests.view',
             'credit-requests.create',

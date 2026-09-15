@@ -28,6 +28,7 @@ $(document).ready(function () {
                         $('#kpi_late').text(json.summary.total_late || 0);
                         $('#kpi_half_day').text(json.summary.total_half_day || 0);
                         $('#kpi_absent').text(json.summary.total_absent || 0);
+                        $('#kpi_permission').text(json.summary.total_permission || 0);
                         $('#kpi_on_leave').text(json.summary.total_on_leave || 0);
                         $('#kpi_total_hours').text(json.summary.total_working_hours || '0 hrs');
                         let deductionVal = json.summary.total_late_deduction || 0;

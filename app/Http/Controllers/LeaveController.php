@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\LeaveRequest;
+use App\Models\SalaryAdjustment;
 use App\Models\User;
 use App\Notifications\LeaveQuotaCompleted;
 use App\Notifications\LeaveRequestSubmitted;
@@ -228,12 +229,9 @@ class LeaveController extends Controller
         }
 
         $carbonMonth = Carbon::parse($monthStr . '-01');
-
-        $startOfMonth = $carbonMonth->copy()->startOfMonth()->startOfDay();
-        $endOfMonth   = $carbonMonth->copy()->endOfMonth()->endOfDay();
         $totalDays    = $carbonMonth->daysInMonth;
 
-        // Requirement 8: Calculate working days in month (excluding Sundays)
+        // Calculate working days in month (excluding Sundays)
         $sundays = 0;
         for ($d = 1; $d <= $totalDays; $d++) {
             $dt = Carbon::createFromDate($carbonMonth->year, $carbonMonth->month, $d);
@@ -243,155 +241,312 @@ class LeaveController extends Controller
         }
         $workingDaysInMonth = max(1, $totalDays - $sundays);
 
-        // Requirement 3: monthly salary staff details - only Super Admin sees all staff
+        // Only Super Admin or authorized users see all staff
         if ($isSuperAdmin) {
             $staffs = User::staffOnly()->orderBy('name')->get();
         } else {
             $staffs = User::where('id', $user->id)->get();
         }
 
+        // Fetch custom monthly salary adjustments for the target month
+        $adjustments = SalaryAdjustment::where('month', $monthStr)
+            ->get()
+            ->keyBy('user_id');
+
         $reportData = [];
 
         foreach ($staffs as $staff) {
-            // Retrieve only APPROVED leave requests overlapping with this month
-            $approvedLeaves = LeaveRequest::where('user_id', $staff->id)
-                ->where('status', 'Approved')
-                ->where(function ($q) use ($startOfMonth, $endOfMonth) {
-                    $q->whereBetween('from_date', [$startOfMonth->toDateTimeString(), $endOfMonth->toDateTimeString()])
-                      ->orWhereBetween('to_date', [$startOfMonth->toDateTimeString(), $endOfMonth->toDateTimeString()])
-                      ->orWhere(function ($q2) use ($startOfMonth, $endOfMonth) {
-                          $q2->where('from_date', '<=', $startOfMonth->toDateTimeString())
-                             ->where('to_date', '>=', $endOfMonth->toDateTimeString());
-                      });
-                })->get();
-
-            $totalApprovedLeaveDays = 0;
-            foreach ($approvedLeaves as $leave) {
-                $lFrom = Carbon::parse($leave->from_date)->startOfDay();
-                $lTo   = Carbon::parse($leave->to_date)->startOfDay();
-
-                $overlapStart = $lFrom->greaterThan($startOfMonth) ? $lFrom->copy() : $startOfMonth->copy();
-                $overlapEnd   = $lTo->lessThan($endOfMonth) ? $lTo->copy() : $endOfMonth->copy();
-
-                if ($overlapStart->lessThanOrEqualTo($overlapEnd)) {
-                    $curr = $overlapStart->copy();
-                    $leaveDaysInOverlap = 0;
-                    while ($curr->lessThanOrEqualTo($overlapEnd)) {
-                        // Exclude Sundays (weekly holidays) from deductible leave calculation
-                        if (!$curr->isSunday()) {
-                            if ($lFrom->equalTo($lTo) && floatval($leave->number_of_days) <= 0.5) {
-                                $leaveDaysInOverlap += floatval($leave->number_of_days);
-                            } else {
-                                $leaveDaysInOverlap += 1.0;
-                            }
-                        }
-                        $curr->addDay();
-                    }
-                    $totalApprovedLeaveDays += min($leaveDaysInOverlap, floatval($leave->number_of_days));
-                }
-            }
-
-            $totalApprovedLeaveDays = round($totalApprovedLeaveDays, 2);
-            $availableLeaves = floatval($staff->available_leave_count ?? 0);
-            $paidLeaveDays = min($totalApprovedLeaveDays, $availableLeaves);
-            $excessLeaveDays = max(0, round($totalApprovedLeaveDays - $availableLeaves, 2));
-
-            $baseSalary = floatval($staff->base_salary ?? 0);
-            $perDaySalary = $workingDaysInMonth > 0 ? ($baseSalary / $workingDaysInMonth) : 0;
-            $leaveDeduction = round($excessLeaveDays * $perDaySalary, 2);
-
-            // Calculate Late Attendance Deduction for staff in target month
-            $allowedLateCount = (int) ($staff->late_attendance_count ?? 3);
-            $rawAllowTime = ($staff && $staff->allow_check_in_time) ? $staff->allow_check_in_time : (($staff && $staff->check_in_time) ? $staff->check_in_time : '09:10:00');
-            $allowTime24 = Carbon::parse($rawAllowTime)->format('H:i:s');
-
-            $dailyMins = 480;
-            if ($staff && $staff->check_in_time && $staff->check_out_time) {
-                try {
-                    $cIn = Carbon::parse($staff->check_in_time);
-                    $cOut = Carbon::parse($staff->check_out_time);
-                    $diff = $cIn->diffInMinutes($cOut);
-                    if ($diff > 0) {
-                        $dailyMins = $diff;
-                    }
-                } catch (\Exception $e) {}
-            }
-
-            $perMinuteSalary = $dailyMins > 0 ? ($perDaySalary / $dailyMins) : 0;
-
-            $attRecords = \App\Models\Attendance::where('user_id', $staff->id)
-                ->whereYear('date', $carbonMonth->year)
-                ->whereMonth('date', $carbonMonth->month)
-                ->orderBy('date', 'ASC')
-                ->get();
-
-            $lateCount = 0;
-            $lateDeduction = 0.00;
-
-            foreach ($attRecords as $rec) {
-                $actualCheckIn24 = !empty($rec->check_in) ? Carbon::parse($rec->check_in)->format('H:i:s') : null;
-                if ($actualCheckIn24 && $actualCheckIn24 > $allowTime24) {
-                    $lateCount++;
-                    if ($lateCount > $allowedLateCount) {
-                        $inTimeSeconds = strtotime($actualCheckIn24);
-                        $allowTimeSeconds = strtotime($allowTime24);
-                        $lateDurationMins = max(0, round(($inTimeSeconds - $allowTimeSeconds) / 60));
-                        $lateDeduction += round($lateDurationMins * $perMinuteSalary, 2);
-                    }
-                }
-            }
-
-            $lateDeduction = round($lateDeduction, 2);
-            $otIncome = 0.00;
-            foreach ($attRecords as $rec) {
-                $otIncome += $salaryCalculator->otIncome($rec, $staff, $workingDaysInMonth);
-            }
-            $otIncome = round($otIncome, 2);
-            $perDaySalaryRate = round($perDaySalary, 2);
-            $totalSalaryDeduction = round($leaveDeduction + $lateDeduction, 2);
-
-            // Incentive amount for target month
-            $incentiveAmount = \App\Models\Incentive::where('staff_id', $staff->id)
-                ->where('month', $monthStr)
-                ->sum('amount');
-            $incentiveAmount = round(floatval($incentiveAmount ?? 0), 2);
-
-            $netSalary = max(0, round($baseSalary + $otIncome - $totalSalaryDeduction + $incentiveAmount, 2));
-
-            $reportData[] = [
-                'user_id'                => $staff->id,
-                'staff_name'             => $staff->name,
-                'email'                  => $staff->email,
-                'month'                  => $carbonMonth->format('M Y'),
-                'designation'            => $staff->designation ?? 'Staff',
-                'base_salary'            => $baseSalary,
-                'available_leave_count'  => $availableLeaves,
-                'total_leave_days'       => $totalApprovedLeaveDays,
-                'paid_leave_days'        => round($paidLeaveDays, 2),
-                'unpaid_leave_days'      => $excessLeaveDays,
-                'approved_leave_days'    => $totalApprovedLeaveDays,
-                'excess_leave_days'      => $excessLeaveDays,
-                'working_days_in_month'  => $workingDaysInMonth,
-                'sundays_count'          => $sundays,
-                'total_calendar_days'    => $totalDays,
-                'per_day_salary'         => $perDaySalaryRate,
-                'leave_deduction'        => $leaveDeduction,
-                'ot_income'              => $otIncome,
-                'late_deduction'         => $lateDeduction,
-                'salary_deduction'       => $totalSalaryDeduction,
-                'incentive_amount'       => $incentiveAmount,
-                'net_salary'             => $netSalary,
-            ];
+            $adj = $adjustments->get($staff->id);
+            $row = $this->computeStaffSalaryRecord($staff, $carbonMonth, $monthStr, $workingDaysInMonth, $salaryCalculator, $adj);
+            $row['sundays_count'] = $sundays;
+            $row['total_calendar_days'] = $totalDays;
+            $reportData[] = $row;
         }
+
+        $canEdit = $isSuperAdmin || $user->can('salary.edit') || $user->can('salary.view') || $user->can('salary.create');
 
         return response()->json([
             'status'             => true,
+            'can_edit'           => $canEdit,
             'month'              => $monthStr,
             'month_name'         => $carbonMonth->format('F Y'),
             'total_days'         => $totalDays,
             'sundays'            => $sundays,
             'working_days'       => $workingDaysInMonth,
             'data'               => $reportData
+        ]);
+    }
+
+    /**
+     * Compute staff salary record including leave, OT, late, incentives and custom adjustments
+     */
+    protected function computeStaffSalaryRecord($staff, Carbon $carbonMonth, string $monthStr, int $workingDaysInMonth, $salaryCalculator, $adjustment = null)
+    {
+        $startOfMonth = $carbonMonth->copy()->startOfMonth()->startOfDay();
+        $endOfMonth   = $carbonMonth->copy()->endOfMonth()->endOfDay();
+
+        // Retrieve only APPROVED leave requests overlapping with this month
+        $approvedLeaves = LeaveRequest::where('user_id', $staff->id)
+            ->where('status', 'Approved')
+            ->where(function ($q) use ($startOfMonth, $endOfMonth) {
+                $q->whereBetween('from_date', [$startOfMonth->toDateTimeString(), $endOfMonth->toDateTimeString()])
+                  ->orWhereBetween('to_date', [$startOfMonth->toDateTimeString(), $endOfMonth->toDateTimeString()])
+                  ->orWhere(function ($q2) use ($startOfMonth, $endOfMonth) {
+                      $q2->where('from_date', '<=', $startOfMonth->toDateTimeString())
+                         ->where('to_date', '>=', $endOfMonth->toDateTimeString());
+                  });
+            })->get();
+
+        $totalApprovedLeaveDays = 0;
+        foreach ($approvedLeaves as $leave) {
+            $lFrom = Carbon::parse($leave->from_date)->startOfDay();
+            $lTo   = Carbon::parse($leave->to_date)->startOfDay();
+
+            $overlapStart = $lFrom->greaterThan($startOfMonth) ? $lFrom->copy() : $startOfMonth->copy();
+            $overlapEnd   = $lTo->lessThan($endOfMonth) ? $lTo->copy() : $endOfMonth->copy();
+
+            if ($overlapStart->lessThanOrEqualTo($overlapEnd)) {
+                $curr = $overlapStart->copy();
+                $leaveDaysInOverlap = 0;
+                while ($curr->lessThanOrEqualTo($overlapEnd)) {
+                    // Exclude Sundays (weekly holidays) from deductible leave calculation
+                    if (!$curr->isSunday()) {
+                        if ($lFrom->equalTo($lTo) && floatval($leave->number_of_days) <= 0.5) {
+                            $leaveDaysInOverlap += floatval($leave->number_of_days);
+                        } else {
+                            $leaveDaysInOverlap += 1.0;
+                        }
+                    }
+                    $curr->addDay();
+                }
+                $totalApprovedLeaveDays += min($leaveDaysInOverlap, floatval($leave->number_of_days));
+            }
+        }
+
+        $totalApprovedLeaveDays = round($totalApprovedLeaveDays, 2);
+        $availableLeaves = floatval($staff->available_leave_count ?? 0);
+        $paidLeaveDays = min($totalApprovedLeaveDays, $availableLeaves);
+        $excessLeaveDays = max(0, round($totalApprovedLeaveDays - $availableLeaves, 2));
+
+        $baseSalary = floatval($staff->base_salary ?? 0);
+        $perDaySalary = $workingDaysInMonth > 0 ? ($baseSalary / $workingDaysInMonth) : 0;
+        $autoLeaveDeduction = round($excessLeaveDays * $perDaySalary, 2);
+
+        $isLeaveEdited = false;
+        if ($adjustment && !is_null($adjustment->leave_deduction)) {
+            $leaveDeduction = round(floatval($adjustment->leave_deduction), 2);
+            $isLeaveEdited = true;
+        } else {
+            $leaveDeduction = $autoLeaveDeduction;
+        }
+
+        // Calculate Late Attendance Deduction for staff in target month
+        $allowedLateCount = (int) ($staff->late_attendance_count ?? 3);
+        $rawAllowTime = ($staff && $staff->allow_check_in_time) ? $staff->allow_check_in_time : (($staff && $staff->check_in_time) ? $staff->check_in_time : '09:10:00');
+        $allowTime24 = Carbon::parse($rawAllowTime)->format('H:i:s');
+
+        $dailyMins = 480;
+        if ($staff && $staff->check_in_time && $staff->check_out_time) {
+            try {
+                $cIn = Carbon::parse($staff->check_in_time);
+                $cOut = Carbon::parse($staff->check_out_time);
+                $diff = $cIn->diffInMinutes($cOut);
+                if ($diff > 0) {
+                    $dailyMins = $diff;
+                }
+            } catch (\Exception $e) {}
+        }
+
+        $perMinuteSalary = $dailyMins > 0 ? ($perDaySalary / $dailyMins) : 0;
+
+        $attRecords = \App\Models\Attendance::where('user_id', $staff->id)
+            ->whereYear('date', $carbonMonth->year)
+            ->whereMonth('date', $carbonMonth->month)
+            ->orderBy('date', 'ASC')
+            ->get();
+
+        $lateCount = 0;
+        $lateDeduction = 0.00;
+
+        foreach ($attRecords as $rec) {
+            $actualCheckIn24 = !empty($rec->check_in) ? Carbon::parse($rec->check_in)->format('H:i:s') : null;
+            if ($actualCheckIn24 && $actualCheckIn24 > $allowTime24) {
+                $lateCount++;
+                if ($lateCount > $allowedLateCount) {
+                    $inTimeSeconds = strtotime($actualCheckIn24);
+                    $allowTimeSeconds = strtotime($allowTime24);
+                    $lateDurationMins = max(0, round(($inTimeSeconds - $allowTimeSeconds) / 60));
+                    $lateDeduction += round($lateDurationMins * $perMinuteSalary, 2);
+                }
+            }
+        }
+
+        $lateDeduction = round($lateDeduction, 2);
+
+        // Auto OT Income calculation
+        $autoOtIncome = 0.00;
+        foreach ($attRecords as $rec) {
+            $autoOtIncome += $salaryCalculator->otIncome($rec, $staff, $workingDaysInMonth);
+        }
+        $autoOtIncome = round($autoOtIncome, 2);
+
+        $isOtEdited = false;
+        if ($adjustment && !is_null($adjustment->ot_income)) {
+            $otIncome = round(floatval($adjustment->ot_income), 2);
+            $isOtEdited = true;
+        } else {
+            $otIncome = $autoOtIncome;
+        }
+
+        $perDaySalaryRate = round($perDaySalary, 2);
+        $totalSalaryDeduction = round($leaveDeduction + $lateDeduction, 2);
+
+        // Incentive amount for target month
+        $incentiveAmount = \App\Models\Incentive::where('staff_id', $staff->id)
+            ->where('month', $monthStr)
+            ->sum('amount');
+        $incentiveAmount = round(floatval($incentiveAmount ?? 0), 2);
+
+        $netSalary = max(0, round($baseSalary + $otIncome - $totalSalaryDeduction + $incentiveAmount, 2));
+
+        return [
+            'user_id'                => $staff->id,
+            'staff_name'             => $staff->name,
+            'email'                  => $staff->email,
+            'month'                  => $carbonMonth->format('M Y'),
+            'month_key'              => $monthStr,
+            'designation'            => $staff->designation ?? 'Staff',
+            'base_salary'            => $baseSalary,
+            'available_leave_count'  => $availableLeaves,
+            'total_leave_days'       => $totalApprovedLeaveDays,
+            'paid_leave_days'        => round($paidLeaveDays, 2),
+            'unpaid_leave_days'      => $excessLeaveDays,
+            'approved_leave_days'    => $totalApprovedLeaveDays,
+            'excess_leave_days'      => $excessLeaveDays,
+            'working_days_in_month'  => $workingDaysInMonth,
+            'per_day_salary'         => $perDaySalaryRate,
+            'leave_deduction'        => $leaveDeduction,
+            'auto_leave_deduction'   => $autoLeaveDeduction,
+            'is_leave_edited'        => $isLeaveEdited,
+            'ot_income'              => $otIncome,
+            'auto_ot_income'         => $autoOtIncome,
+            'is_ot_edited'           => $isOtEdited,
+            'late_deduction'         => $lateDeduction,
+            'salary_deduction'       => $totalSalaryDeduction,
+            'incentive_amount'       => $incentiveAmount,
+            'net_salary'             => $netSalary,
+        ];
+    }
+
+    /**
+     * Update custom salary adjustment (OT income or Leave deduction) inline
+     */
+    public function updateSalaryAdjustment(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user->isSuperAdmin() && !$user->can('salary.edit') && !$user->can('salary.view') && !$user->can('salary.create')) {
+            return response()->json(['status' => false, 'message' => 'Unauthorized action.'], 403);
+        }
+
+        $validated = $request->validate([
+            'user_id' => ['required', 'exists:users,id'],
+            'month'   => ['required', 'string', 'regex:/^\d{4}-\d{2}$/'],
+            'field'   => ['required', 'in:ot_income,leave_deduction'],
+            'value'   => ['required', 'numeric', 'min:0'],
+        ]);
+
+        $monthStr = $validated['month'];
+        $carbonMonth = Carbon::parse($monthStr . '-01');
+        $field = $validated['field'];
+        $val = round(floatval($validated['value']), 2);
+
+        $adjustment = SalaryAdjustment::firstOrNew([
+            'user_id' => $validated['user_id'],
+            'month'   => $monthStr,
+        ]);
+
+        $adjustment->{$field} = $val;
+        $adjustment->created_by = Auth::id();
+        $adjustment->save();
+
+        // Recompute row details
+        $salaryCalculator = app(SalaryCalculationService::class);
+        $totalDays = $carbonMonth->daysInMonth;
+        $sundays = 0;
+        for ($d = 1; $d <= $totalDays; $d++) {
+            $dt = Carbon::createFromDate($carbonMonth->year, $carbonMonth->month, $d);
+            if ($dt->isSunday()) $sundays++;
+        }
+        $workingDaysInMonth = max(1, $totalDays - $sundays);
+
+        $staff = User::find($validated['user_id']);
+        $updatedRow = $this->computeStaffSalaryRecord($staff, $carbonMonth, $monthStr, $workingDaysInMonth, $salaryCalculator, $adjustment);
+
+        $fieldName = $field === 'ot_income' ? 'OT Income' : 'Leave Deduction';
+
+        return response()->json([
+            'status'  => true,
+            'message' => "{$fieldName} updated successfully.",
+            'data'    => $updatedRow,
+        ]);
+    }
+
+    /**
+     * Reset custom salary adjustment back to system calculated value
+     */
+    public function resetSalaryAdjustment(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user->isSuperAdmin() && !$user->can('salary.edit') && !$user->can('salary.view') && !$user->can('salary.create')) {
+            return response()->json(['status' => false, 'message' => 'Unauthorized action.'], 403);
+        }
+
+        $validated = $request->validate([
+            'user_id' => ['required', 'exists:users,id'],
+            'month'   => ['required', 'string', 'regex:/^\d{4}-\d{2}$/'],
+            'field'   => ['required', 'in:ot_income,leave_deduction,all'],
+        ]);
+
+        $monthStr = $validated['month'];
+        $carbonMonth = Carbon::parse($monthStr . '-01');
+        $field = $validated['field'];
+
+        $adjustment = SalaryAdjustment::where('user_id', $validated['user_id'])
+            ->where('month', $monthStr)
+            ->first();
+
+        if ($adjustment) {
+            if ($field === 'all') {
+                $adjustment->delete();
+                $adjustment = null;
+            } else {
+                $adjustment->{$field} = null;
+                if (is_null($adjustment->ot_income) && is_null($adjustment->leave_deduction)) {
+                    $adjustment->delete();
+                    $adjustment = null;
+                } else {
+                    $adjustment->save();
+                }
+            }
+        }
+
+        // Recompute row details
+        $salaryCalculator = app(SalaryCalculationService::class);
+        $totalDays = $carbonMonth->daysInMonth;
+        $sundays = 0;
+        for ($d = 1; $d <= $totalDays; $d++) {
+            $dt = Carbon::createFromDate($carbonMonth->year, $carbonMonth->month, $d);
+            if ($dt->isSunday()) $sundays++;
+        }
+        $workingDaysInMonth = max(1, $totalDays - $sundays);
+
+        $staff = User::find($validated['user_id']);
+        $updatedRow = $this->computeStaffSalaryRecord($staff, $carbonMonth, $monthStr, $workingDaysInMonth, $salaryCalculator, $adjustment);
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Reset to auto-calculated value successfully.',
+            'data'    => $updatedRow,
         ]);
     }
 
