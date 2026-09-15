@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use App\Models\LeadSource;
 use App\Models\Payment;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -13,7 +14,7 @@ class PaymentController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax() || $request->wantsJson()) {
-            return $this->listData();
+            return $this->listData($request);
         }
 
         $user = Auth::user();
@@ -23,16 +24,45 @@ class PaymentController extends Controller
         return view('payments.view', $data);
     }
 
-    public function listData()
+    public function listData(Request $request = null)
     {
-        $payments = Payment::forUser(Auth::user())->with([
+        $request = $request ?? request();
+
+        $query = Payment::forUser(Auth::user())->with([
             'customer:customer_id,name,mobile,email',
             'lead:lead_id,lead_title',
             'leadSource:lead_sources_id,name',
             'creator:id,name'
-        ])
-        ->orderBy('payment_id', 'DESC')
-        ->get();
+        ]);
+
+        $filterType = $request->input('filter_type');
+        $date       = $request->input('date');
+        $month      = $request->input('month');
+        $startDate  = $request->input('start_date');
+        $endDate    = $request->input('end_date');
+
+        if ($filterType === 'daily' && !empty($date)) {
+            $query->whereDate('payment_date', $date);
+        } elseif ($filterType === 'weekly') {
+            $refDate = !empty($startDate) ? Carbon::parse($startDate) : Carbon::today();
+            $query->whereBetween('payment_date', [
+                $refDate->copy()->startOfWeek()->toDateString(),
+                $refDate->copy()->endOfWeek()->toDateString(),
+            ]);
+        } elseif ($filterType === 'monthly' && !empty($month)) {
+            [$year, $selectedMonth] = array_pad(explode('-', $month), 2, null);
+            $query->whereYear('payment_date', $year ?: date('Y'))
+                ->whereMonth('payment_date', $selectedMonth ?: date('m'));
+        } elseif ($filterType === 'custom') {
+            if (!empty($startDate)) {
+                $query->whereDate('payment_date', '>=', $startDate);
+            }
+            if (!empty($endDate)) {
+                $query->whereDate('payment_date', '<=', $endDate);
+            }
+        }
+
+        $payments = $query->orderBy('payment_id', 'DESC')->get();
 
         return response()->json([
             'status' => true,

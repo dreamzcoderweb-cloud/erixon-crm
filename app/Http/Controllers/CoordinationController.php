@@ -111,6 +111,7 @@ class CoordinationController extends Controller
 
             return [
                 'coordination_id'    => $c->coordination_id,
+                'title'              => $c->title,
                 'staff_id'           => $c->staff_id,
                 'staff'              => $c->staff,
                 'link'               => $c->link,
@@ -136,6 +137,7 @@ class CoordinationController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'title'             => ['required', 'string', 'max:255'],
             'staff_id'          => ['required', 'exists:users,id'],
             'link'              => ['required', 'string', 'max:2048'],
             'joining_staff_ids'   => ['nullable', 'array'],
@@ -145,6 +147,7 @@ class CoordinationController extends Controller
         $validated['created_by'] = Auth::id();
 
         $coordination = Coordination::create([
+            'title'      => $validated['title'],
             'staff_id'   => $validated['staff_id'],
             'link'       => $validated['link'],
             'created_by' => $validated['created_by'],
@@ -203,6 +206,7 @@ class CoordinationController extends Controller
         }
 
         $validated = $request->validate([
+            'title'             => ['required', 'string', 'max:255'],
             'staff_id'          => ['required', 'exists:users,id'],
             'link'              => ['required', 'string', 'max:2048'],
             'joining_staff_ids'   => ['nullable', 'array'],
@@ -210,6 +214,7 @@ class CoordinationController extends Controller
         ]);
 
         $coordination->update([
+            'title'    => $validated['title'],
             'staff_id' => $validated['staff_id'],
             'link'     => $validated['link'],
         ]);

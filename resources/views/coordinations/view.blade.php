@@ -160,6 +160,7 @@
                         <tr>
                             <th>#</th>
                             <th>Created Staff</th>
+                            <th>Title</th>
                             <th>Link</th>
                             <th>Joining Staff & Status</th>
                             <th>My Participation</th>
@@ -186,6 +187,13 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Title <span class="text-danger">*</span></label>
+                            <input type="text" name="title" id="add_title" class="form-control"
+                                placeholder="Enter title / topic" required>
+                            <div class="invalid-feedback"></div>
+                        </div>
+
                         <div class="mb-3">
                             <label class="form-label">Created Staff <span class="text-danger">*</span></label>
                             <select name="staff_id" id="add_staff_id" class="form-select" required>
@@ -246,6 +254,13 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Title <span class="text-danger">*</span></label>
+                            <input type="text" name="title" id="edit_title" class="form-control"
+                                placeholder="Enter title / topic" required>
+                            <div class="invalid-feedback"></div>
+                        </div>
+
                         <div class="mb-3">
                             <label class="form-label">Created Staff <span class="text-danger">*</span></label>
                             <select name="staff_id" id="edit_staff_id" class="form-select" required>

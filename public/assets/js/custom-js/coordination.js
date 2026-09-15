@@ -82,6 +82,14 @@ $(document).ready(function () {
                 }
             },
             {
+                data: 'title',
+                render: function (data, type, row) {
+                    if (!data) return '<span class="text-muted">-</span>';
+                    if (type !== 'display') return data;
+                    return $('<div>').text(data).html();
+                }
+            },
+            {
                 data: 'link',
                 render: function (data, type, row) {
                     if (!data) return '<span class="text-muted">N/A</span>';
@@ -367,6 +375,7 @@ $(document).ready(function () {
                 if (response.status) {
                     let coordination = response.data;
                     $('#edit_coordination_id').val(coordination.coordination_id);
+                    $('#edit_title').val(coordination.title || '');
                     $('#edit_staff_id').val(coordination.staff_id);
                     $('#edit_link').val(coordination.link);
 

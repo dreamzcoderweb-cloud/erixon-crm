@@ -14,6 +14,7 @@ class Coordination extends Model
     protected $primaryKey = 'coordination_id';
 
     protected $fillable = [
+        'title',
         'staff_id',
         'link',
         'created_by',

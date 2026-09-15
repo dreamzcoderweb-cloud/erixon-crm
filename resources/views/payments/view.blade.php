@@ -13,6 +13,67 @@
                     </button>
                 @endcan
             </div>
+
+            <!-- Payment Date Period Filter Bar -->
+            <div class="p-3 bg-light border-bottom">
+                <form id="paymentFilterForm">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-12">
+                            <label class="form-label fw-semibold d-block">Date Period</label>
+                            <div class="btn-group btn-group-sm" role="group" id="paymentPeriodBtnGroup">
+                                <button type="button" class="btn btn-outline-primary btn-payment-period active"
+                                    data-period="all">All Time</button>
+                                <button type="button" class="btn btn-outline-primary btn-payment-period"
+                                    data-period="daily">Daily</button>
+                                <button type="button" class="btn btn-outline-primary btn-payment-period"
+                                    data-period="weekly">Weekly</button>
+                                <button type="button" class="btn btn-outline-primary btn-payment-period"
+                                    data-period="monthly">Monthly</button>
+                                <button type="button" class="btn btn-outline-primary btn-payment-period"
+                                    data-period="custom">Custom</button>
+                            </div>
+                            <input type="hidden" name="filter_type" id="payment_filter_period" value="all">
+                        </div>
+
+                        <div class="col-md-3 payment-filter-date-group d-none" id="payment_group_daily">
+                            <label class="form-label fw-semibold">Date</label>
+                            <input type="date" name="date" id="payment_filter_date"
+                                class="form-control form-control-sm" value="{{ date('Y-m-d') }}">
+                        </div>
+
+                        <div class="col-md-3 payment-filter-date-group d-none" id="payment_group_monthly">
+                            <label class="form-label fw-semibold">Month</label>
+                            <input type="month" name="month" id="payment_filter_month"
+                                class="form-control form-control-sm" value="{{ date('Y-m') }}">
+                        </div>
+
+                        <div class="col-md-3 payment-filter-date-group d-none" id="payment_group_custom_start">
+                            <label class="form-label fw-semibold">From / Start Date</label>
+                            <input type="date" name="start_date" id="payment_filter_start_date"
+                                class="form-control form-control-sm" value="{{ date('Y-m-01') }}">
+                        </div>
+
+                        <div class="col-md-3 payment-filter-date-group d-none" id="payment_group_custom_end">
+                            <label class="form-label fw-semibold">To / End Date</label>
+                            <input type="date" name="end_date" id="payment_filter_end_date"
+                                class="form-control form-control-sm" value="{{ date('Y-m-d') }}">
+                        </div>
+
+                        <div class="col-md-3">
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
+                                    <i class="bx bx-filter-alt me-1"></i> Apply Filter
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm"
+                                    id="resetPaymentFilterBtn" title="Reset Filters">
+                                    <i class="bx bx-refresh me-1"></i> Reset
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
             <div class="table-responsive text-nowrap p-3">
                 <table id="payments-table" class="table table-hover align-middle w-100">
                     <thead class="table-light">

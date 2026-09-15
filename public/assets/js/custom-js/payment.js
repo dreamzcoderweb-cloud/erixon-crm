@@ -29,6 +29,13 @@ $(document).ready(function () {
     let paymentTable = $('#payments-table').DataTable({
         ajax: {
             url: APP_URL + '/admin/payments/data',
+            data: function (d) {
+                d.filter_type = $('#payment_filter_period').val();
+                d.date = $('#payment_filter_date').val();
+                d.month = $('#payment_filter_month').val();
+                d.start_date = $('#payment_filter_start_date').val();
+                d.end_date = $('#payment_filter_end_date').val();
+            },
             dataSrc: 'data'
         },
         columns: [
@@ -333,5 +340,44 @@ $(document).ready(function () {
                 }
             });
         }
+    });
+
+    // Period Toggle Buttons
+    $('.btn-payment-period').on('click', function () {
+        $('.btn-payment-period').removeClass('active');
+        $(this).addClass('active');
+
+        let period = $(this).data('period');
+        $('#payment_filter_period').val(period);
+        $('.payment-filter-date-group').addClass('d-none');
+
+        if (period === 'daily') {
+            $('#payment_group_daily').removeClass('d-none');
+        } else if (period === 'weekly') {
+            $('#payment_group_custom_start').removeClass('d-none');
+        } else if (period === 'monthly') {
+            $('#payment_group_monthly').removeClass('d-none');
+        } else if (period === 'custom') {
+            $('#payment_group_custom_start').removeClass('d-none');
+            $('#payment_group_custom_end').removeClass('d-none');
+        }
+
+        paymentTable.ajax.reload();
+    });
+
+    // Payment Filter Form Submit
+    $('#paymentFilterForm').on('submit', function (e) {
+        e.preventDefault();
+        paymentTable.ajax.reload();
+    });
+
+    // Reset Filters
+    $('#resetPaymentFilterBtn').on('click', function () {
+        $('#paymentFilterForm')[0].reset();
+        $('.btn-payment-period').removeClass('active');
+        $('.btn-payment-period[data-period="all"]').addClass('active');
+        $('#payment_filter_period').val('all');
+        $('.payment-filter-date-group').addClass('d-none');
+        paymentTable.ajax.reload();
     });
 });
