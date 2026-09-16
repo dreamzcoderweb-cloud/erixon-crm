@@ -263,12 +263,15 @@ class CallLogApiController extends Controller
             }
         }
 
-        // Fallback: If customer not resolved by ID, attempt lookup by phone number
+        // Fallback: If customer not resolved by ID, attempt lookup by phone number (checking both mobile & alternate_mobile)
         if (!$customerId && !empty($phoneNumber)) {
             $cleanPhone = preg_replace('/[^\d+]/', '', $phoneNumber);
             $last10 = substr(preg_replace('/\D/', '', $cleanPhone), -10);
             if (!empty($last10)) {
-                $foundByPhone = Customer::where('mobile', 'LIKE', "%{$last10}%")->first();
+                $foundByPhone = Customer::where(function ($q) use ($last10) {
+                    $q->where('mobile', 'LIKE', "%{$last10}%")
+                      ->orWhere('alternate_mobile', 'LIKE', "%{$last10}%");
+                })->first();
                 if ($foundByPhone) {
                     $customerId = $foundByPhone->customer_id;
                     if (empty($customerCode)) {
@@ -284,10 +287,66 @@ class CallLogApiController extends Controller
         // 4. Auto-resolve Lead ID from customer_id if lead_id was not explicitly sent
         if (empty($leadId) && !empty($customerId)) {
             $customerLead = Lead::where('customer_id', $customerId)
+                ->whereHas('followups')
+                ->orderBy('lead_id', 'desc')
+                ->first()
+                ?? Lead::where('customer_id', $customerId)
                 ->orderBy('lead_id', 'desc')
                 ->first();
             if ($customerLead) {
                 $leadId = $customerLead->lead_id;
+            }
+        }
+
+        // 4b. Fallback: If leadId is still empty, check if customer_name or phone_number matches a customer who has leads
+        if (empty($leadId)) {
+            if (!empty($customerName)) {
+                $matchedByName = Customer::where('name', 'LIKE', "%{$customerName}%")
+                    ->whereHas('leads')
+                    ->first();
+                if ($matchedByName) {
+                    $customerLead = Lead::where('customer_id', $matchedByName->customer_id)
+                        ->whereHas('followups')
+                        ->orderBy('lead_id', 'desc')
+                        ->first()
+                        ?? Lead::where('customer_id', $matchedByName->customer_id)
+                        ->orderBy('lead_id', 'desc')
+                        ->first();
+                    if ($customerLead) {
+                        $leadId = $customerLead->lead_id;
+                        $customerId = $matchedByName->customer_id;
+                        $customerCode = "CUST_{$matchedByName->customer_id}";
+                        $customerName = $matchedByName->name;
+                    }
+                }
+            }
+
+            if (empty($leadId) && !empty($phoneNumber)) {
+                $cleanPhone = preg_replace('/[^\d+]/', '', $phoneNumber);
+                $last10 = substr(preg_replace('/\D/', '', $cleanPhone), -10);
+                if (!empty($last10)) {
+                    $matchedByPhone = Customer::where(function ($q) use ($last10) {
+                        $q->where('mobile', 'LIKE', "%{$last10}%")
+                          ->orWhere('alternate_mobile', 'LIKE', "%{$last10}%");
+                    })->whereHas('leads')->first();
+                    if ($matchedByPhone) {
+                        $customerLead = Lead::where('customer_id', $matchedByPhone->customer_id)
+                            ->whereHas('followups')
+                            ->orderBy('lead_id', 'desc')
+                            ->first()
+                            ?? Lead::where('customer_id', $matchedByPhone->customer_id)
+                            ->orderBy('lead_id', 'desc')
+                            ->first();
+                        if ($customerLead) {
+                            $leadId = $customerLead->lead_id;
+                            $customerId = $matchedByPhone->customer_id;
+                            $customerCode = "CUST_{$matchedByPhone->customer_id}";
+                            if (empty($customerName)) {
+                                $customerName = $matchedByPhone->name;
+                            }
+                        }
+                    }
+                }
             }
         }
 

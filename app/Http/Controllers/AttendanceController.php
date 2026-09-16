@@ -18,7 +18,7 @@ class AttendanceController extends Controller
 
         $user = auth()->user();
         $data['staffs'] = $user->isSuperAdmin()
-            ? User::staffOnly()->orderBy('name')->get()
+            ? User::orderBy('name')->get()
             : User::where('id', $user->id)->get();
 
         $data['myTodayAttendance'] = Attendance::where('user_id', $user->id)
@@ -522,7 +522,7 @@ class AttendanceController extends Controller
 
         $user = auth()->user();
         $data['staffs'] = $user->isSuperAdmin()
-            ? User::staffOnly()->orderBy('name')->get()
+            ? User::orderBy('name')->get()
             : User::where('id', $user->id)->get();
 
         return view('attendance.report', $data);
