@@ -4,6 +4,8 @@ use App\Http\Controllers\Api\StaffAuthController;
 use App\Http\Controllers\Api\CustomerApiController;
 use App\Http\Controllers\Api\LeadApiController;
 use App\Http\Controllers\Api\FollowupApiController;
+use App\Http\Controllers\Api\AttendanceApiController;
+use App\Http\Controllers\Api\CallLogApiController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -49,6 +51,18 @@ Route::prefix('v1')->group(function () {
         Route::post('followups/update/{id}', [FollowupApiController::class, 'update']);
         Route::delete('followups/delete/{id}', [FollowupApiController::class, 'destroy']);
         Route::post('followups/change-status/{id}', [FollowupApiController::class, 'changeStatus']);
+
+        // Mobile App Attendance Management (Check-in, Check-out, Today Status, History)
+        Route::get('attendance/today', [AttendanceApiController::class, 'todayStatus']);
+        Route::post('attendance/check-in', [AttendanceApiController::class, 'checkIn']);
+        Route::post('attendance/check-out', [AttendanceApiController::class, 'checkOut']);
+        Route::get('attendance/history', [AttendanceApiController::class, 'history']);
+
+        // Mobile App Call Log & Call Recording Management
+        Route::get('call-logs', [CallLogApiController::class, 'index']);
+        Route::post('call-logs', [CallLogApiController::class, 'store']);
+        Route::get('call-logs/{id}', [CallLogApiController::class, 'show']);
+        Route::post('call-recordings', [CallLogApiController::class, 'store']);
     });
 
     // Public / External API route for credit request submission

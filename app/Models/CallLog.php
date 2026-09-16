@@ -16,22 +16,50 @@ class CallLog extends Model
 
     protected $fillable = [
         'lead_id',
+        'customer_id',
+        'customer_code',
+        'customer_name',
+        'followup_id',
+        'followup_code',
+        'followup_date',
         'user_id',
         'phone',
         'call_type',
+        'call_source',
         'duration',
+        'call_start_time',
+        'call_end_time',
         'call_status',
+        'notes',
         'recording_id',
+        'recording_file',
         'created_at',
     ];
 
     protected $casts = [
-        'created_at' => 'datetime',
+        'call_start_time' => 'datetime',
+        'call_end_time'   => 'datetime',
+        'followup_date'   => 'date',
+        'created_at'      => 'datetime',
+    ];
+
+    protected $appends = [
+        'recording_url',
     ];
 
     public function lead()
     {
         return $this->belongsTo(Lead::class, 'lead_id', 'lead_id');
+    }
+
+    public function customer()
+    {
+        return $this->belongsTo(Customer::class, 'customer_id', 'customer_id');
+    }
+
+    public function followup()
+    {
+        return $this->belongsTo(Followup::class, 'followup_id', 'followups_id');
     }
 
     public function user()
@@ -42,6 +70,20 @@ class CallLog extends Model
     public function recording()
     {
         return $this->belongsTo(CallRecording::class, 'recording_id', 'call_id');
+    }
+
+    public function getRecordingUrlAttribute(): ?string
+    {
+        $file = $this->recording_file ?? $this->recording?->recording_file;
+        if (empty($file)) {
+            return null;
+        }
+
+        if (filter_var($file, FILTER_VALIDATE_URL)) {
+            return $file;
+        }
+
+        return asset($file);
     }
 
     /**

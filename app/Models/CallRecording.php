@@ -15,6 +15,7 @@ class CallRecording extends Model
 
     protected $fillable = [
         'lead_id',
+        'customer_id',
         'recording_file',
         'duration',
         'created_by',
@@ -32,6 +33,11 @@ class CallRecording extends Model
     public function lead()
     {
         return $this->belongsTo(Lead::class, 'lead_id', 'lead_id');
+    }
+
+    public function customer()
+    {
+        return $this->belongsTo(Customer::class, 'customer_id', 'customer_id');
     }
 
     public function creator()
@@ -56,10 +62,10 @@ class CallRecording extends Model
 
         return $query->where(function ($q) use ($userId) {
             $q->where('created_by', $userId)
-              ->orWhereHas('lead', function ($lq) use ($userId) {
-                  $lq->where('assigned_to', $userId)
-                    ->orWhere('created_by', $userId);
-              });
+                ->orWhereHas('lead', function ($lq) use ($userId) {
+                    $lq->where('assigned_to', $userId)
+                        ->orWhere('created_by', $userId);
+                });
         });
     }
 }
