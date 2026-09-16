@@ -72,8 +72,9 @@ $(document).ready(function () {
                 data: null,
                 orderable: false,
                 render: function (data, type, row) {
-                    let downloadBtn = row.recording_file ? `
-                        <a class="dropdown-item" href="${APP_URL}/${row.recording_file}" download>
+                    let downloadUrl = row.recording_url || (row.recording_file ? `${APP_URL}/${row.recording_file}` : null);
+                    let downloadBtn = downloadUrl ? `
+                        <a class="dropdown-item" href="${downloadUrl}" download>
                             <i class="bx bx-download me-1"></i> Download Audio
                         </a>
                     ` : '';

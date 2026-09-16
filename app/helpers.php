@@ -123,3 +123,51 @@ if (!function_exists('delete_file')) {
         return \App\Services\FileUploadService::delete($filePath);
     }
 }
+
+if (!function_exists('get_media_url')) {
+    /**
+     * Get accessible URL for uploaded media file (handles both local dev and live server subdirectories).
+     *
+     * @param string|null $filePath
+     * @return string|null
+     */
+    function get_media_url(?string $filePath): ?string
+    {
+        if (empty($filePath)) {
+            return null;
+        }
+
+        if (filter_var($filePath, FILTER_VALIDATE_URL)) {
+            return $filePath;
+        }
+
+        $cleanPath = ltrim(str_replace('\\', '/', $filePath), '/');
+
+        // Check if environment is live server or base URL has subfolder without /public
+        $appUrl = (string) config('app.url', '');
+        $requestRoot = '';
+        $requestHost = '';
+        try {
+            if (app()->bound('request') && request()) {
+                $requestRoot = (string) request()->root();
+                $requestHost = (string) request()->getHost();
+            }
+        } catch (\Throwable $e) {
+            // CLI fallback
+        }
+
+        $isLiveOrSubdir = str_contains($requestHost, 'erixon.in')
+            || str_contains($requestRoot, 'erixon.in')
+            || str_contains($appUrl, 'erixon.in')
+            || (str_contains($requestRoot, '/crm') && !str_ends_with(rtrim($requestRoot, '/'), '/public'))
+            || (str_contains($appUrl, '/crm') && !str_ends_with(rtrim($appUrl, '/'), '/public'));
+
+        if ($isLiveOrSubdir) {
+            if (!str_starts_with($cleanPath, 'public/')) {
+                $cleanPath = 'public/' . $cleanPath;
+            }
+        }
+
+        return asset($cleanPath);
+    }
+}

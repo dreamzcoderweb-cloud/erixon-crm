@@ -21,6 +21,19 @@ class CallRecording extends Model
         'created_by',
     ];
 
+    protected $appends = [
+        'recording_url',
+    ];
+
+    public function getRecordingUrlAttribute(): ?string
+    {
+        if (empty($this->recording_file)) {
+            return null;
+        }
+
+        return get_media_url($this->recording_file);
+    }
+
     protected static function booted()
     {
         static::deleting(function ($recording) {

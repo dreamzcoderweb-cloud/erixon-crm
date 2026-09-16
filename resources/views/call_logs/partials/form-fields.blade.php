@@ -49,10 +49,12 @@
         <label class="form-label">Call Status <span class="text-danger">*</span></label>
         <select name="call_status" id="{{ $fieldPrefix }}_call_log_call_status" class="form-select" required>
             <option value="">-- Select Status --</option>
+            <option value="Answered">Answered</option>
+            <option value="Busy">Busy</option>
+            <option value="No Answer">No Answer</option>
+            <option value="Switched Off">Switched Off</option>
             <option value="Completed">Completed</option>
             <option value="Missed">Missed</option>
-            <option value="No Answer">No Answer</option>
-            <option value="Busy">Busy</option>
             <option value="Failed">Failed</option>
         </select>
         <div class="invalid-feedback"></div>

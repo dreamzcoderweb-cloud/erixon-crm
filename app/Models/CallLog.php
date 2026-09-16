@@ -79,11 +79,7 @@ class CallLog extends Model
             return null;
         }
 
-        if (filter_var($file, FILTER_VALIDATE_URL)) {
-            return $file;
-        }
-
-        return asset($file);
+        return get_media_url($file);
     }
 
     /**

@@ -518,10 +518,7 @@ class CallLogApiController extends Controller
         $recordingFile = $log->recording_file
             ?? ($log->recording ? $log->recording->recording_file : null);
 
-        $recordingUrl = $log->recording_url;
-        if (empty($recordingUrl) && !empty($recordingFile)) {
-            $recordingUrl = filter_var($recordingFile, FILTER_VALIDATE_URL) ? $recordingFile : asset($recordingFile);
-        }
+        $recordingUrl = $log->recording_url ?: get_media_url($recordingFile);
 
         return [
             'call_id' => (int) $log->call_id,
@@ -547,5 +544,280 @@ class CallLogApiController extends Controller
             'staff_id' => $log->user_id,
             'staff_name' => $log->user ? $log->user->name : null,
         ];
+    }
+
+    /**
+     * Mobile App Call Report API with date-wise filtering, time-based breakdown & summary.
+     * GET /api/v1/call-report
+     */
+    public function report(Request $request): JsonResponse
+    {
+        $currentUser = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$currentUser) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+
+        // Parse date range (supports from_date/to_date, start_date/end_date, or single date)
+        $rawFromDate = $request->input('from_date') ?? $request->input('start_date') ?? $request->input('date') ?? date('Y-m-d');
+        $rawToDate = $request->input('to_date') ?? $request->input('end_date') ?? $request->input('date') ?? date('Y-m-d');
+
+        try {
+            $fromDate = Carbon::parse($rawFromDate)->format('Y-m-d');
+        } catch (\Exception $e) {
+            $fromDate = date('Y-m-d');
+        }
+
+        try {
+            $toDate = Carbon::parse($rawToDate)->format('Y-m-d');
+        } catch (\Exception $e) {
+            $toDate = date('Y-m-d');
+        }
+
+        if ($fromDate > $toDate) {
+            [$fromDate, $toDate] = [$toDate, $fromDate];
+        }
+
+        // Base query for user's calls in the selected date range
+        $baseQuery = CallLog::forUser($currentUser)
+            ->whereBetween('created_at', [$fromDate . ' 00:00:00', $toDate . ' 23:59:59']);
+
+        if ($request->filled('staff_id') || $request->filled('user_id')) {
+            $targetStaffId = $request->input('staff_id') ?? $request->input('user_id');
+            if ($currentUser->isAdmin()) {
+                $baseQuery->where('user_id', $targetStaffId);
+            }
+        }
+
+        $allDateCalls = (clone $baseQuery)->orderBy('created_at', 'ASC')->get();
+
+        // 1. Top Card Header
+        $isSingleDay = ($fromDate === $toDate);
+        $isToday = ($fromDate === date('Y-m-d') && $isSingleDay);
+        $reportTitle = $isToday ? "Today's Call Report" : "Call Report";
+        $formattedDate = $isSingleDay
+            ? Carbon::parse($fromDate)->format('d M Y')
+            : Carbon::parse($fromDate)->format('d M Y') . ' – ' . Carbon::parse($toDate)->format('d M Y');
+
+        // Earliest and latest call time
+        $firstCall = $allDateCalls->first();
+        $lastCall = $allDateCalls->last();
+        $timeRangeText = ($firstCall && $lastCall && $firstCall->created_at && $lastCall->created_at)
+            ? $firstCall->created_at->format('g:i A') . ' – ' . $lastCall->created_at->format('g:i A')
+            : '09:00 AM – 06:00 PM';
+
+        // 2. Summary counts
+        $totalCustomers = Customer::forUser($currentUser)->count();
+        if ($totalCustomers === 0) {
+            $totalCustomers = Customer::count();
+        }
+
+        // Calls completed (answered / completed calls)
+        $answeredCallsCount = $allDateCalls->filter(fn($c) => in_array(strtolower(trim($c->call_status ?? '')), ['answered', 'completed']))->count();
+        $busyCallsCount = $allDateCalls->filter(fn($c) => in_array(strtolower(trim($c->call_status ?? '')), ['busy', 'line busy']))->count();
+        $noAnswerCallsCount = $allDateCalls->filter(fn($c) => in_array(strtolower(trim($c->call_status ?? '')), ['no answer', 'missed', 'rejected', 'declined', 'unanswered']))->count();
+        $switchedOffCallsCount = $allDateCalls->filter(fn($c) => in_array(strtolower(trim($c->call_status ?? '')), ['switched off', 'switch off', 'switched_off', 'not reachable', 'out of reach']))->count();
+
+        // Calls completed in top card
+        $callsCompleted = $answeredCallsCount;
+        $pendingCalls = max(0, $totalCustomers - $callsCompleted);
+
+        // 3. Time-based Breakdown
+        $slot1Count = $allDateCalls->filter(function ($c) {
+            $t = $c->created_at ? $c->created_at->format('H:i') : '00:00';
+            return $t >= '09:00' && $t < '11:30';
+        })->count();
+
+        $fullShiftCount = $allDateCalls->filter(function ($c) {
+            $t = $c->created_at ? $c->created_at->format('H:i') : '00:00';
+            return $t >= '09:00' && $t <= '18:00';
+        })->count();
+
+        $timeBreakdown = [
+            [
+                'slot' => '9:00 AM → 11:30 AM',
+                'label' => 'Morning Session',
+                'calls_count' => $slot1Count,
+                'calls_text' => "{$slot1Count} calls",
+            ],
+            [
+                'slot' => '9:00 AM → 6:00 PM',
+                'label' => 'Full Day Shift',
+                'calls_count' => $fullShiftCount,
+                'calls_text' => "{$fullShiftCount} calls",
+            ],
+        ];
+
+        // 4. Filter Call Details list by selected status pill
+        $statusFilter = trim((string) ($request->input('status') ?? $request->input('call_status') ?? 'All'));
+        if ($statusFilter === '') {
+            $statusFilter = 'All';
+        }
+        $filteredQuery = clone $baseQuery;
+
+        if (!empty($statusFilter) && strtolower($statusFilter) !== 'all') {
+            $sf = strtolower($statusFilter);
+            if ($sf === 'answered') {
+                $filteredQuery->where(function ($q) {
+                    $q->where('call_status', 'Answered')
+                      ->orWhere('call_status', 'Completed');
+                });
+            } elseif ($sf === 'busy') {
+                $filteredQuery->where(function ($q) {
+                    $q->where('call_status', 'Busy')
+                      ->orWhere('call_status', 'Line Busy');
+                });
+            } elseif (in_array($sf, ['switched off', 'switch off', 'switched_off', 'not reachable'])) {
+                $filteredQuery->where(function ($q) {
+                    $q->where('call_status', 'Switched Off')
+                      ->orWhere('call_status', 'Switch Off')
+                      ->orWhere('call_status', 'switched_off')
+                      ->orWhere('call_status', 'Not Reachable')
+                      ->orWhere('call_status', 'Out of Reach');
+                });
+            } elseif (in_array($sf, ['no answer', 'missed', 'rejected', 'declined'])) {
+                $filteredQuery->where(function ($q) {
+                    $q->whereIn('call_status', ['No Answer', 'Missed', 'Rejected', 'Declined', 'Unanswered']);
+                });
+            } else {
+                $filteredQuery->where(function ($q) use ($statusFilter) {
+                    $q->where('call_status', $statusFilter)
+                      ->orWhere('call_status', ucfirst($statusFilter));
+                });
+            }
+        }
+
+        // Call type filter
+        if ($request->filled('call_type') && strtolower($request->input('call_type')) !== 'all') {
+            $filteredQuery->where('call_type', $request->input('call_type'));
+        }
+
+        // Search filter
+        if ($request->filled('search')) {
+            $s = trim($request->input('search'));
+            $filteredQuery->where(function ($q) use ($s) {
+                $q->where('phone', 'LIKE', "%{$s}%")
+                  ->orWhere('customer_name', 'LIKE', "%{$s}%")
+                  ->orWhere('customer_code', 'LIKE', "%{$s}%");
+            });
+        }
+
+        $callLogs = $filteredQuery
+            ->with(['customer', 'lead', 'recording', 'user'])
+            ->orderBy('created_at', 'DESC')
+            ->get();
+
+        // Format Call Details items for mobile UI cards
+        $callDetails = $callLogs->map(function ($log) {
+            $statusLower = strtolower(trim($log->call_status ?? ''));
+            $isAnswered = in_array($statusLower, ['answered', 'completed']);
+            $isBusy = in_array($statusLower, ['busy', 'line busy']);
+            $isSwitchedOff = in_array($statusLower, ['switched off', 'switch off', 'switched_off', 'not reachable', 'out of reach']);
+            $isNoAnswer = in_array($statusLower, ['no answer', 'missed', 'rejected', 'declined', 'unanswered']);
+
+            if ($isAnswered) {
+                $displayStatus = 'Answered';
+                $statusColor = 'success';
+            } elseif ($isBusy) {
+                $displayStatus = 'Busy';
+                $statusColor = 'warning';
+            } elseif ($isSwitchedOff) {
+                $displayStatus = 'Switched Off';
+                $statusColor = 'secondary';
+            } elseif ($isNoAnswer) {
+                $displayStatus = 'No Answer';
+                $statusColor = 'danger';
+            } else {
+                $displayStatus = $log->call_status ?: 'No Answer';
+                $statusColor = 'danger';
+            }
+
+            $callType = $log->call_type ?? 'Outbound';
+            $isOutbound = strtolower($callType) !== 'inbound';
+            $callDirection = $isOutbound ? 'outbound' : 'inbound';
+
+            $recordingFile = $log->recording_file
+                ?? ($log->recording ? $log->recording->recording_file : null);
+            $recordingUrl = $log->recording_url ?: get_media_url($recordingFile);
+
+            return [
+                'call_id' => (int) $log->call_id,
+                'customer_name' => $log->customer_name ?: ($log->customer ? $log->customer->name : 'Unknown Customer'),
+                'customer_id' => $log->customer_code ?? (!empty($log->customer_id) ? "CUST_{$log->customer_id}" : null),
+                'phone_number' => $log->phone,
+                'call_time' => $log->created_at ? $log->created_at->format('g:i A') : '',
+                'call_date' => $log->created_at ? $log->created_at->format('d M Y') : '',
+                'call_start_time' => $log->call_start_time ? $log->call_start_time->toISOString() : null,
+                'status' => $displayStatus,
+                'status_color' => $statusColor,
+                'call_type' => $callType,
+                'call_direction' => $callDirection,
+                'duration' => $log->duration ?? '00:00',
+                'lead_id' => $log->lead_id ? (int) $log->lead_id : null,
+                'lead_title' => $log->lead ? $log->lead->lead_title : null,
+                'notes' => $log->notes,
+                'recording_file' => $recordingFile ? basename($recordingFile) : null,
+                'recording_url' => $recordingUrl,
+            ];
+        })->values();
+
+
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Call report fetched successfully.',
+            'data' => [
+                'top_card' => [
+                    'report_title' => $reportTitle,
+                    'date_text' => $formattedDate,
+                    'time_range' => $timeRangeText,
+                    'total_customers' => $totalCustomers,
+                    'calls_completed' => $callsCompleted,
+                    'pending_calls' => $pendingCalls,
+                ],
+                'time_breakdown' => $timeBreakdown,
+                'filter_options' => [
+                    'from_date' => $fromDate,
+                    'to_date' => $toDate,
+                    'status' => $statusFilter,
+                    'active_status' => $statusFilter,
+                    'call_status' => $statusFilter,
+                    'status_pills' => ['All', 'Answered', 'Busy', 'No Answer', 'Switched Off'],
+                    'status_options' => [
+                        [
+                            'key' => 'All',
+                            'label' => 'All',
+                            'count' => $allDateCalls->count(),
+                            'is_selected' => strtolower($statusFilter) === 'all' || empty($statusFilter),
+                        ],
+                        [
+                            'key' => 'Answered',
+                            'label' => 'Answered',
+                            'count' => $answeredCallsCount,
+                            'is_selected' => strtolower($statusFilter) === 'answered',
+                        ],
+                        [
+                            'key' => 'Busy',
+                            'label' => 'Busy',
+                            'count' => $busyCallsCount,
+                            'is_selected' => strtolower($statusFilter) === 'busy',
+                        ],
+                        [
+                            'key' => 'No Answer',
+                            'label' => 'No Answer',
+                            'count' => $noAnswerCallsCount,
+                            'is_selected' => in_array(strtolower($statusFilter), ['no answer', 'missed', 'rejected', 'declined']),
+                        ],
+                        [
+                            'key' => 'Switched Off',
+                            'label' => 'Switched Off',
+                            'count' => $switchedOffCallsCount,
+                            'is_selected' => in_array(strtolower($statusFilter), ['switched off', 'switch off', 'switched_off', 'not reachable']),
+                        ],
+                    ],
+                ],
+                'calls_count' => $callDetails->count(),
+                'call_details' => $callDetails,
+            ],
+        ]);
     }
 }

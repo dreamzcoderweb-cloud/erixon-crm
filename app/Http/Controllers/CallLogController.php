@@ -192,6 +192,8 @@ class CallLogController extends Controller
 
         if ($request->filled('call_status')) {
             $query->where('call_status', $request->input('call_status'));
+        } elseif ($request->filled('status')) {
+            $query->where('call_status', $request->input('status'));
         }
 
         if ($filterType === 'daily') {

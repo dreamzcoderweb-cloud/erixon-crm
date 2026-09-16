@@ -40,14 +40,17 @@ $(document).ready(function () {
     }
 
     function recordingMarkup(row, type) {
-        if (!row.recording || !row.recording.recording_file) {
+        let file = (row.recording && row.recording.recording_file) || row.recording_file;
+        let url = row.recording_url || (row.recording && row.recording.recording_url);
+        if (!file && !url) {
             return type === 'display' ? '<span class="text-muted">-</span>' : '';
         }
 
-        if (type !== 'display') return row.recording.recording_file;
+        if (type !== 'display') return file || url;
 
+        let downloadUrl = url || (APP_URL + '/' + file);
         return `
-            <a href="${APP_URL}/${row.recording.recording_file}" download class="btn btn-sm btn-outline-success" title="Download Recording">
+            <a href="${downloadUrl}" download class="btn btn-sm btn-outline-success" title="Download Recording">
                 <i class="bx bx-download"></i>
             </a>
         `;

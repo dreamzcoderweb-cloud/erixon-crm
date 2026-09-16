@@ -66,10 +66,12 @@
                             <label class="form-label fw-semibold">Status</label>
                             <select name="call_status" id="call_log_filter_call_status" class="form-select">
                                 <option value="">-- All Statuses --</option>
+                                <option value="Answered">Answered</option>
+                                <option value="Busy">Busy</option>
+                                <option value="No Answer">No Answer</option>
+                                <option value="Switched Off">Switched Off</option>
                                 <option value="Completed">Completed</option>
                                 <option value="Missed">Missed</option>
-                                <option value="No Answer">No Answer</option>
-                                <option value="Busy">Busy</option>
                                 <option value="Failed">Failed</option>
                             </select>
                         </div>

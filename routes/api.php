@@ -59,6 +59,7 @@ Route::prefix('v1')->group(function () {
         Route::get('attendance/history', [AttendanceApiController::class, 'history']);
 
         // Mobile App Call Log & Call Recording Management
+        Route::get('call-report', [CallLogApiController::class, 'report']);
         Route::get('call-logs', [CallLogApiController::class, 'index']);
         Route::post('call-logs', [CallLogApiController::class, 'store']);
         Route::get('call-logs/{id}', [CallLogApiController::class, 'show']);
