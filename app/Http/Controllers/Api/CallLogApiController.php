@@ -77,26 +77,32 @@ class CallLogApiController extends Controller
         }
 
         // Date range filters
+        // Date range filters (support start_date/end_date, from_date/to_date, date, or month)
         $date = $request->input('date');
         $month = $request->input('month');
-        $startDate = $request->input('start_date');
-        $endDate = $request->input('end_date');
+        $startDate = $request->input('start_date') ?? $request->input('from_date');
+        $endDate = $request->input('end_date') ?? $request->input('to_date');
 
         if (!empty($startDate) && !empty($endDate)) {
             $query->where(function ($q) use ($startDate, $endDate) {
-                $q->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
-                    ->orWhereBetween('call_start_time', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+                $q->whereBetween('call_start_time', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+                    ->orWhereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
             });
         } elseif (!empty($date)) {
             $query->where(function ($q) use ($date) {
-                $q->whereDate('created_at', $date)
-                    ->orWhereDate('call_start_time', $date);
+                $q->whereDate('call_start_time', $date)
+                    ->orWhereDate('created_at', $date);
             });
         } elseif (!empty($month)) {
             [$year, $selectedMonth] = array_pad(explode('-', $month), 2, null);
-            $query->where(function ($q) use ($year, $selectedMonth) {
-                $q->whereYear('created_at', $year ?: date('Y'))
-                    ->whereMonth('created_at', $selectedMonth ?: date('m'));
+            $y = $year ?: date('Y');
+            $m = $selectedMonth ?: date('m');
+            $query->where(function ($q) use ($y, $m) {
+                $q->where(function ($sub) use ($y, $m) {
+                    $sub->whereYear('call_start_time', $y)->whereMonth('call_start_time', $m);
+                })->orWhere(function ($sub) use ($y, $m) {
+                    $sub->whereYear('created_at', $y)->whereMonth('created_at', $m);
+                });
             });
         }
 
@@ -163,10 +169,11 @@ class CallLogApiController extends Controller
         }
 
         // Parse Start & End Times
+        $tz = config('app.timezone', 'Asia/Kolkata');
         $startTime = null;
         if ($request->filled('call_start_time')) {
             try {
-                $startTime = Carbon::parse($request->input('call_start_time'))->format('Y-m-d H:i:s');
+                $startTime = Carbon::parse($request->input('call_start_time'))->setTimezone($tz)->format('Y-m-d H:i:s');
             } catch (\Exception $e) {
             }
         }
@@ -174,7 +181,7 @@ class CallLogApiController extends Controller
         $endTime = null;
         if ($request->filled('call_end_time')) {
             try {
-                $endTime = Carbon::parse($request->input('call_end_time'))->format('Y-m-d H:i:s');
+                $endTime = Carbon::parse($request->input('call_end_time'))->setTimezone($tz)->format('Y-m-d H:i:s');
             } catch (\Exception $e) {
             }
         }
@@ -495,9 +502,17 @@ class CallLogApiController extends Controller
      */
     private function formatCallLogItem(CallLog $log): array
     {
-        // Format timestamps as ISO string if available
-        $startTimeIso = $log->call_start_time ? $log->call_start_time->toISOString() : null;
-        $endTimeIso = $log->call_end_time ? $log->call_end_time->toISOString() : null;
+        $tz = config('app.timezone', 'Asia/Kolkata');
+
+        // Format timestamps in local application timezone (no UTC Z shift) so mobile parses as local time
+        $startTime = $log->call_start_time ? $log->call_start_time->copy()->setTimezone($tz) : null;
+        $endTime = $log->call_end_time ? $log->call_end_time->copy()->setTimezone($tz) : null;
+        $createdAt = $log->created_at ? $log->created_at->copy()->setTimezone($tz) : null;
+
+        $primaryTime = $startTime ?: $createdAt;
+
+        $startTimeFormatted = $startTime ? $startTime->format('Y-m-d\TH:i:s') : null;
+        $endTimeFormatted = $endTime ? $endTime->format('Y-m-d\TH:i:s') : null;
 
         // Customer identifier
         $customerIdStr = $log->customer_code
@@ -525,8 +540,8 @@ class CallLogApiController extends Controller
             'lead_id' => $log->lead_id ? (int) $log->lead_id : null,
             'lead_title' => $log->lead ? $log->lead->lead_title : null,
             'phone_number' => $log->phone,
-            'call_start_time' => $startTimeIso,
-            'call_end_time' => $endTimeIso,
+            'call_start_time' => $startTimeFormatted,
+            'call_end_time' => $endTimeFormatted,
             'call_duration' => $log->duration,
             'customer_id' => $customerIdStr,
             'customer_name' => $customerNameStr,
@@ -540,7 +555,10 @@ class CallLogApiController extends Controller
             'recording_url' => $recordingUrl,
             'call_type' => $log->call_type,
             'call_source' => $log->call_source ?? 'direct',
-            'created_at' => $log->created_at ? $log->created_at->format('Y-m-d H:i:s') : null,
+            'created_at' => $createdAt ? $createdAt->format('Y-m-d H:i:s') : null,
+            'call_time' => $primaryTime ? $primaryTime->format('g:i A') : '',
+            'call_date' => $primaryTime ? $primaryTime->format('d M Y') : '',
+            'call_date_time' => $primaryTime ? $primaryTime->format('d M Y, h:i A') : '',
             'staff_id' => $log->user_id,
             'staff_name' => $log->user ? $log->user->name : null,
         ];
@@ -577,9 +595,12 @@ class CallLogApiController extends Controller
             [$fromDate, $toDate] = [$toDate, $fromDate];
         }
 
-        // Base query for user's calls in the selected date range
+        // Base query for user's calls in the selected date range (checks call_start_time or created_at)
         $baseQuery = CallLog::forUser($currentUser)
-            ->whereBetween('created_at', [$fromDate . ' 00:00:00', $toDate . ' 23:59:59']);
+            ->where(function ($q) use ($fromDate, $toDate) {
+                $q->whereBetween('call_start_time', [$fromDate . ' 00:00:00', $toDate . ' 23:59:59'])
+                    ->orWhereBetween('created_at', [$fromDate . ' 00:00:00', $toDate . ' 23:59:59']);
+            });
 
         if ($request->filled('staff_id') || $request->filled('user_id')) {
             $targetStaffId = $request->input('staff_id') ?? $request->input('user_id');
@@ -588,7 +609,8 @@ class CallLogApiController extends Controller
             }
         }
 
-        $allDateCalls = (clone $baseQuery)->orderBy('created_at', 'ASC')->get();
+        $tz = config('app.timezone', 'Asia/Kolkata');
+        $allDateCalls = (clone $baseQuery)->orderBy('call_id', 'ASC')->get();
 
         // 1. Top Card Header
         $isSingleDay = ($fromDate === $toDate);
@@ -598,11 +620,13 @@ class CallLogApiController extends Controller
             ? Carbon::parse($fromDate)->format('d M Y')
             : Carbon::parse($fromDate)->format('d M Y') . ' – ' . Carbon::parse($toDate)->format('d M Y');
 
-        // Earliest and latest call time
+        // Earliest and latest call time in application timezone
         $firstCall = $allDateCalls->first();
         $lastCall = $allDateCalls->last();
-        $timeRangeText = ($firstCall && $lastCall && $firstCall->created_at && $lastCall->created_at)
-            ? $firstCall->created_at->format('g:i A') . ' – ' . $lastCall->created_at->format('g:i A')
+        $firstTime = $firstCall ? ($firstCall->call_start_time ?: $firstCall->created_at)?->copy()->setTimezone($tz) : null;
+        $lastTime = $lastCall ? ($lastCall->call_start_time ?: $lastCall->created_at)?->copy()->setTimezone($tz) : null;
+        $timeRangeText = ($firstTime && $lastTime)
+            ? $firstTime->format('g:i A') . ' – ' . $lastTime->format('g:i A')
             : '09:00 AM – 06:00 PM';
 
         // 2. Summary counts
@@ -621,14 +645,16 @@ class CallLogApiController extends Controller
         $callsCompleted = $answeredCallsCount;
         $pendingCalls = max(0, $totalCustomers - $callsCompleted);
 
-        // 3. Time-based Breakdown
-        $slot1Count = $allDateCalls->filter(function ($c) {
-            $t = $c->created_at ? $c->created_at->format('H:i') : '00:00';
+        // 3. Time-based Breakdown (based on actual call time in application timezone)
+        $slot1Count = $allDateCalls->filter(function ($c) use ($tz) {
+            $timeObj = ($c->call_start_time ?: $c->created_at)?->copy()->setTimezone($tz);
+            $t = $timeObj ? $timeObj->format('H:i') : '00:00';
             return $t >= '09:00' && $t < '11:30';
         })->count();
 
-        $fullShiftCount = $allDateCalls->filter(function ($c) {
-            $t = $c->created_at ? $c->created_at->format('H:i') : '00:00';
+        $fullShiftCount = $allDateCalls->filter(function ($c) use ($tz) {
+            $timeObj = ($c->call_start_time ?: $c->created_at)?->copy()->setTimezone($tz);
+            $t = $timeObj ? $timeObj->format('H:i') : '00:00';
             return $t >= '09:00' && $t <= '18:00';
         })->count();
 
@@ -703,7 +729,7 @@ class CallLogApiController extends Controller
 
         $callLogs = $filteredQuery
             ->with(['customer', 'lead', 'recording', 'user'])
-            ->orderBy('created_at', 'DESC')
+            ->orderBy('call_id', 'DESC')
             ->get();
 
         // Format Call Details items for mobile UI cards
@@ -739,14 +765,19 @@ class CallLogApiController extends Controller
                 ?? ($log->recording ? $log->recording->recording_file : null);
             $recordingUrl = $log->recording_url ?: get_media_url($recordingFile);
 
+            $tz = config('app.timezone', 'Asia/Kolkata');
+            $startTime = $log->call_start_time ? $log->call_start_time->copy()->setTimezone($tz) : null;
+            $createdAt = $log->created_at ? $log->created_at->copy()->setTimezone($tz) : null;
+            $primaryTime = $startTime ?: $createdAt;
+
             return [
                 'call_id' => (int) $log->call_id,
                 'customer_name' => $log->customer_name ?: ($log->customer ? $log->customer->name : 'Unknown Customer'),
                 'customer_id' => $log->customer_code ?? (!empty($log->customer_id) ? "CUST_{$log->customer_id}" : null),
                 'phone_number' => $log->phone,
-                'call_time' => $log->created_at ? $log->created_at->format('g:i A') : '',
-                'call_date' => $log->created_at ? $log->created_at->format('d M Y') : '',
-                'call_start_time' => $log->call_start_time ? $log->call_start_time->toISOString() : null,
+                'call_time' => $primaryTime ? $primaryTime->format('g:i A') : '',
+                'call_date' => $primaryTime ? $primaryTime->format('d M Y') : '',
+                'call_start_time' => $startTime ? $startTime->format('Y-m-d\TH:i:s') : null,
                 'status' => $displayStatus,
                 'status_color' => $statusColor,
                 'call_type' => $callType,
