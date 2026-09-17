@@ -8,6 +8,8 @@ use App\Models\CallRecording;
 use App\Models\Customer;
 use App\Models\Followup;
 use App\Models\Lead;
+use App\Models\User;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -947,5 +949,312 @@ class CallLogApiController extends Controller
                 'call_details' => $callDetails,
             ],
         ]);
+    }
+
+    /**
+     * Generate and export Call Report as PDF.
+     * Supports both:
+     * 1. Without filter: generates report for all available call records.
+     * 2. With filter: generates report applying date, status, staff, type, search filters.
+     *
+     * GET /api/v1/call-report/pdf
+     * GET /api/v1/call-report-pdf
+     */
+    public function exportPdf(Request $request)
+    {
+        $currentUser = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$currentUser && $request->filled('token')) {
+            $token = $request->query('token');
+            $tokenObj = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
+            if ($tokenObj) {
+                $currentUser = $tokenObj->tokenable;
+                Auth::setUser($currentUser);
+            }
+        }
+
+        if (!$currentUser) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+
+        $query = CallLog::forUser($currentUser);
+
+        // Check if any date filter is applied
+        $hasDateFilter = $request->filled('date')
+            || $request->filled('from_date')
+            || $request->filled('to_date')
+            || $request->filled('start_date')
+            || $request->filled('end_date');
+
+        $isFiltered = false;
+
+        if ($hasDateFilter) {
+            $isFiltered = true;
+            if ($request->filled('date')) {
+                try {
+                    $fromDate = Carbon::parse($request->input('date'))->format('Y-m-d');
+                } catch (\Exception $e) {
+                    $fromDate = date('Y-m-d');
+                }
+                $toDate = $fromDate;
+            } else {
+                $rawFromDate = $request->input('from_date') ?? $request->input('start_date') ?? date('Y-m-d');
+                $rawToDate = $request->input('to_date') ?? $request->input('end_date') ?? date('Y-m-d');
+
+                try {
+                    $fromDate = Carbon::parse($rawFromDate)->format('Y-m-d');
+                } catch (\Exception $e) {
+                    $fromDate = date('Y-m-d');
+                }
+
+                try {
+                    $toDate = Carbon::parse($rawToDate)->format('Y-m-d');
+                } catch (\Exception $e) {
+                    $toDate = date('Y-m-d');
+                }
+
+                if ($fromDate > $toDate) {
+                    [$fromDate, $toDate] = [$toDate, $fromDate];
+                }
+            }
+
+            $dateRangeText = ($fromDate === $toDate)
+                ? Carbon::parse($fromDate)->format('d M Y')
+                : Carbon::parse($fromDate)->format('d M Y') . ' - ' . Carbon::parse($toDate)->format('d M Y');
+
+            $query->where(function ($q) use ($fromDate, $toDate) {
+                $q->whereBetween('call_start_time', [$fromDate . ' 00:00:00', $toDate . ' 23:59:59'])
+                  ->orWhereBetween('created_at', [$fromDate . ' 00:00:00', $toDate . ' 23:59:59']);
+            });
+        } else {
+            // Scenario 1: Without filter - show all call logs
+            $dateRangeText = 'All Time';
+        }
+
+        // Status Filter
+        $statusFilter = $request->input('status');
+        if ($request->filled('status') && strtolower($statusFilter) !== 'all') {
+            $isFiltered = true;
+            $sf = strtolower($statusFilter);
+            if ($sf === 'answered') {
+                $query->where(function ($q) {
+                    $q->where('call_status', 'Answered')
+                      ->orWhere('call_status', 'Completed');
+                });
+            } elseif ($sf === 'busy') {
+                $query->where(function ($q) {
+                    $q->where('call_status', 'Busy')
+                      ->orWhere('call_status', 'Line Busy');
+                });
+            } elseif (in_array($sf, ['switched off', 'switch off', 'switched_off', 'not reachable'])) {
+                $query->where(function ($q) {
+                    $q->where('call_status', 'Switched Off')
+                      ->orWhere('call_status', 'Switch Off')
+                      ->orWhere('call_status', 'switched_off')
+                      ->orWhere('call_status', 'Not Reachable')
+                      ->orWhere('call_status', 'Out of Reach');
+                });
+            } elseif (in_array($sf, ['no answer', 'missed', 'rejected', 'declined'])) {
+                $query->where(function ($q) {
+                    $q->whereIn('call_status', ['No Answer', 'Missed', 'Rejected', 'Declined', 'Unanswered']);
+                });
+            } else {
+                $query->where(function ($q) use ($statusFilter) {
+                    $q->where('call_status', $statusFilter)
+                      ->orWhere('call_status', ucfirst($statusFilter));
+                });
+            }
+        }
+
+        // Staff / User filter
+        $staffName = null;
+        if ($request->filled('staff_id') || $request->filled('user_id')) {
+            $isFiltered = true;
+            $targetStaffId = $request->input('staff_id') ?? $request->input('user_id');
+            if ($currentUser->isAdmin()) {
+                $query->where('user_id', $targetStaffId);
+            }
+            $staffUser = User::find($targetStaffId);
+            if ($staffUser) {
+                $staffName = $staffUser->name;
+            }
+        }
+
+        // Call type filter (Inbound / Outbound)
+        if ($request->filled('call_type') && strtolower($request->input('call_type')) !== 'all') {
+            $isFiltered = true;
+            $query->where('call_type', $request->input('call_type'));
+        }
+
+        // Customer filter
+        if ($request->filled('customer_id')) {
+            $isFiltered = true;
+            $query->where('customer_id', $request->input('customer_id'));
+        }
+
+        // Lead filter
+        if ($request->filled('lead_id')) {
+            $isFiltered = true;
+            $query->where('lead_id', $request->input('lead_id'));
+        }
+
+        // Phone search filter
+        if ($request->filled('phone')) {
+            $isFiltered = true;
+            $query->where('phone', 'LIKE', '%' . trim($request->input('phone')) . '%');
+        }
+
+        // Keyword search
+        if ($request->filled('search')) {
+            $isFiltered = true;
+            $s = trim($request->input('search'));
+            $query->where(function ($q) use ($s) {
+                $q->where('phone', 'LIKE', "%{$s}%")
+                  ->orWhere('customer_name', 'LIKE', "%{$s}%")
+                  ->orWhere('customer_code', 'LIKE', "%{$s}%");
+            });
+        }
+
+        $filterMode = $isFiltered ? 'Filtered' : 'All Records (No Filter)';
+
+        $callLogs = $query
+            ->with(['customer', 'lead', 'recording', 'user'])
+            ->orderBy('call_id', 'DESC')
+            ->get();
+
+        // Calculate summary statistics
+        $totalCalls = $callLogs->count();
+        $answeredCalls = 0;
+        $busyCalls = 0;
+        $noAnswerCalls = 0;
+        $totalDurationSec = 0;
+
+        $tz = config('app.timezone', 'Asia/Kolkata');
+        $formattedCalls = [];
+
+        foreach ($callLogs as $log) {
+            $statusLower = strtolower(trim($log->call_status ?? ''));
+            if (in_array($statusLower, ['answered', 'completed'])) {
+                $answeredCalls++;
+                $displayStatus = 'Answered';
+            } elseif (in_array($statusLower, ['busy', 'line busy'])) {
+                $busyCalls++;
+                $displayStatus = 'Busy';
+            } elseif (in_array($statusLower, ['switched off', 'switch off', 'switched_off', 'not reachable', 'out of reach'])) {
+                $noAnswerCalls++;
+                $displayStatus = 'Switched Off';
+            } elseif (in_array($statusLower, ['no answer', 'missed', 'rejected', 'declined', 'unanswered'])) {
+                $noAnswerCalls++;
+                $displayStatus = 'No Answer';
+            } else {
+                $displayStatus = $log->call_status ?: 'No Answer';
+                $noAnswerCalls++;
+            }
+
+            // Duration calculation
+            $dur = $log->duration;
+            $durSec = 0;
+            if (is_numeric($dur)) {
+                $durSec = (int) $dur;
+            } elseif (is_string($dur) && str_contains($dur, ':')) {
+                $parts = explode(':', $dur);
+                if (count($parts) === 3) {
+                    $durSec = ((int)$parts[0] * 3600) + ((int)$parts[1] * 60) + (int)$parts[2];
+                } elseif (count($parts) === 2) {
+                    $durSec = ((int)$parts[0] * 60) + (int)$parts[1];
+                }
+            }
+            $totalDurationSec += $durSec;
+
+            $formattedDuration = $durSec > 0
+                ? sprintf('%02d:%02d', floor($durSec / 60), $durSec % 60)
+                : ($log->duration ?: '00:00');
+
+            $startTime = $log->call_start_time ? $log->call_start_time->copy()->setTimezone($tz) : null;
+            $createdAt = $log->created_at ? $log->created_at->copy()->setTimezone($tz) : null;
+            $primaryTime = $startTime ?: $createdAt;
+
+            $customerName = $log->customer_name ?: ($log->customer ? $log->customer->name : 'Unknown Customer');
+            $customerId = $log->customer_code ?? (!empty($log->customer_id) ? "CUST_{$log->customer_id}" : null);
+
+            $formattedCalls[] = [
+                'call_id' => (int) $log->call_id,
+                'call_date' => $primaryTime ? $primaryTime->format('d M Y') : '—',
+                'call_time' => $primaryTime ? $primaryTime->format('g:i A') : '—',
+                'customer_name' => $customerName,
+                'customer_id' => $customerId,
+                'phone_number' => $log->phone ?: '—',
+                'lead_id' => $log->lead_id ? (int) $log->lead_id : null,
+                'lead_title' => $log->lead ? $log->lead->lead_title : null,
+                'call_type' => $log->call_type ? ucfirst($log->call_type) : 'Outbound',
+                'duration' => $formattedDuration,
+                'status' => $displayStatus,
+                'staff_name' => $log->user ? $log->user->name : 'Staff',
+                'notes' => $log->notes,
+            ];
+        }
+
+        // Format total duration string
+        $hours = floor($totalDurationSec / 3600);
+        $minutes = floor(($totalDurationSec % 3600) / 60);
+        $seconds = $totalDurationSec % 60;
+        if ($hours > 0) {
+            $formattedTotalDuration = "{$hours}h {$minutes}m {$seconds}s";
+        } elseif ($minutes > 0) {
+            $formattedTotalDuration = "{$minutes}m {$seconds}s";
+        } else {
+            $formattedTotalDuration = "{$seconds}s";
+        }
+
+        $viewData = [
+            'filters' => [
+                'date_range_text' => $dateRangeText,
+                'status' => $request->input('status', 'All'),
+                'staff_name' => $staffName,
+                'call_type' => $request->input('call_type', 'All'),
+                'filter_mode' => $filterMode,
+            ],
+            'generated_at' => Carbon::now($tz)->format('d M Y, g:i A'),
+            'generated_by' => $currentUser->name ?? 'Admin',
+            'summary' => [
+                'total_calls' => $totalCalls,
+                'answered_calls' => $answeredCalls,
+                'busy_calls' => $busyCalls,
+                'no_answer_calls' => $noAnswerCalls,
+                'total_duration' => $formattedTotalDuration,
+            ],
+            'calls' => $formattedCalls,
+        ];
+
+        // Ensure DomPDF wrapper is registered in container even if cache/packages.php is stale on live server
+        if (!app()->bound('dompdf.wrapper')) {
+            (new \Barryvdh\DomPDF\ServiceProvider(app()))->register();
+        }
+
+        $pdf = Pdf::loadView('call_logs.pdf', $viewData)
+            ->setPaper('a4', 'landscape');
+
+        $dateSlug = $hasDateFilter ? str_replace([' ', '-', '/'], '_', $dateRangeText) : 'all_time';
+        $fileName = 'call_report_' . $dateSlug . '_' . date('Ymd_His') . '.pdf';
+
+        // Support JSON response with base64 for mobile apps if requested
+        if ($request->input('format') === 'json' || $request->boolean('base64')) {
+            $pdfContent = $pdf->output();
+            return response()->json([
+                'status' => true,
+                'message' => 'Call report PDF generated successfully.',
+                'filter_mode' => $filterMode,
+                'date_range' => $dateRangeText,
+                'total_records' => $totalCalls,
+                'filename' => $fileName,
+                'pdf_base64' => base64_encode($pdfContent),
+            ]);
+        }
+
+        // Stream or download
+        if ($request->input('action') === 'stream' || $request->boolean('stream') || $request->input('view') === '1') {
+            return $pdf->stream($fileName);
+        }
+
+        return $pdf->download($fileName);
     }
 }

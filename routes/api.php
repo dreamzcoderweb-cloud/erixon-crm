@@ -59,12 +59,16 @@ Route::prefix('v1')->group(function () {
         Route::get('attendance/history', [AttendanceApiController::class, 'history']);
 
         // Mobile App Call Log & Call Recording Management
+        Route::get('call-report/pdf', [CallLogApiController::class, 'exportPdf']);
         Route::get('call-report', [CallLogApiController::class, 'report']);
         Route::get('call-logs', [CallLogApiController::class, 'index']);
         Route::post('call-logs', [CallLogApiController::class, 'store']);
         Route::get('call-logs/{id}', [CallLogApiController::class, 'show']);
         Route::post('call-recordings', [CallLogApiController::class, 'store']);
     });
+
+    // Direct / Browser PDF download route with token parameter
+    Route::get('call-report/download', [CallLogApiController::class, 'exportPdf']);
 
     // Public / External API route for credit request submission
     Route::post('credit-request', [\App\Http\Controllers\CreditRequestController::class, 'store']);
