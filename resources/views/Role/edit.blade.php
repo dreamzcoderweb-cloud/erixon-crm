@@ -147,6 +147,7 @@
                 'credit-request-settings' => ['title' => 'Credit Request Settings', 'icon' => 'bx-credit-card', 'badge' => 'bg-label-primary'],
                 'profile' => ['title' => 'Profile Settings', 'icon' => 'bx-user-circle', 'badge' => 'bg-label-dark'],
                 'dashboard' => ['title' => 'Dashboard Access', 'icon' => 'bx-home-smile', 'badge' => 'bg-label-primary'],
+                'audit-logs' => ['title' => 'Audit Logs', 'icon' => 'bx-history', 'badge' => 'bg-label-danger'],
             ];
 
             // Group permissions by prefix

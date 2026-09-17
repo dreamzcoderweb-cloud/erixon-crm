@@ -7,6 +7,8 @@ use App\Models\User;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use App\Services\AuditLogger;
+
 class AuthController extends Controller
 {
     public function login(Request $request){
@@ -27,6 +29,15 @@ class AuthController extends Controller
 
         if ($user && Hash::check($request->password, $user->password)) {
             Auth::login($user);
+
+            AuditLogger::log(
+                event: 'login',
+                module: 'Authentication',
+                description: "User '{$user->name}' logged in successfully.",
+                auditable: $user,
+                userId: $user->id
+            );
+
             return redirect('admin/dashboard')->with('success', 'Signed in successfully');
         }
 
@@ -35,6 +46,17 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
+        $user = Auth::user();
+        if ($user) {
+            AuditLogger::log(
+                event: 'logout',
+                module: 'Authentication',
+                description: "User '{$user->name}' logged out.",
+                auditable: $user,
+                userId: $user->id
+            );
+        }
+
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();

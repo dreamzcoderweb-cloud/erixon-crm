@@ -146,6 +146,8 @@ class PermissionSeeder extends Seeder
             'demo-processes.edit',
             'demo-processes.delete',
             'demo-processes.assign',
+
+            'audit-logs.view',
         ];
 
         foreach ($permissions as $name) {

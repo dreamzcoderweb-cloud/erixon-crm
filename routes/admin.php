@@ -558,4 +558,18 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
         ->middleware('permission:incentives.edit');
     Route::delete('incentives/delete/{id}', [IncentiveController::class, 'destroy'])
         ->middleware('permission:incentives.delete');
+
+    // Audit Log routes
+    Route::get('audit-logs', [\App\Http\Controllers\AuditLogController::class, 'index'])
+        ->middleware('permission:audit-logs.view')
+        ->name('audit_logs.index');
+    Route::get('audit-logs/data', [\App\Http\Controllers\AuditLogController::class, 'listData'])
+        ->middleware('permission:audit-logs.view')
+        ->name('audit_logs.data');
+    Route::get('audit-logs/show/{id}', [\App\Http\Controllers\AuditLogController::class, 'show'])
+        ->middleware('permission:audit-logs.view')
+        ->name('audit_logs.show');
+    Route::get('audit-logs/export', [\App\Http\Controllers\AuditLogController::class, 'export'])
+        ->middleware('permission:audit-logs.view')
+        ->name('audit_logs.export');
 });

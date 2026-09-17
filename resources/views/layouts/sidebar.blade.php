@@ -231,5 +231,13 @@
             </li>
         @endcanany
 
+        @can('audit-logs.view')
+            <li class="menu-item {{ request()->is('admin/audit-logs*') ? 'active' : '' }}">
+                <a href="{{ route('admin.audit_logs.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-history"></i>
+                    <div class="text-truncate">Audit Logs</div>
+                </a>
+            </li>
+        @endcan
     </ul>
 </aside>

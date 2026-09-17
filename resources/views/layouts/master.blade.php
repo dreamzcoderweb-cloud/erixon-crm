@@ -456,6 +456,7 @@
     <script src="{{ asset('assets/js/custom-js/incentive.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/notification.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/demo_process.js') }}"></script>
+    <script src="{{ asset('assets/js/custom-js/audit_log.js') }}"></script>
     <!-- Vendors JS -->
     <script src="{{ asset('assets/vendor/libs/apex-charts/apexcharts.js') }}"></script>
 
