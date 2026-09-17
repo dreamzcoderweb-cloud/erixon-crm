@@ -143,7 +143,12 @@ class CallLogApiController extends Controller
             'customer_name' => ['nullable', 'string', 'max:255'],
             'followup_id' => ['nullable'],
             'followup_date' => ['nullable'],
-            'followup_date' => ['nullable'],
+            'followuo_date' => ['nullable'],
+            'next_followup_date' => ['nullable'],
+            'followup_type' => ['nullable', 'string', 'max:50'],
+            'remarks' => ['nullable', 'string'],
+            'forward_to' => ['nullable'],
+            'followup_status' => ['nullable', 'string', 'max:50'],
             'status' => ['nullable', 'string', 'max:100'],
             'call_status' => ['nullable', 'string', 'max:100'],
             'notes' => ['nullable', 'string'],
@@ -371,33 +376,125 @@ class CallLogApiController extends Controller
             }
         }
 
-        // Parse Followup Date (handles "25-09-2026", "2026-09-25", etc.)
-        $rawFollowupDate = $request->input('followuo_date') ?? $request->input('followup_date');
+        // Status & Notes
+        $status = $request->input('status') ?? $request->input('call_status') ?? 'Answered';
+        $callType = $request->input('call_type') ?? 'Outbound';
+        $notes = $request->input('notes');
+
+        // 6. Handle Followup Date & store in followups table
+        // Note: ONLY if followup_date is posted in the request, insert a record into the followups table.
+        $rawFollowupDate = $request->input('followup_date')
+            ?? $request->input('followuo_date')
+            ?? $request->input('next_followup_date');
+
         if (!empty($rawFollowupDate)) {
+            $tz = config('app.timezone', 'Asia/Kolkata');
+            $parsedFollowupDateTime = null;
             try {
-                $followupDate = Carbon::parse($rawFollowupDate)->format('Y-m-d');
+                $parsedFollowupDateTime = Carbon::parse($rawFollowupDate)->setTimezone($tz)->format('Y-m-d H:i:s');
+                $followupDate = Carbon::parse($rawFollowupDate)->setTimezone($tz)->format('Y-m-d');
             } catch (\Exception $e) {
+                try {
+                    $parsedFollowupDateTime = Carbon::createFromFormat('d-m-Y', $rawFollowupDate)->setTimezone($tz)->format('Y-m-d 00:00:00');
+                    $followupDate = Carbon::createFromFormat('d-m-Y', $rawFollowupDate)->setTimezone($tz)->format('Y-m-d');
+                } catch (\Exception $e2) {
+                }
+            }
+
+            if (!empty($parsedFollowupDateTime)) {
+                // Ensure a valid lead exists (required for followups foreign key)
+                if (empty($leadId)) {
+                    if (!empty($customerId)) {
+                        $custLead = Lead::where('customer_id', $customerId)->orderBy('lead_id', 'desc')->first();
+                        if ($custLead) {
+                            $leadId = $custLead->lead_id;
+                        } else {
+                            $newLead = Lead::create([
+                                'customer_id'        => $customerId,
+                                'lead_title'         => 'Call Inquiry - ' . (!empty($customerName) ? $customerName : $phoneNumber),
+                                'assigned_to'        => $currentUser->id,
+                                'created_by'         => $currentUser->id,
+                                'status'             => 'Active',
+                                'next_followup_date' => $parsedFollowupDateTime,
+                            ]);
+                            $leadId = $newLead->lead_id;
+                        }
+                    } else {
+                        // Create customer and lead
+                        $newCust = Customer::create([
+                            'name'       => !empty($customerName) ? $customerName : "Customer ({$phoneNumber})",
+                            'mobile'     => $phoneNumber,
+                            'created_by' => $currentUser->id,
+                        ]);
+                        $customerId = $newCust->customer_id;
+                        $customerCode = "CUST_{$customerId}";
+                        $customerName = $newCust->name;
+
+                        $newLead = Lead::create([
+                            'customer_id'        => $customerId,
+                            'lead_title'         => 'Call Inquiry - ' . $customerName,
+                            'assigned_to'        => $currentUser->id,
+                            'created_by'         => $currentUser->id,
+                            'status'             => 'Active',
+                            'next_followup_date' => $parsedFollowupDateTime,
+                        ]);
+                        $leadId = $newLead->lead_id;
+                    }
+                }
+
+                // If user called from an existing pending followup, mark it Completed
+                if (!empty($followupId)) {
+                    $prevFollowup = Followup::find($followupId);
+                    if ($prevFollowup && in_array(strtolower($prevFollowup->followup_status ?? ''), ['pending', 'open'])) {
+                        $prevFollowup->update(['followup_status' => 'Completed']);
+                    }
+                }
+
+                // Insert record into followups table
+                $followupType = $request->input('followup_type') ?? 'Call';
+                $followupRemarks = $request->input('remarks') ?? $notes ?? null;
+                $forwardTo = $request->input('forward_to')
+                    ?? (!empty($leadId) ? Lead::where('lead_id', $leadId)->value('assigned_to') : null)
+                    ?? $currentUser->id;
+                $newFollowupStatus = $request->input('followup_status') ?? 'Pending';
+
+                $newFollowup = Followup::create([
+                    'lead_id'            => (int) $leadId,
+                    'followup_type'      => $followupType,
+                    'duration'           => $duration,
+                    'remarks'            => $followupRemarks,
+                    'next_followup_date' => $parsedFollowupDateTime,
+                    'followup_status'    => $newFollowupStatus,
+                    'forward_to'         => $forwardTo,
+                    'created_by'         => $currentUser->id,
+                ]);
+
+                // Sync next_followup_date to the Lead model
+                if (!empty($leadId)) {
+                    Lead::where('lead_id', $leadId)->update([
+                        'next_followup_date' => $parsedFollowupDateTime,
+                    ]);
+                }
+
+                // Link this newly created followup to the call log
+                $followupId = $newFollowup->followups_id;
+                $followupCode = "FOL_{$newFollowup->followups_id}";
             }
         }
 
         // Detect or set call source (customers / leads / followups / direct)
         $callSource = $request->input('call_source');
         if (empty($callSource)) {
-            if (!empty($followupId)) {
+            if (!empty($rawFollowupId)) {
                 $callSource = 'followup';
-            } elseif (!empty($leadId)) {
+            } elseif (!empty($rawLeadId)) {
                 $callSource = 'lead';
-            } elseif (!empty($customerId)) {
+            } elseif (!empty($rawCustomerId)) {
                 $callSource = 'customer';
             } else {
                 $callSource = 'direct';
             }
         }
-
-        // Status
-        $status = $request->input('status') ?? $request->input('call_status') ?? 'Answered';
-        $callType = $request->input('call_type') ?? 'Outbound';
-        $notes = $request->input('notes');
 
         // Handle Audio Recording file upload or file path string
         $recordingFilePath = null;
