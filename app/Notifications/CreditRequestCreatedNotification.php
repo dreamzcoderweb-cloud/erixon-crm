@@ -5,12 +5,11 @@ namespace App\Notifications;
 use App\Models\CreditRequest;
 use Illuminate\Notifications\Notification;
 
-class CreditRequestApprovedByAdmin extends Notification
+class CreditRequestCreatedNotification extends Notification
 {
     public function __construct(
         public CreditRequest $creditRequest
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -23,11 +22,12 @@ class CreditRequestApprovedByAdmin extends Notification
         $customerName = $this->creditRequest->username ?? ($this->creditRequest->customer->name ?? 'Customer');
 
         if ($notifiable->id == $this->creditRequest->requested_by) {
-            $title = 'Credit Request Approved by Admin';
-            $message = "Your credit request of ₹{$amount} for {$customerName} has been approved by Super Admin and forwarded to Product Manager.";
+            $title = 'Credit Request Submitted';
+            $message = "Your credit request of ₹{$amount} for {$customerName} has been submitted (Pending Admin Approval).";
         } else {
-            $title = 'Credit Request Approved by Admin';
-            $message = "Super Admin approved credit request of ₹{$amount} for {$customerName}. Next, Product Manager approval is required.";
+            $requesterName = $this->creditRequest->requester ? $this->creditRequest->requester->name : 'Sales Staff';
+            $title = 'New Credit Request Pending Approval';
+            $message = "{$requesterName} submitted a credit request of ₹{$amount} for {$customerName} (Pending Admin Approval).";
         }
 
         return [

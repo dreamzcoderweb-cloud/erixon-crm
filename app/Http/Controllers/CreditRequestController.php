@@ -10,8 +10,10 @@ use App\Models\LeadSource;
 use App\Models\User;
 use App\Notifications\CreditRequestApprovedByAdmin;
 use App\Notifications\CreditRequestApprovedByProductManager;
+use App\Notifications\CreditRequestCreatedNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class CreditRequestController extends Controller
 {
@@ -151,6 +153,31 @@ class CreditRequestController extends Controller
             'custom_fields'       => $customFieldsData,
         ]);
 
+        $creditRequest->load(['customer:customer_id,name', 'requester:id,name']);
+
+        // Dispatch notification to Requester (Sales Staff) and Super Admins
+        try {
+            $requester = Auth::user();
+            if ($requester) {
+                $requester->notify(new CreditRequestCreatedNotification($creditRequest));
+            }
+
+            // Also notify Super Admins (excluding requester if requester is an admin)
+            $superAdmins = User::where(function ($q) {
+                $q->whereHas('roles', function ($rq) {
+                    $rq->whereRaw('LOWER(name) IN (?, ?, ?)', ['super admin', 'super-admin', 'admin']);
+                })->orWhere('id', 1);
+            })
+            ->where('id', '!=', Auth::id())
+            ->get();
+
+            foreach ($superAdmins as $adminUser) {
+                $adminUser->notify(new CreditRequestCreatedNotification($creditRequest));
+            }
+        } catch (\Throwable $e) {
+            Log::error('Error dispatching CreditRequestCreatedNotification: ' . $e->getMessage());
+        }
+
         $msgType = !empty($validated['is_estimate']) ? 'Estimate Credit Request' : 'Credit Request';
 
         return response()->json([
@@ -260,6 +287,14 @@ class CreditRequestController extends Controller
             $recipients->push($pm);
         }
 
+        // Add Requester (Sales Team Staff)
+        if (!empty($creditRequest->requested_by)) {
+            $requester = User::find($creditRequest->requested_by);
+            if ($requester) {
+                $recipients->push($requester);
+            }
+        }
+
         $recipients = $recipients->unique('id');
 
         foreach ($recipients as $recipient) {
@@ -312,10 +347,18 @@ class CreditRequestController extends Controller
             $recipients->push($user);
         }
 
-        $adminId = $creditRequest->admin_approved_by ?: $creditRequest->requested_by ?: 1;
+        $adminId = $creditRequest->admin_approved_by ?: 1;
         $superAdminUser = User::find($adminId);
         if ($superAdminUser) {
             $recipients->push($superAdminUser);
+        }
+
+        // Add Requester (Sales Team Staff)
+        if (!empty($creditRequest->requested_by)) {
+            $requester = User::find($creditRequest->requested_by);
+            if ($requester) {
+                $recipients->push($requester);
+            }
         }
 
         $recipients = $recipients->unique('id');
