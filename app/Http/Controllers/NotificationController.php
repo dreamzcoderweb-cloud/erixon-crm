@@ -53,6 +53,7 @@ class NotificationController extends Controller
                 'id'         => $n->id,
                 'title'      => $title,
                 'message'    => $message,
+                'url'        => $data['url'] ?? null,
                 'read_at'    => $n->read_at ? $n->read_at->toIso8601String() : null,
                 'is_read'    => !is_null($n->read_at),
                 'created_at' => $n->created_at ? $n->created_at->diffForHumans() : '',

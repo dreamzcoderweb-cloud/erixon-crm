@@ -5,8 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Coordination;
 use App\Models\CoordinationJoiningStaff;
 use App\Models\User;
+use App\Notifications\CoordinationCreatedNotification;
+use App\Notifications\CoordinationAssignedNotification;
+use App\Notifications\CoordinationJoinedNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class CoordinationController extends Controller
 {
@@ -169,6 +173,26 @@ class CoordinationController extends Controller
 
         $coordination->load(['staff:id,name', 'creator:id,name', 'joiningStaff:id,name']);
 
+        // Dispatch notifications to creator and joining staff
+        try {
+            // 1. Notify Creator
+            $creator = Auth::user();
+            if ($creator) {
+                $creator->notify(new CoordinationCreatedNotification($coordination));
+            }
+
+            // 2. Notify Joining Staff (excluding creator to avoid duplicate notification)
+            $joiningStaffUsers = User::whereIn('id', $joiningIds)
+                ->where('id', '!=', Auth::id())
+                ->get();
+
+            foreach ($joiningStaffUsers as $staffMember) {
+                $staffMember->notify(new CoordinationAssignedNotification($coordination));
+            }
+        } catch (\Throwable $e) {
+            Log::error('Error sending coordination created notifications: ' . $e->getMessage());
+        }
+
         return response()->json([
             'status'  => true,
             'message' => 'Coordination record created successfully.',
@@ -249,6 +273,21 @@ class CoordinationController extends Controller
         $coordination->joiningStaff()->sync($syncData);
         $coordination->load(['staff:id,name', 'creator:id,name', 'joiningStaff:id,name']);
 
+        // Notify newly added staff members
+        if (!empty($newlyAddedIds)) {
+            try {
+                $newStaffUsers = User::whereIn('id', $newlyAddedIds)
+                    ->where('id', '!=', Auth::id())
+                    ->get();
+
+                foreach ($newStaffUsers as $staffMember) {
+                    $staffMember->notify(new CoordinationAssignedNotification($coordination));
+                }
+            } catch (\Throwable $e) {
+                Log::error('Error sending coordination updated notifications: ' . $e->getMessage());
+            }
+        }
+
         return response()->json([
             'status'  => true,
             'message' => 'Coordination record updated successfully.',
@@ -296,6 +335,24 @@ class CoordinationController extends Controller
         }
 
         $msg = ($newStatus === 'Joined') ? 'You have joined this coordination.' : 'Status updated to pending.';
+
+        // Notify on joining
+        if ($newStatus === 'Joined') {
+            try {
+                // 1. Notify the staff who joined
+                $user->notify(new CoordinationJoinedNotification($coordination, $user));
+
+                // 2. Notify the creator (if different from joined user)
+                if ($coordination->created_by && $coordination->created_by != $user->id) {
+                    $creator = User::find($coordination->created_by);
+                    if ($creator) {
+                        $creator->notify(new CoordinationJoinedNotification($coordination, $user));
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::error('Error sending coordination joined notifications: ' . $e->getMessage());
+            }
+        }
 
         return response()->json([
             'status'     => true,

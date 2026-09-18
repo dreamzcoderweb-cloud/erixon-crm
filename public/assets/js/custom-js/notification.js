@@ -35,7 +35,7 @@ $(document).ready(function () {
             let titleClass = item.is_read ? 'text-dark font-weight-normal' : 'text-primary fw-bold';
 
             html += `
-                <li class="list-group-item list-group-item-action ${bgClass} p-3 border-bottom notification-item" data-id="${item.id}" style="cursor: pointer;">
+                <li class="list-group-item list-group-item-action ${bgClass} p-3 border-bottom notification-item" data-id="${item.id}" data-url="${item.url || ''}" style="cursor: pointer;">
                     <div class="d-flex align-items-start">
                         <div class="flex-shrink-0 me-3">
                             <div class="avatar avatar-sm">
@@ -83,6 +83,7 @@ $(document).ready(function () {
     // Mark single notification as read on click
     $(document).on('click', '.notification-item', function () {
         let id = $(this).data('id');
+        let targetUrl = $(this).data('url');
         let itemElement = $(this);
 
         if (id) {
@@ -97,8 +98,18 @@ $(document).ready(function () {
                         itemElement.find('h6').removeClass('text-primary fw-bold').addClass('text-dark font-weight-normal');
                         updateBadgeCount(response.unread_count || 0);
                     }
+                    if (targetUrl) {
+                        window.location.href = targetUrl;
+                    }
+                },
+                error: function () {
+                    if (targetUrl) {
+                        window.location.href = targetUrl;
+                    }
                 }
             });
+        } else if (targetUrl) {
+            window.location.href = targetUrl;
         }
     });
 
