@@ -433,12 +433,12 @@ class FollowupController extends Controller
         ->whereDate('next_followup_date', '=', $today)
         ->where(function ($query) use ($userId) {
             $query->where('forward_to', $userId)
-                  ->orWhere(function ($q2) use ($userId) {
-                      $q2->whereNull('forward_to')
-                         ->where('created_by', $userId);
-                  })
+                  ->orWhere('created_by', $userId)
                   ->orWhereHas('lead', function ($q3) use ($userId) {
                       $q3->where('assigned_to', $userId);
+                  })
+                  ->orWhereHas('reassignments', function ($rq) use ($userId) {
+                      $rq->where('new_staff_id', $userId);
                   });
         })
         ->orderBy('next_followup_date', 'ASC')
