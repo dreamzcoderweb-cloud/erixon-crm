@@ -32,7 +32,7 @@ $(document).ready(function () {
             let status = row.status;
             if (type !== 'display') return status;
             if (status === 'Pending Admin Approval') return '<span class="badge bg-warning">Pending Admin</span>';
-            if (status === 'Forwarded to Support') return '<span class="badge bg-info">Forwarded to Support</span>';
+            if (status === 'Forwarded to Product Manager' || status === 'Forwarded to Support') return '<span class="badge bg-info">Forwarded to Product Manager</span>';
             if (status === 'Credit Added') return '<span class="badge bg-success">Credit Added</span>';
             return '<span class="badge bg-danger">' + status + '</span>';
         },
@@ -128,7 +128,7 @@ $(document).ready(function () {
                 `;
             }
 
-            if (row.status === 'Forwarded to Support') {
+            if (row.status === 'Forwarded to Product Manager' || row.status === 'Forwarded to Support') {
                 menuItems += `
                     <a class="dropdown-item support-approve-btn text-success" href="javascript:void(0);" data-id="${row.credit_request_id}">
                         <i class="bx bx-plus me-1"></i> Add Credit
@@ -136,7 +136,7 @@ $(document).ready(function () {
                 `;
             }
 
-            if (row.status === 'Pending Admin Approval' || row.status === 'Forwarded to Support') {
+            if (row.status === 'Pending Admin Approval' || row.status === 'Forwarded to Product Manager' || row.status === 'Forwarded to Support') {
                 menuItems += `
                     <a class="dropdown-item btn-edit-credit text-primary" href="javascript:void(0);" data-id="${row.credit_request_id}">
                         <i class="bx bx-edit me-1"></i> Edit

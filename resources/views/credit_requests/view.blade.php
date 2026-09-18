@@ -14,7 +14,7 @@
                     <select id="statusFilter" class="form-select form-select-sm" style="width: 200px;">
                         <option value="">All Statuses</option>
                         <option value="Pending Admin Approval">Pending Admin Approval</option>
-                        <option value="Forwarded to Support">Forwarded to Support</option>
+                        <option value="Forwarded to Product Manager">Forwarded to Product Manager</option>
                         <option value="Credit Added">Credit Added</option>
                         <option value="Rejected">Rejected</option>
                     </select>

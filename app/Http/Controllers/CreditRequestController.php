@@ -239,7 +239,7 @@ class CreditRequestController extends Controller
             return response()->json(['status' => false, 'message' => 'Credit request not found.'], 404);
         }
 
-        $creditRequest->status            = 'Forwarded to Support';
+        $creditRequest->status            = 'Forwarded to Product Manager';
         $creditRequest->admin_approved_by = Auth::id();
         $creditRequest->admin_approved_at = now();
         $creditRequest->admin_remarks     = $request->input('admin_remarks');
@@ -268,7 +268,7 @@ class CreditRequestController extends Controller
 
         return response()->json([
             'status'  => true,
-            'message' => 'Credit request approved by Admin and forwarded to Support Team.',
+            'message' => 'Credit request approved by Admin and forwarded to Product Manager.',
             'data'    => $creditRequest
         ]);
     }
