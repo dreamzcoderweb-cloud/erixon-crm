@@ -15,6 +15,8 @@ Route::prefix('v1')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('me', [StaffAuthController::class, 'me']);
         Route::post('logout', [StaffAuthController::class, 'logout']);
+        Route::post('update-fcm-token', [StaffAuthController::class, 'updateFcmToken']);
+        Route::post('staff/fcm-token', [StaffAuthController::class, 'updateFcmToken']);
 
         Route::get('credit-requests', [\App\Http\Controllers\CreditRequestController::class, 'listData']);
         Route::post('credit-request', [\App\Http\Controllers\CreditRequestController::class, 'store']);

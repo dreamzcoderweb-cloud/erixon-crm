@@ -45,6 +45,7 @@ class User extends Authenticatable
         'increment_date',
         'check_out_time',
         'status',
+        'fcmtoken',
     ];
 
     /**
