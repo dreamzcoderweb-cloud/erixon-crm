@@ -407,19 +407,55 @@ class AttendanceApiController extends Controller
             return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
         }
 
+        // Support admin/super admin querying another staff's attendance
+        $targetUser = $user;
+        if (($request->filled('user_id') || $request->filled('staff_id')) && $user->isAdmin()) {
+            $reqUserId = (int) ($request->input('user_id') ?? $request->input('staff_id'));
+            $foundStaff = User::find($reqUserId);
+            if ($foundStaff) {
+                $targetUser = $foundStaff;
+            }
+        }
+
         $month      = $request->input('month');
-        $startDate  = $request->input('start_date');
-        $endDate    = $request->input('end_date');
+        $rawStart   = $request->input('start_date') ?? $request->input('from_date');
+        $rawEnd     = $request->input('end_date') ?? $request->input('to_date');
+        $rawDate    = $request->input('date');
+
+        $startDate  = null;
+        $endDate    = null;
+
+        if (!empty($rawDate)) {
+            try {
+                $startDate = Carbon::parse($rawDate)->format('Y-m-d');
+                $endDate   = $startDate;
+            } catch (\Exception $e) {}
+        } else {
+            if (!empty($rawStart)) {
+                try {
+                    $startDate = Carbon::parse($rawStart)->format('Y-m-d');
+                } catch (\Exception $e) {}
+            }
+            if (!empty($rawEnd)) {
+                try {
+                    $endDate = Carbon::parse($rawEnd)->format('Y-m-d');
+                } catch (\Exception $e) {}
+            }
+            if (!empty($startDate) && !empty($endDate) && $startDate > $endDate) {
+                [$startDate, $endDate] = [$endDate, $startDate];
+            }
+        }
+
         $status     = $request->input('status');
         $perPage    = max(1, min((int) ($request->input('per_page', 15)), 100));
 
-        // Default to monthly current month if no filter passed
+        // Default to current month ONLY if no date range or single date or month filter was provided
         if (empty($startDate) && empty($endDate) && empty($month)) {
             $month = Carbon::now()->format('Y-m');
         }
 
         $query = Attendance::with('permissionRequest')
-            ->where('user_id', $user->id);
+            ->where('user_id', $targetUser->id);
 
         if (!empty($startDate) && !empty($endDate)) {
             $query->whereBetween('date', [$startDate, $endDate]);
@@ -449,18 +485,18 @@ class AttendanceApiController extends Controller
         $totalMinutes        = 0;
         $totalLateDeductions = 0;
         $lateRunningCount    = 0;
-        $allowedLateCount    = (int) ($user->late_attendance_count ?? 3);
+        $allowedLateCount    = (int) ($targetUser->late_attendance_count ?? 3);
 
-        $rawAllowTime = $user->allow_check_in_time ?? $user->check_in_time ?? '09:10:00';
+        $rawAllowTime = $targetUser->allow_check_in_time ?? $targetUser->check_in_time ?? '09:10:00';
         $allowTime24  = Carbon::parse($rawAllowTime)->format('H:i:s');
 
         // Pre-calculate per-minute salary for deductions if user has base_salary
-        $baseSalary = (float) ($user->base_salary ?? 0);
+        $baseSalary = (float) ($targetUser->base_salary ?? 0);
         $perMinuteSalary = 0;
         if ($baseSalary > 0) {
-            $refDate = !empty($month) ? Carbon::parse($month . '-01') : Carbon::today();
+            $refDate = !empty($month) ? Carbon::parse($month . '-01') : (!empty($startDate) ? Carbon::parse($startDate) : Carbon::today());
             $workingDays = $this->salaryCalculator->workingDaysInMonth($refDate);
-            $dailyMins = $this->salaryCalculator->dailyWorkingMinutes($user);
+            $dailyMins = $this->salaryCalculator->dailyWorkingMinutes($targetUser);
             $perDaySalary = $workingDays > 0 ? ($baseSalary / $workingDays) : 0;
             $perMinuteSalary = $dailyMins > 0 ? ($perDaySalary / $dailyMins) : 0;
         }

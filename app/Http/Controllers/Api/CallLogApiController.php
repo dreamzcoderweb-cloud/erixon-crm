@@ -745,30 +745,92 @@ class CallLogApiController extends Controller
         $pendingCalls = max(0, $totalCustomers - $callsCompleted);
 
         // 3. Time-based Breakdown (based on actual call time in application timezone)
+        // Slots: 9:00 - 11:30 AM, 11:30 AM - 1:30 PM, 2:00 - 3:00 PM, 3:00 - 6:00 PM
         $slot1Count = $allDateCalls->filter(function ($c) use ($tz) {
             $timeObj = ($c->call_start_time ?: $c->created_at)?->copy()->setTimezone($tz);
             $t = $timeObj ? $timeObj->format('H:i') : '00:00';
             return $t >= '09:00' && $t < '11:30';
         })->count();
 
-        $fullShiftCount = $allDateCalls->filter(function ($c) use ($tz) {
+        $slot2Count = $allDateCalls->filter(function ($c) use ($tz) {
             $timeObj = ($c->call_start_time ?: $c->created_at)?->copy()->setTimezone($tz);
             $t = $timeObj ? $timeObj->format('H:i') : '00:00';
-            return $t >= '09:00' && $t <= '18:00';
+            return $t >= '11:30' && $t <= '13:30';
         })->count();
+
+        $slot3Count = $allDateCalls->filter(function ($c) use ($tz) {
+            $timeObj = ($c->call_start_time ?: $c->created_at)?->copy()->setTimezone($tz);
+            $t = $timeObj ? $timeObj->format('H:i') : '00:00';
+            return $t >= '14:00' && $t < '15:00';
+        })->count();
+
+        $slot4Count = $allDateCalls->filter(function ($c) use ($tz) {
+            $timeObj = ($c->call_start_time ?: $c->created_at)?->copy()->setTimezone($tz);
+            $t = $timeObj ? $timeObj->format('H:i') : '00:00';
+            return $t >= '15:00' && $t <= '18:00';
+        })->count();
+
+        // Optional time slot filter if passed in request
+        $rawSlot = $request->input('time_slot') ?? $request->input('slot');
+        $selectedSlotKey = null;
+
+        if (!empty($rawSlot)) {
+            $cleanSlot = strtolower(trim((string) $rawSlot));
+            if (in_array($cleanSlot, ['1', '09:00-11:30', '9:00-11:30', '9-11.30', '9-11:30', '9:00 am → 11:30 am', '9:00 am - 11:30 am'])) {
+                $selectedSlotKey = '09:00-11:30';
+            } elseif (in_array($cleanSlot, ['2', '11:30-13:30', '11:30-1:30', '11.30-1.30', '11:30-1.30', '11:30 am → 1:30 pm', '11:30 am - 1:30 pm'])) {
+                $selectedSlotKey = '11:30-13:30';
+            } elseif (in_array($cleanSlot, ['3', '14:00-15:00', '2:00-3:00', '2-3', '2:00 pm → 3:00 pm', '2:00 pm - 3:00 pm'])) {
+                $selectedSlotKey = '14:00-15:00';
+            } elseif (in_array($cleanSlot, ['4', '15:00-18:00', '3:00-6:00', '3-6', '3:00 pm → 6:00 pm', '3:00 pm - 6:00 pm'])) {
+                $selectedSlotKey = '15:00-18:00';
+            }
+        }
 
         $timeBreakdown = [
             [
+                'slot_id' => 1,
+                'slot_key' => '09:00-11:30',
                 'slot' => '9:00 AM → 11:30 AM',
-                'label' => 'Morning Session',
+                'start_time' => '09:00',
+                'end_time' => '11:30',
+                'label' => '09:00 AM – 11:30 AM',
                 'calls_count' => $slot1Count,
                 'calls_text' => "{$slot1Count} calls",
+                'is_selected' => $selectedSlotKey === '09:00-11:30',
             ],
             [
-                'slot' => '9:00 AM → 6:00 PM',
-                'label' => 'Full Day Shift',
-                'calls_count' => $fullShiftCount,
-                'calls_text' => "{$fullShiftCount} calls",
+                'slot_id' => 2,
+                'slot_key' => '11:30-13:30',
+                'slot' => '11:30 AM → 1:30 PM',
+                'start_time' => '11:30',
+                'end_time' => '13:30',
+                'label' => '11:30 AM – 01:30 PM',
+                'calls_count' => $slot2Count,
+                'calls_text' => "{$slot2Count} calls",
+                'is_selected' => $selectedSlotKey === '11:30-13:30',
+            ],
+            [
+                'slot_id' => 3,
+                'slot_key' => '14:00-15:00',
+                'slot' => '2:00 PM → 3:00 PM',
+                'start_time' => '14:00',
+                'end_time' => '15:00',
+                'label' => '02:00 PM – 03:00 PM',
+                'calls_count' => $slot3Count,
+                'calls_text' => "{$slot3Count} calls",
+                'is_selected' => $selectedSlotKey === '14:00-15:00',
+            ],
+            [
+                'slot_id' => 4,
+                'slot_key' => '15:00-18:00',
+                'slot' => '3:00 PM → 6:00 PM',
+                'start_time' => '15:00',
+                'end_time' => '18:00',
+                'label' => '03:00 PM – 06:00 PM',
+                'calls_count' => $slot4Count,
+                'calls_text' => "{$slot4Count} calls",
+                'is_selected' => $selectedSlotKey === '15:00-18:00',
             ],
         ];
 
@@ -830,6 +892,43 @@ class CallLogApiController extends Controller
             ->with(['customer', 'lead', 'recording', 'user'])
             ->orderBy('call_id', 'DESC')
             ->get();
+
+        // Filter call logs by slot if selected
+        if (!empty($selectedSlotKey)) {
+            if ($selectedSlotKey === '09:00-11:30') {
+                $callLogs = $callLogs->filter(function ($c) use ($tz) {
+                    $timeObj = ($c->call_start_time ?: $c->created_at)?->copy()->setTimezone($tz);
+                    $t = $timeObj ? $timeObj->format('H:i') : '00:00';
+                    return $t >= '09:00' && $t < '11:30';
+                });
+            } elseif ($selectedSlotKey === '11:30-13:30') {
+                $callLogs = $callLogs->filter(function ($c) use ($tz) {
+                    $timeObj = ($c->call_start_time ?: $c->created_at)?->copy()->setTimezone($tz);
+                    $t = $timeObj ? $timeObj->format('H:i') : '00:00';
+                    return $t >= '11:30' && $t <= '13:30';
+                });
+            } elseif ($selectedSlotKey === '14:00-15:00') {
+                $callLogs = $callLogs->filter(function ($c) use ($tz) {
+                    $timeObj = ($c->call_start_time ?: $c->created_at)?->copy()->setTimezone($tz);
+                    $t = $timeObj ? $timeObj->format('H:i') : '00:00';
+                    return $t >= '14:00' && $t < '15:00';
+                });
+            } elseif ($selectedSlotKey === '15:00-18:00') {
+                $callLogs = $callLogs->filter(function ($c) use ($tz) {
+                    $timeObj = ($c->call_start_time ?: $c->created_at)?->copy()->setTimezone($tz);
+                    $t = $timeObj ? $timeObj->format('H:i') : '00:00';
+                    return $t >= '15:00' && $t <= '18:00';
+                });
+            }
+        } elseif ($request->filled('from_time') && $request->filled('to_time')) {
+            $fTime = $request->input('from_time');
+            $tTime = $request->input('to_time');
+            $callLogs = $callLogs->filter(function ($c) use ($tz, $fTime, $tTime) {
+                $timeObj = ($c->call_start_time ?: $c->created_at)?->copy()->setTimezone($tz);
+                $t = $timeObj ? $timeObj->format('H:i') : '00:00';
+                return $t >= $fTime && $t <= $tTime;
+            });
+        }
 
         // Format Call Details items for mobile UI cards
         $callDetails = $callLogs->map(function ($log) {
@@ -911,6 +1010,8 @@ class CallLogApiController extends Controller
                     'status' => $statusFilter,
                     'active_status' => $statusFilter,
                     'call_status' => $statusFilter,
+                    'time_slot' => $selectedSlotKey,
+                    'active_time_slot' => $selectedSlotKey,
                     'status_pills' => ['All', 'Answered', 'Busy', 'No Answer', 'Switched Off'],
                     'status_options' => [
                         [
@@ -1121,6 +1222,44 @@ class CallLogApiController extends Controller
             ->orderBy('call_id', 'DESC')
             ->get();
 
+        $tz = config('app.timezone', 'Asia/Kolkata');
+
+        // Optional time slot filter if passed in export request
+        $rawSlot = $request->input('time_slot') ?? $request->input('slot');
+        $slotText = null;
+        if (!empty($rawSlot)) {
+            $isFiltered = true;
+            $cleanSlot = strtolower(trim((string) $rawSlot));
+            if (in_array($cleanSlot, ['1', '09:00-11:30', '9:00-11:30', '9-11.30', '9-11:30', '9:00 am → 11:30 am', '9:00 am - 11:30 am'])) {
+                $slotText = '09:00 AM – 11:30 AM';
+                $callLogs = $callLogs->filter(function ($c) use ($tz) {
+                    $timeObj = ($c->call_start_time ?: $c->created_at)?->copy()->setTimezone($tz);
+                    $t = $timeObj ? $timeObj->format('H:i') : '00:00';
+                    return $t >= '09:00' && $t < '11:30';
+                });
+            } elseif (in_array($cleanSlot, ['2', '11:30-13:30', '11:30-1:30', '11.30-1.30', '11:30-1.30', '11:30 am → 1:30 pm', '11:30 am - 1:30 pm'])) {
+                $slotText = '11:30 AM – 01:30 PM';
+                $callLogs = $callLogs->filter(function ($c) use ($tz) {
+                    $timeObj = ($c->call_start_time ?: $c->created_at)?->copy()->setTimezone($tz);
+                    $t = $timeObj ? $timeObj->format('H:i') : '00:00';
+                    return $t >= '11:30' && $t <= '13:30';
+                });
+            } elseif (in_array($cleanSlot, ['3', '14:00-15:00', '2:00-3:00', '2-3', '2:00 pm → 3:00 pm', '2:00 pm - 3:00 pm'])) {
+                $slotText = '02:00 PM – 03:00 PM';
+                $callLogs = $callLogs->filter(function ($c) use ($tz) {
+                    $timeObj = ($c->call_start_time ?: $c->created_at)?->copy()->setTimezone($tz);
+                    $t = $timeObj ? $timeObj->format('H:i') : '00:00';
+                    return $t >= '14:00' && $t < '15:00';
+                });
+            } elseif (in_array($cleanSlot, ['4', '15:00-18:00', '3:00-6:00', '3-6', '3:00 pm → 6:00 pm', '3:00 pm - 6:00 pm'])) {
+                $slotText = '03:00 PM – 06:00 PM';
+                $callLogs = $callLogs->filter(function ($c) use ($tz) {
+                    $timeObj = ($c->call_start_time ?: $c->created_at)?->copy()->setTimezone($tz);
+                    $t = $timeObj ? $timeObj->format('H:i') : '00:00';
+                    return $t >= '15:00' && $t <= '18:00';
+                });
+            }
+        }
         // Calculate summary statistics
         $totalCalls = $callLogs->count();
         $answeredCalls = 0;
@@ -1128,7 +1267,6 @@ class CallLogApiController extends Controller
         $noAnswerCalls = 0;
         $totalDurationSec = 0;
 
-        $tz = config('app.timezone', 'Asia/Kolkata');
         $formattedCalls = [];
 
         foreach ($callLogs as $log) {
@@ -1209,6 +1347,7 @@ class CallLogApiController extends Controller
             'filters' => [
                 'date_range_text' => $dateRangeText,
                 'status' => $request->input('status', 'All'),
+                'time_slot' => $slotText,
                 'staff_name' => $staffName,
                 'call_type' => $request->input('call_type', 'All'),
                 'filter_mode' => $filterMode,
