@@ -12,6 +12,7 @@ use App\Models\LeadSource;
 use App\Models\LeadStage;
 use App\Models\LostReason;
 use App\Models\User;
+use App\Traits\HasApiPermissionCheck;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,6 +21,8 @@ use Illuminate\Validation\Rule;
 
 class LeadApiController extends Controller
 {
+    use HasApiPermissionCheck;
+
     /**
      * Dedicated endpoint returning all form metadata, options, and defaults for Add/Edit Lead in mobile app.
      * Accessible via GET api/v1/leads/form-data
@@ -27,6 +30,13 @@ class LeadApiController extends Controller
     public function getFormData(Request $request)
     {
         $currentUser = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$currentUser) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+        if (!$this->hasPermission($currentUser, 'leads.view')) {
+            return $this->permissionDeniedResponse('Lead module');
+        }
+
         $userOptions = $this->getUserDropdownOptions();
         $customFields = $this->getFormattedCustomFields();
 
@@ -132,6 +142,12 @@ class LeadApiController extends Controller
     public function index(Request $request)
     {
         $user = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$user) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+        if (!$this->hasPermission($user, 'leads.view')) {
+            return $this->permissionDeniedResponse('Lead module');
+        }
 
         $query = Lead::with([
             'customer:customer_id,name,mobile,email',
@@ -348,6 +364,13 @@ class LeadApiController extends Controller
     public function store(Request $request)
     {
         $user = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$user) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+        if (!$this->hasPermission($user, 'leads.create')) {
+            return $this->permissionDeniedResponse('create Lead');
+        }
+
         $isAdmin = $user ? $user->isAdmin() : false;
 
         // 1. Normalize priority & status
@@ -473,6 +496,13 @@ class LeadApiController extends Controller
     public function show($id, Request $request)
     {
         $user = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$user) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+        if (!$this->hasPermission($user, 'leads.view')) {
+            return $this->permissionDeniedResponse('view Lead');
+        }
+
         $lead = $this->findLeadForUser($id, $user);
 
         if (!$lead) {
@@ -505,6 +535,13 @@ class LeadApiController extends Controller
     public function edit($id, Request $request)
     {
         $user = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$user) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+        if (!$this->hasPermission($user, 'leads.view')) {
+            return $this->permissionDeniedResponse('view Lead');
+        }
+
         $lead = $this->findLeadForUser($id, $user);
 
         if (!$lead) {
@@ -610,6 +647,13 @@ class LeadApiController extends Controller
     public function update(Request $request, $id)
     {
         $user = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$user) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+        if (!$this->hasPermission($user, 'leads.edit')) {
+            return $this->permissionDeniedResponse('edit Lead');
+        }
+
         $lead = $this->findLeadForUser($id, $user);
 
         if (!$lead) {
@@ -771,6 +815,13 @@ class LeadApiController extends Controller
     public function destroy($id, Request $request)
     {
         $user = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$user) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+        if (!$this->hasPermission($user, 'leads.delete')) {
+            return $this->permissionDeniedResponse('delete Lead');
+        }
+
         $lead = $this->findLeadForUser($id, $user);
 
         if (!$lead) {
@@ -795,6 +846,13 @@ class LeadApiController extends Controller
     public function changeStatus(Request $request, $id)
     {
         $user = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$user) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+        if (!$this->hasPermission($user, 'leads.edit')) {
+            return $this->permissionDeniedResponse('edit Lead');
+        }
+
         $lead = $this->findLeadForUser($id, $user);
 
         if (!$lead) {

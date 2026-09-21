@@ -34,10 +34,7 @@ class StaffAuthController extends Controller
 
         $token = $user->createToken('staff-api')->plainTextToken;
 
-        $roleName = $user->getRoleNames()->first();
-        $userData = $user->toArray();
-        unset($userData['roles']);
-        $userData['role'] = $roleName;
+        $userData = $this->formatUserData($user);
 
         // Check today's pending follow-up reminders and trigger push notification on login
         $todayRemindersCount = 0;
@@ -100,13 +97,32 @@ class StaffAuthController extends Controller
     public function me(Request $request)
     {
         $user = $request->user();
-        $roleName = $user->getRoleNames()->first();
-        $userData = $user->toArray();
-        unset($userData['roles']);
-        $userData['role'] = $roleName;
+        $userData = $this->formatUserData($user);
 
         return response()->json([
-            'user' => $userData,
+            'status' => true,
+            'user'   => $userData,
+        ]);
+    }
+
+    /**
+     * Get staff menu permissions map matching Admin Panel sidebar.
+     * GET /api/v1/staff/menu-access
+     */
+    public function menuAccess(Request $request)
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+
+        return response()->json([
+            'status'      => true,
+            'user_id'     => $user->id,
+            'user_name'   => $user->name,
+            'role'        => $user->getRoleNames()->first(),
+            'menu_access' => $this->getMenuAccess($user),
+            'permissions' => $user->getAllPermissions()->pluck('name')->values(),
         ]);
     }
 
@@ -117,6 +133,50 @@ class StaffAuthController extends Controller
         return response()->json([
             'message' => 'Logged out successfully',
         ]);
+    }
+
+    /**
+     * Format user data with role, permissions, and menu_access map.
+     */
+    private function formatUserData(User $user): array
+    {
+        $roleName = $user->getRoleNames()->first();
+        $userData = $user->toArray();
+        unset($userData['roles']);
+        $userData['role'] = $roleName;
+        $userData['permissions'] = $user->getAllPermissions()->pluck('name')->values();
+        $userData['menu_access'] = $this->getMenuAccess($user);
+
+        return $userData;
+    }
+
+    /**
+     * Build exact menu access permission map matching Admin Panel sidebar.
+     */
+    private function getMenuAccess(User $user): array
+    {
+        $isAdmin = $user->isAdmin() || $user->isSuperAdmin();
+
+        return [
+            'dashboard'          => true,
+            'customers'          => $isAdmin || $user->can('customers.view'),
+            'coordinations'      => $isAdmin || $user->can('coordinations.view'),
+            'demo_processes'     => $isAdmin || $user->can('demo-processes.view'),
+            'leads'              => $isAdmin || $user->can('leads.view'),
+            'followups'          => $isAdmin || $user->can('followups.view'),
+            'lead_documents'     => $isAdmin || $user->can('lead-documents.view'),
+            'call_recordings'    => $isAdmin || $user->can('call-recordings.view'),
+            'call_logs'          => $isAdmin || $user->can('call-logs.view'),
+            'call_reports'       => $isAdmin || $user->can('call-log-reports.view'),
+            'attendance'         => $isAdmin || $user->can('attendance.view'),
+            'attendance_reports' => $isAdmin || $user->can('attendance-reports.view'),
+            'leaves'             => $isAdmin || $user->can('leaves.view'),
+            'incentives'         => $isAdmin || $user->can('incentives.view'),
+            'staff'              => $isAdmin || $user->can('staff.view'),
+            'roles'              => $isAdmin || $user->can('roles.view'),
+            'templates'          => $isAdmin || $user->can('templates.view'),
+            'settings'           => $isAdmin || $user->can('general-settings.view') || $user->can('lead-settings.view'),
+        ];
     }
 }
 

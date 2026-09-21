@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\LeadApiController;
 use App\Http\Controllers\Api\FollowupApiController;
 use App\Http\Controllers\Api\AttendanceApiController;
 use App\Http\Controllers\Api\CallLogApiController;
+use App\Http\Controllers\Api\DemoProcessApiController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -14,6 +15,7 @@ Route::prefix('v1')->group(function () {
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('me', [StaffAuthController::class, 'me']);
+        Route::get('staff/menus', [StaffAuthController::class, 'menuAccess']);
         Route::post('logout', [StaffAuthController::class, 'logout']);
         Route::post('update-fcm-token', [StaffAuthController::class, 'updateFcmToken']);
         Route::post('staff/fcm-token', [StaffAuthController::class, 'updateFcmToken']);
@@ -67,6 +69,17 @@ Route::prefix('v1')->group(function () {
         Route::post('call-logs', [CallLogApiController::class, 'store']);
         Route::get('call-logs/{id}', [CallLogApiController::class, 'show']);
         Route::post('call-recordings', [CallLogApiController::class, 'store']);
+
+        // Mobile App Demo Process Management
+        Route::get('demo-processes/form-data', [DemoProcessApiController::class, 'getFormData']);
+        Route::get('demo-processes', [DemoProcessApiController::class, 'index']);
+        Route::post('demo-processes', [DemoProcessApiController::class, 'store']);
+        Route::get('demo-processes/edit/{id}', [DemoProcessApiController::class, 'edit']);
+        Route::get('demo-processes/{id}', [DemoProcessApiController::class, 'show']);
+        Route::post('demo-processes/update/{id}', [DemoProcessApiController::class, 'update']);
+        Route::put('demo-processes/{id}', [DemoProcessApiController::class, 'update']);
+        Route::delete('demo-processes/delete/{id}', [DemoProcessApiController::class, 'destroy']);
+        Route::post('demo-processes/change-status/{id}', [DemoProcessApiController::class, 'changeStatus']);
     });
 
     // Direct / Browser PDF download route with token parameter

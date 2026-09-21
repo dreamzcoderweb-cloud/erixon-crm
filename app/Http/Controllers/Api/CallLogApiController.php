@@ -9,6 +9,7 @@ use App\Models\Customer;
 use App\Models\Followup;
 use App\Models\Lead;
 use App\Models\User;
+use App\Traits\HasApiPermissionCheck;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -18,6 +19,8 @@ use Illuminate\Support\Facades\Validator;
 
 class CallLogApiController extends Controller
 {
+    use HasApiPermissionCheck;
+
     /**
      * Get list of call logs formatted with mobile parameters.
      * GET /api/v1/call-logs
@@ -27,6 +30,10 @@ class CallLogApiController extends Controller
         $currentUser = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
         if (!$currentUser) {
             return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+
+        if (!$this->hasPermission($currentUser, 'call-logs.view')) {
+            return $this->permissionDeniedResponse('Call Logs module');
         }
 
         $query = CallLog::forUser($currentUser)
@@ -131,6 +138,10 @@ class CallLogApiController extends Controller
         $currentUser = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
         if (!$currentUser) {
             return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+
+        if (!$this->hasPermission($currentUser, 'call-logs.create')) {
+            return $this->permissionDeniedResponse('record Call Log');
         }
 
         $validator = Validator::make($request->all(), [
@@ -579,6 +590,10 @@ class CallLogApiController extends Controller
             return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
         }
 
+        if (!$this->hasPermission($currentUser, 'call-logs.view')) {
+            return $this->permissionDeniedResponse('view Call Log');
+        }
+
         $log = CallLog::forUser($currentUser)
             ->with(['customer', 'followup', 'lead', 'user', 'recording'])
             ->find($id);
@@ -672,6 +687,10 @@ class CallLogApiController extends Controller
         $currentUser = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
         if (!$currentUser) {
             return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+
+        if (!$this->hasPermission($currentUser, 'call-log-reports.view') && !$this->hasPermission($currentUser, 'call-logs.view')) {
+            return $this->permissionDeniedResponse('Call Reports');
         }
 
         // Parse date range (supports from_date/to_date, start_date/end_date, or single date)
@@ -1075,6 +1094,10 @@ class CallLogApiController extends Controller
 
         if (!$currentUser) {
             return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+
+        if (!$this->hasPermission($currentUser, 'call-log-reports.view') && !$this->hasPermission($currentUser, 'call-logs.view')) {
+            return $this->permissionDeniedResponse('export Call Report PDF');
         }
 
         $query = CallLog::forUser($currentUser);

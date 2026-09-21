@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\CustomerCustomField;
 use App\Models\User;
+use App\Traits\HasApiPermissionCheck;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,6 +15,7 @@ use Illuminate\Validation\Rule;
 
 class CustomerApiController extends Controller
 {
+    use HasApiPermissionCheck;
     /**
      * Get user options formatted for dropdowns in mobile app (Owner By, Created By, Assign By).
      */
@@ -71,6 +73,13 @@ class CustomerApiController extends Controller
     public function getFormData(Request $request)
     {
         $currentUser = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$currentUser) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+        if (!$this->hasPermission($currentUser, 'customers.view')) {
+            return $this->permissionDeniedResponse('Customer module');
+        }
+
         $userOptions = $this->getUserDropdownOptions();
         $customFields = $this->getFormattedCustomFields();
 
@@ -108,6 +117,14 @@ class CustomerApiController extends Controller
      */
     public function getUsers(Request $request)
     {
+        $currentUser = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$currentUser) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+        if (!$this->hasPermission($currentUser, 'customers.view')) {
+            return $this->permissionDeniedResponse('Customer module');
+        }
+
         $users = $this->getUserDropdownOptions();
 
         return response()->json([
@@ -123,6 +140,14 @@ class CustomerApiController extends Controller
      */
     public function store(Request $request)
     {
+        $currentUser = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$currentUser) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+        if (!$this->hasPermission($currentUser, 'customers.create')) {
+            return $this->permissionDeniedResponse('create Customer');
+        }
+
         // 1. Normalize customer_type
         $rawType = strtolower(trim((string) $request->input('customer_type', 'user')));
         $customerType = in_array($rawType, ['reseller', 'company']) ? 'reseller' : 'user';
@@ -299,7 +324,14 @@ class CustomerApiController extends Controller
      */
     public function index(Request $request)
     {
-        $user = Auth::user();
+        $user = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$user) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+        if (!$this->hasPermission($user, 'customers.view')) {
+            return $this->permissionDeniedResponse('Customer module');
+        }
+
         $query = Customer::with([
             'creator:id,name,email',
             'owner:id,name,email',
@@ -355,6 +387,14 @@ class CustomerApiController extends Controller
      */
     public function show($id)
     {
+        $user = request()->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$user) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+        if (!$this->hasPermission($user, 'customers.view')) {
+            return $this->permissionDeniedResponse('view Customer');
+        }
+
         $customer = $this->findCustomer($id);
 
         if (!$customer) {
@@ -381,6 +421,14 @@ class CustomerApiController extends Controller
      */
     public function edit($id)
     {
+        $user = request()->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$user) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+        if (!$this->hasPermission($user, 'customers.view')) {
+            return $this->permissionDeniedResponse('view Customer');
+        }
+
         $customer = $this->findCustomer($id);
 
         if (!$customer) {
@@ -452,6 +500,14 @@ class CustomerApiController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $currentUser = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$currentUser) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+        if (!$this->hasPermission($currentUser, 'customers.edit')) {
+            return $this->permissionDeniedResponse('edit Customer');
+        }
+
         $customer = $this->findCustomer($id);
 
         if (!$customer) {
@@ -675,6 +731,14 @@ class CustomerApiController extends Controller
      */
     public function destroy($id)
     {
+        $currentUser = request()->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$currentUser) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+        if (!$this->hasPermission($currentUser, 'customers.delete')) {
+            return $this->permissionDeniedResponse('delete Customer');
+        }
+
         $customer = $this->findCustomer($id);
 
         if (!$customer) {
@@ -697,6 +761,14 @@ class CustomerApiController extends Controller
      */
     public function changeStatus(Request $request, $id)
     {
+        $currentUser = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$currentUser) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+        if (!$this->hasPermission($currentUser, 'customers.edit')) {
+            return $this->permissionDeniedResponse('edit Customer');
+        }
+
         $customer = $this->findCustomer($id);
 
         if (!$customer) {

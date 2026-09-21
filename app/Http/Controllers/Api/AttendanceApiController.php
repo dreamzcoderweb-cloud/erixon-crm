@@ -7,6 +7,7 @@ use App\Models\Attendance;
 use App\Models\PermissionRequest;
 use App\Models\User;
 use App\Services\SalaryCalculationService;
+use App\Traits\HasApiPermissionCheck;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,6 +15,8 @@ use Illuminate\Support\Facades\Validator;
 
 class AttendanceApiController extends Controller
 {
+    use HasApiPermissionCheck;
+
     protected SalaryCalculationService $salaryCalculator;
 
     public function __construct(SalaryCalculationService $salaryCalculator)
@@ -405,6 +408,10 @@ class AttendanceApiController extends Controller
         $user = $request->user();
         if (!$user) {
             return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+
+        if (!$this->hasPermission($user, 'attendance.view') && !$this->hasPermission($user, 'attendance-reports.view')) {
+            return $this->permissionDeniedResponse('Attendance History');
         }
 
         // Support admin/super admin querying another staff's attendance

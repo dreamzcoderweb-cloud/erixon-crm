@@ -7,6 +7,7 @@ use App\Models\Followup;
 use App\Models\FollowupCustomField;
 use App\Models\Lead;
 use App\Models\User;
+use App\Traits\HasApiPermissionCheck;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,6 +15,8 @@ use Illuminate\Support\Facades\Validator;
 
 class FollowupApiController extends Controller
 {
+    use HasApiPermissionCheck;
+
     /**
      * Dedicated endpoint returning all form metadata, options, and defaults for Add/Edit Follow-up in mobile app.
      * Accessible via GET api/v1/followups/form-data
@@ -21,6 +24,12 @@ class FollowupApiController extends Controller
     public function getFormData(Request $request)
     {
         $currentUser = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$currentUser) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+        if (!$this->hasPermission($currentUser, 'followups.view')) {
+            return $this->permissionDeniedResponse('Follow-up module');
+        }
 
         // Accessible leads for the user
         $leadsQuery = Lead::query();
@@ -93,6 +102,13 @@ class FollowupApiController extends Controller
     public function index(Request $request)
     {
         $user = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$user) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+        if (!$this->hasPermission($user, 'followups.view')) {
+            return $this->permissionDeniedResponse('Follow-up module');
+        }
+
         $today = Carbon::today()->toDateString();
 
         $query = Followup::with([
@@ -281,6 +297,12 @@ class FollowupApiController extends Controller
     public function store(Request $request)
     {
         $user = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$user) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+        if (!$this->hasPermission($user, 'followups.create')) {
+            return $this->permissionDeniedResponse('create Follow-up');
+        }
 
         // 1. Normalize type and status
         $followupType = $request->input('followup_type', 'Call');
@@ -401,6 +423,13 @@ class FollowupApiController extends Controller
     public function show($id, Request $request)
     {
         $user = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$user) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+        if (!$this->hasPermission($user, 'followups.view')) {
+            return $this->permissionDeniedResponse('view Follow-up');
+        }
+
         $followup = $this->findFollowupForUser($id, $user);
 
         if (!$followup) {
@@ -435,6 +464,13 @@ class FollowupApiController extends Controller
     public function edit($id, Request $request)
     {
         $user = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$user) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+        if (!$this->hasPermission($user, 'followups.view')) {
+            return $this->permissionDeniedResponse('view Follow-up');
+        }
+
         $followup = $this->findFollowupForUser($id, $user);
 
         if (!$followup) {
@@ -538,6 +574,13 @@ class FollowupApiController extends Controller
     public function update(Request $request, $id)
     {
         $user = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$user) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+        if (!$this->hasPermission($user, 'followups.edit')) {
+            return $this->permissionDeniedResponse('edit Follow-up');
+        }
+
         $followup = $this->findFollowupForUser($id, $user);
 
         if (!$followup) {
@@ -690,6 +733,13 @@ class FollowupApiController extends Controller
     public function destroy($id, Request $request)
     {
         $user = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$user) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+        if (!$this->hasPermission($user, 'followups.delete')) {
+            return $this->permissionDeniedResponse('delete Follow-up');
+        }
+
         $followup = $this->findFollowupForUser($id, $user);
 
         if (!$followup) {
@@ -714,6 +764,13 @@ class FollowupApiController extends Controller
     public function changeStatus(Request $request, $id)
     {
         $user = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$user) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+        if (!$this->hasPermission($user, 'followups.edit')) {
+            return $this->permissionDeniedResponse('edit Follow-up');
+        }
+
         $followup = $this->findFollowupForUser($id, $user);
 
         if (!$followup) {
@@ -751,7 +808,10 @@ class FollowupApiController extends Controller
     {
         $user = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
         if (!$user) {
-            return response()->json(['status' => false, 'count' => 0, 'data' => []]);
+            return response()->json(['status' => false, 'count' => 0, 'data' => []], 401);
+        }
+        if (!$this->hasPermission($user, 'followups.view')) {
+            return $this->permissionDeniedResponse('Follow-up module');
         }
 
         $userId = $user->id;
