@@ -10,6 +10,19 @@ $(document).ready(function () {
     let recordingTable = $('#call-recordings-table').DataTable({
         ajax: {
             url: APP_URL + '/admin/call-recordings/data',
+            type: 'GET',
+            data: function (d) {
+                d.filter_type = $('#recording_filter_period').val() || 'all';
+                d.date = $('#recording_filter_date').val();
+                d.week = $('#recording_filter_week').val();
+                d.month = $('#recording_filter_month').val();
+                d.year = $('#recording_filter_year').val();
+                d.start_date = $('#recording_filter_start_date').val();
+                d.end_date = $('#recording_filter_end_date').val();
+                d.user_id = $('#recording_filter_user_id').val();
+                d.lead_id = $('#recording_filter_lead_id').val();
+                d.customer_id = $('#recording_filter_customer_id').val();
+            },
             dataSrc: 'data'
         },
         columns: [
@@ -122,6 +135,71 @@ $(document).ready(function () {
         },
         pageLength: 10,
         ordering: false
+    });
+
+    // Initialize Select2 on Customer Dropdown
+    if ($('#recording_filter_customer_id').length && $.fn.select2) {
+        $('#recording_filter_customer_id').select2({
+            placeholder: '-- All Customers --',
+            allowClear: true,
+            width: '100%'
+        });
+    }
+
+    // Period filter button clicks
+    $('.btn-recording-period').on('click', function () {
+        $('.btn-recording-period').removeClass('active');
+        $(this).addClass('active');
+
+        let period = $(this).data('period');
+        $('#recording_filter_period').val(period);
+        $('.recording-filter-date-group').addClass('d-none');
+
+        if (period === 'daily') {
+            $('#recording_group_daily').removeClass('d-none');
+        } else if (period === 'weekly') {
+            $('#recording_group_weekly').removeClass('d-none');
+        } else if (period === 'monthly') {
+            $('#recording_group_monthly').removeClass('d-none');
+        } else if (period === 'yearly') {
+            $('#recording_group_yearly').removeClass('d-none');
+        } else if (period === 'custom') {
+            $('#recording_group_custom_start').removeClass('d-none');
+            $('#recording_group_custom_end').removeClass('d-none');
+        }
+
+        recordingTable.ajax.reload();
+    });
+
+    // Filter change handlers
+    $('#recording_filter_user_id, #recording_filter_lead_id, #recording_filter_customer_id').on('change', function () {
+        recordingTable.ajax.reload();
+    });
+
+    $('#recording_filter_date, #recording_filter_week, #recording_filter_month, #recording_filter_year, #recording_filter_start_date, #recording_filter_end_date').on('change', function () {
+        recordingTable.ajax.reload();
+    });
+
+    // Filter Form submit and reset
+    $('#recordingFilterForm').on('submit', function (e) {
+        e.preventDefault();
+        recordingTable.ajax.reload();
+    });
+
+    $('#resetRecordingFilterBtn').on('click', function () {
+        $('#recordingFilterForm')[0].reset();
+        $('.btn-recording-period').removeClass('active');
+        $('.btn-recording-period[data-period="all"]').addClass('active');
+        $('#recording_filter_period').val('all');
+        $('.recording-filter-date-group').addClass('d-none');
+        $('#recording_filter_user_id').val('');
+        $('#recording_filter_lead_id').val('');
+        if ($('#recording_filter_customer_id').data('select2')) {
+            $('#recording_filter_customer_id').val('').trigger('change.select2');
+        } else {
+            $('#recording_filter_customer_id').val('');
+        }
+        recordingTable.ajax.reload();
     });
 
     function showAlert(type, message) {

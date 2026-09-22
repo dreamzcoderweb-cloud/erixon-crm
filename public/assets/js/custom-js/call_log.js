@@ -208,12 +208,90 @@ $(document).ready(function () {
         let callLogTable = $('#call-logs-table').DataTable({
             ajax: {
                 url: APP_URL + '/admin/call-logs/data',
+                type: 'GET',
+                data: function (d) {
+                    d.filter_type = $('#call_log_list_filter_period').val() || 'all';
+                    d.date = $('#call_log_list_filter_date').val();
+                    d.week = $('#call_log_list_filter_week').val();
+                    d.month = $('#call_log_list_filter_month').val();
+                    d.year = $('#call_log_list_filter_year').val();
+                    d.start_date = $('#call_log_list_filter_start_date').val();
+                    d.end_date = $('#call_log_list_filter_end_date').val();
+                    d.user_id = $('#call_log_list_filter_user_id').val();
+                    d.lead_id = $('#call_log_list_filter_lead_id').val();
+                    d.customer_id = $('#call_log_list_filter_customer_id').val();
+                },
                 dataSrc: 'data'
             },
             columns: columns(true),
             layout: tableLayout(),
             pageLength: 10,
             ordering: false
+        });
+
+        // Initialize Select2 on Customer Dropdown
+        if ($('#call_log_list_filter_customer_id').length && $.fn.select2) {
+            $('#call_log_list_filter_customer_id').select2({
+                placeholder: '-- All Customers --',
+                allowClear: true,
+                width: '100%'
+            });
+        }
+
+        // Period filter button clicks
+        $('.btn-call-log-list-period').on('click', function () {
+            $('.btn-call-log-list-period').removeClass('active');
+            $(this).addClass('active');
+
+            let period = $(this).data('period');
+            $('#call_log_list_filter_period').val(period);
+            $('.call-log-list-filter-date-group').addClass('d-none');
+
+            if (period === 'daily') {
+                $('#call_log_list_group_daily').removeClass('d-none');
+            } else if (period === 'weekly') {
+                $('#call_log_list_group_weekly').removeClass('d-none');
+            } else if (period === 'monthly') {
+                $('#call_log_list_group_monthly').removeClass('d-none');
+            } else if (period === 'yearly') {
+                $('#call_log_list_group_yearly').removeClass('d-none');
+            } else if (period === 'custom') {
+                $('#call_log_list_group_custom_start').removeClass('d-none');
+                $('#call_log_list_group_custom_end').removeClass('d-none');
+            }
+
+            callLogTable.ajax.reload();
+        });
+
+        // Filter change handlers
+        $('#call_log_list_filter_user_id, #call_log_list_filter_lead_id, #call_log_list_filter_customer_id').on('change', function () {
+            callLogTable.ajax.reload();
+        });
+
+        $('#call_log_list_filter_date, #call_log_list_filter_week, #call_log_list_filter_month, #call_log_list_filter_year, #call_log_list_filter_start_date, #call_log_list_filter_end_date').on('change', function () {
+            callLogTable.ajax.reload();
+        });
+
+        // Filter Form submit and reset
+        $('#callLogListFilterForm').on('submit', function (e) {
+            e.preventDefault();
+            callLogTable.ajax.reload();
+        });
+
+        $('#resetCallLogListFilterBtn').on('click', function () {
+            $('#callLogListFilterForm')[0].reset();
+            $('.btn-call-log-list-period').removeClass('active');
+            $('.btn-call-log-list-period[data-period="all"]').addClass('active');
+            $('#call_log_list_filter_period').val('all');
+            $('.call-log-list-filter-date-group').addClass('d-none');
+            $('#call_log_list_filter_user_id').val('');
+            $('#call_log_list_filter_lead_id').val('');
+            if ($('#call_log_list_filter_customer_id').data('select2')) {
+                $('#call_log_list_filter_customer_id').val('').trigger('change.select2');
+            } else {
+                $('#call_log_list_filter_customer_id').val('');
+            }
+            callLogTable.ajax.reload();
         });
 
         $('.modal').on('hidden.bs.modal', function () {
