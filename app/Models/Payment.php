@@ -18,6 +18,7 @@ class Payment extends Model
         'customer_id',
         'lead_id',
         'lead_source_id',
+        'lead_requirement_id',
         'amount',
         'tax_percentage',
         'tax_amount',
@@ -52,9 +53,15 @@ class Payment extends Model
     {
         return $this->belongsTo(User::class, 'created_by', 'id');
     }
+
     public function leadSource()
     {
         return $this->belongsTo(LeadSource::class, 'lead_source_id', 'lead_sources_id');
+    }
+
+    public function leadRequirement()
+    {
+        return $this->belongsTo(LeadRequirement::class, 'lead_requirement_id', 'lead_requirements_id');
     }
 
     /**

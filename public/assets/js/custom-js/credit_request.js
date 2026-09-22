@@ -172,6 +172,14 @@ $(document).ready(function () {
             dataSrc: 'data',
             data: function (d) {
                 d.status = $('#statusFilter').val();
+                d.filter_type = $('#credit_filter_period').val();
+                d.date = $('#credit_filter_date').val();
+                d.week = $('#credit_filter_week').val();
+                d.month = $('#credit_filter_month').val();
+                d.year = $('#credit_filter_year').val();
+                d.start_date = $('#credit_filter_start_date').val();
+                d.end_date = $('#credit_filter_end_date').val();
+                d.lead_requirement_id = $('#credit_filter_lead_requirement_id').val();
             }
         },
         columns: columnsConfig,
@@ -204,7 +212,55 @@ $(document).ready(function () {
         ordering: false
     });
 
-    $('#statusFilter').on('change', function () {
+    // Period Toggle Buttons
+    $('.btn-credit-period').on('click', function () {
+        $('.btn-credit-period').removeClass('active');
+        $(this).addClass('active');
+
+        let period = $(this).data('period');
+        $('#credit_filter_period').val(period);
+        $('.credit-filter-date-group').addClass('d-none');
+
+        if (period === 'daily') {
+            $('#credit_group_daily').removeClass('d-none');
+        } else if (period === 'weekly') {
+            $('#credit_group_weekly').removeClass('d-none');
+        } else if (period === 'monthly') {
+            $('#credit_group_monthly').removeClass('d-none');
+        } else if (period === 'yearly') {
+            $('#credit_group_yearly').removeClass('d-none');
+        } else if (period === 'custom') {
+            $('#credit_group_custom_start').removeClass('d-none');
+            $('#credit_group_custom_end').removeClass('d-none');
+        }
+
+        creditTable.ajax.reload();
+    });
+
+    // Form submit
+    $('#creditFilterForm').on('submit', function (e) {
+        e.preventDefault();
+        creditTable.ajax.reload();
+    });
+
+    // Dropdown / input change triggers
+    $('#statusFilter, #credit_filter_lead_requirement_id').on('change', function () {
+        creditTable.ajax.reload();
+    });
+
+    $('#credit_filter_date, #credit_filter_week, #credit_filter_month, #credit_filter_year, #credit_filter_start_date, #credit_filter_end_date').on('change', function () {
+        creditTable.ajax.reload();
+    });
+
+    // Reset Filters
+    $('#resetCreditFilterBtn').on('click', function () {
+        $('#creditFilterForm')[0].reset();
+        $('.btn-credit-period').removeClass('active');
+        $('.btn-credit-period[data-period="all"]').addClass('active');
+        $('#credit_filter_period').val('all');
+        $('#credit_filter_lead_requirement_id').val('');
+        $('#statusFilter').val('');
+        $('.credit-filter-date-group').addClass('d-none');
         creditTable.ajax.reload();
     });
 

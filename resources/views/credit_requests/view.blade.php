@@ -11,19 +11,112 @@
             <div class="d-flex justify-content-between align-items-center p-3 border-bottom flex-wrap gap-2">
                 <h5 class="card-header p-0 m-0"><i class="bx bx-credit-card me-2"></i>Credit Requests</h5>
                 <div class="d-flex gap-2">
-                    <select id="statusFilter" class="form-select form-select-sm" style="width: 200px;">
-                        <option value="">All Statuses</option>
-                        <option value="Pending Admin Approval">Pending Admin Approval</option>
-                        <option value="Forwarded to Product Manager">Forwarded to Product Manager</option>
-                        <option value="Credit Added">Credit Added</option>
-                        <option value="Rejected">Rejected</option>
-                    </select>
                     @can('credit-requests.create')
                         <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addCreditRequestModal">
                             <i class="bx bx-plus me-1"></i> New Credit Request
                         </button>
                     @endcan
                 </div>
+            </div>
+
+            <!-- Credit Request Filter Bar -->
+            <div class="p-3 bg-light border-bottom">
+                <form id="creditFilterForm">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-12">
+                            <label class="form-label fw-semibold d-block">Date Period</label>
+                            <div class="btn-group btn-group-sm flex-wrap" role="group" id="creditPeriodBtnGroup">
+                                <button type="button" class="btn btn-outline-primary btn-credit-period active" data-period="all">All Time</button>
+                                <button type="button" class="btn btn-outline-primary btn-credit-period" data-period="daily">Daily</button>
+                                <button type="button" class="btn btn-outline-primary btn-credit-period" data-period="weekly">Weekly</button>
+                                <button type="button" class="btn btn-outline-primary btn-credit-period" data-period="monthly">Monthly</button>
+                                <button type="button" class="btn btn-outline-primary btn-credit-period" data-period="yearly">Yearly</button>
+                                <button type="button" class="btn btn-outline-primary btn-credit-period" data-period="custom">Custom</button>
+                            </div>
+                            <input type="hidden" name="filter_type" id="credit_filter_period" value="all">
+                        </div>
+
+                        <!-- Daily Datepicker -->
+                        <div class="col-md-3 credit-filter-date-group d-none" id="credit_group_daily">
+                            <label class="form-label fw-semibold">Select Date</label>
+                            <input type="date" name="date" id="credit_filter_date" class="form-control form-control-sm" value="{{ date('Y-m-d') }}">
+                        </div>
+
+                        <!-- Weekly Datepicker -->
+                        <div class="col-md-3 credit-filter-date-group d-none" id="credit_group_weekly">
+                            <label class="form-label fw-semibold">Select Week</label>
+                            <input type="week" name="week" id="credit_filter_week" class="form-control form-control-sm" value="{{ date('Y-\WW') }}">
+                        </div>
+
+                        <!-- Monthly Datepicker -->
+                        <div class="col-md-3 credit-filter-date-group d-none" id="credit_group_monthly">
+                            <label class="form-label fw-semibold">Select Month</label>
+                            <input type="month" name="month" id="credit_filter_month" class="form-control form-control-sm" value="{{ date('Y-m') }}">
+                        </div>
+
+                        <!-- Yearly Datepicker -->
+                        <div class="col-md-3 credit-filter-date-group d-none" id="credit_group_yearly">
+                            <label class="form-label fw-semibold">Select Year</label>
+                            <select name="year" id="credit_filter_year" class="form-select form-select-sm">
+                                @php
+                                    $curYear = (int)date('Y');
+                                @endphp
+                                @for ($y = $curYear + 1; $y >= $curYear - 5; $y--)
+                                    <option value="{{ $y }}" {{ $y == $curYear ? 'selected' : '' }}>{{ $y }}</option>
+                                @endfor
+                            </select>
+                        </div>
+
+                        <!-- Custom Datepicker: Start Date -->
+                        <div class="col-md-3 credit-filter-date-group d-none" id="credit_group_custom_start">
+                            <label class="form-label fw-semibold">Start Date</label>
+                            <input type="date" name="start_date" id="credit_filter_start_date" class="form-control form-control-sm" value="{{ date('Y-m-01') }}">
+                        </div>
+
+                        <!-- Custom Datepicker: End Date -->
+                        <div class="col-md-3 credit-filter-date-group d-none" id="credit_group_custom_end">
+                            <label class="form-label fw-semibold">End Date</label>
+                            <input type="date" name="end_date" id="credit_filter_end_date" class="form-control form-control-sm" value="{{ date('Y-m-d') }}">
+                        </div>
+
+                        <!-- Lead Requirement Dropdown Filter -->
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Lead Requirement</label>
+                            <select name="lead_requirement_id" id="credit_filter_lead_requirement_id" class="form-select form-select-sm">
+                                <option value="">-- All Lead Requirements --</option>
+                                @if(isset($leadRequirements) && count($leadRequirements) > 0)
+                                    @foreach ($leadRequirements as $req)
+                                        <option value="{{ $req->lead_requirements_id }}">{{ $req->name }}</option>
+                                    @endforeach
+                                @endif
+                            </select>
+                        </div>
+
+                        <!-- Status Filter -->
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Status</label>
+                            <select name="status" id="statusFilter" class="form-select form-select-sm">
+                                <option value="">-- All Statuses --</option>
+                                <option value="Pending Admin Approval">Pending Admin Approval</option>
+                                <option value="Forwarded to Product Manager">Forwarded to Product Manager</option>
+                                <option value="Credit Added">Credit Added</option>
+                                <option value="Rejected">Rejected</option>
+                            </select>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="col-md-3">
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
+                                    <i class="bx bx-filter-alt me-1"></i> Apply Filter
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" id="resetCreditFilterBtn" title="Reset Filters">
+                                    <i class="bx bx-refresh me-1"></i> Reset
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
             </div>
             <div class="table-responsive text-nowrap p-3">
                 <table id="credit-requests-table" class="table table-hover align-middle w-100">

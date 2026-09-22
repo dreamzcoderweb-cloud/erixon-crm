@@ -59,6 +59,19 @@
                                 class="form-control form-control-sm" value="{{ date('Y-m-d') }}">
                         </div>
 
+                        <!-- Lead Requirement Filter -->
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Lead Requirement</label>
+                            <select name="lead_requirement_id" id="payment_filter_lead_requirement_id" class="form-select form-select-sm">
+                                <option value="">-- All Lead Requirements --</option>
+                                @if(isset($leadRequirements) && count($leadRequirements) > 0)
+                                    @foreach ($leadRequirements as $req)
+                                        <option value="{{ $req->lead_requirements_id }}">{{ $req->name }}</option>
+                                    @endforeach
+                                @endif
+                            </select>
+                        </div>
+
                         <div class="col-md-3">
                             <div class="d-flex gap-2">
                                 <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
@@ -80,7 +93,7 @@
                         <tr>
                             <th>#</th>
                             <th>Customer</th>
-                            <th>Lead Source</th>
+                            <th>Lead Requirement</th>
                             <th>Amount</th>
                             <th>Tax %</th>
                             <th>Tax Amount</th>
@@ -122,12 +135,14 @@
                                 <div class="invalid-feedback"></div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Lead Sources</label>
-                                <select name="lead_source_id" class="form-select">
-                                    <option value="">-- Select Lead Source --</option>
-                                    @foreach ($leadSources as $lead)
-                                        <option value="{{ $lead->lead_sources_id }}">{{ $lead->name }}</option>
-                                    @endforeach
+                                <label class="form-label">Lead Requirement</label>
+                                <select name="lead_requirement_id" class="form-select">
+                                    <option value="">-- Select Lead Requirement --</option>
+                                    @if(isset($leadRequirements) && count($leadRequirements) > 0)
+                                        @foreach ($leadRequirements as $req)
+                                            <option value="{{ $req->lead_requirements_id }}">{{ $req->name }}</option>
+                                        @endforeach
+                                    @endif
                                 </select>
                             </div>
                             <div class="col-md-4">
@@ -221,12 +236,14 @@
                                 <div class="invalid-feedback"></div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Lead Source</label>
-                                <select name="lead_source_id" id="edit_lead_source_id" class="form-select">
-                                    <option value="">-- Select Lead Source --</option>
-                                    @foreach ($leadSources as $lead)
-                                        <option value="{{ $lead->lead_sources_id }}">{{ $lead->name }}</option>
-                                    @endforeach
+                                <label class="form-label">Lead Requirement</label>
+                                <select name="lead_requirement_id" id="edit_lead_requirement_id" class="form-select">
+                                    <option value="">-- Select Lead Requirement --</option>
+                                    @if(isset($leadRequirements) && count($leadRequirements) > 0)
+                                        @foreach ($leadRequirements as $req)
+                                            <option value="{{ $req->lead_requirements_id }}">{{ $req->name }}</option>
+                                        @endforeach
+                                    @endif
                                 </select>
                             </div>
                             <div class="col-md-4">

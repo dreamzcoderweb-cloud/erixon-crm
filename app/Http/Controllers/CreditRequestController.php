@@ -106,8 +106,60 @@ class CreditRequestController extends Controller
             'requester:id,name'
         ]);
 
-        if (!empty($status)) {
+        if (!empty($status) && strtolower($status) !== 'all') {
             $query->where('status', $status);
+        }
+
+        // Lead Requirement filter
+        if ($request->filled('lead_requirement_id')) {
+            $reqId = $request->input('lead_requirement_id');
+            $query->where(function ($q) use ($reqId) {
+                $q->where('lead_requirement_id', $reqId)
+                  ->orWhereHas('lead', function ($lq) use ($reqId) {
+                      $lq->where('lead_requirement_id', $reqId);
+                  });
+            });
+        }
+
+        // Date Period Filtering: daily, weekly, monthly, yearly, custom
+        $filterType = $request->input('filter_type');
+        $date       = $request->input('date');
+        $week       = $request->input('week');
+        $month      = $request->input('month');
+        $year       = $request->input('year');
+        $startDate  = $request->input('start_date');
+        $endDate    = $request->input('end_date');
+
+        if ($filterType === 'daily' && !empty($date)) {
+            $query->whereDate('created_at', $date);
+        } elseif ($filterType === 'weekly') {
+            if (!empty($week) && preg_match('/^(\d{4})-W(\d{2})$/', $week, $matches)) {
+                $wYear = (int)$matches[1];
+                $wWeek = (int)$matches[2];
+                $startOfWeek = \Carbon\Carbon::now()->setISODate($wYear, $wWeek)->startOfWeek();
+                $endOfWeek   = \Carbon\Carbon::now()->setISODate($wYear, $wWeek)->endOfWeek();
+                $query->whereBetween('created_at', [$startOfWeek, $endOfWeek]);
+            } else {
+                $refDate = !empty($startDate) ? \Carbon\Carbon::parse($startDate) : (!empty($date) ? \Carbon\Carbon::parse($date) : \Carbon\Carbon::today());
+                $query->whereBetween('created_at', [
+                    $refDate->copy()->startOfWeek(),
+                    $refDate->copy()->endOfWeek(),
+                ]);
+            }
+        } elseif ($filterType === 'monthly' && !empty($month)) {
+            [$mYear, $mMonth] = array_pad(explode('-', $month), 2, null);
+            $query->whereYear('created_at', $mYear ?: date('Y'))
+                  ->whereMonth('created_at', $mMonth ?: date('m'));
+        } elseif ($filterType === 'yearly') {
+            $targetYear = !empty($year) ? $year : date('Y');
+            $query->whereYear('created_at', $targetYear);
+        } elseif ($filterType === 'custom') {
+            if (!empty($startDate)) {
+                $query->whereDate('created_at', '>=', $startDate);
+            }
+            if (!empty($endDate)) {
+                $query->whereDate('created_at', '<=', $endDate);
+            }
         }
 
         $creditRequests = $query->orderBy('credit_request_id', 'DESC')->get();

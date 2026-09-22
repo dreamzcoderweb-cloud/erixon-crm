@@ -214,13 +214,47 @@ class CreditRequestApiController extends Controller
             });
         }
 
-        // Date range filters (supports start_date/end_date, from_date/to_date, date, or month)
-        $rawStart = $request->input('start_date') ?? $request->input('from_date');
-        $rawEnd   = $request->input('end_date') ?? $request->input('to_date');
-        $rawDate  = $request->input('date');
-        $month    = $request->input('month');
+        // Date range & period filters (supports filter_type: daily, weekly, monthly, yearly, custom, start_date/end_date, date, month, week, year)
+        $filterType = $request->input('filter_type');
+        $rawStart   = $request->input('start_date') ?? $request->input('from_date');
+        $rawEnd     = $request->input('end_date') ?? $request->input('to_date');
+        $rawDate    = $request->input('date');
+        $week       = $request->input('week');
+        $month      = $request->input('month');
+        $year       = $request->input('year');
 
-        if (!empty($rawDate)) {
+        if ($filterType === 'daily' && !empty($rawDate)) {
+            $query->whereDate('created_at', $rawDate);
+        } elseif ($filterType === 'weekly') {
+            if (!empty($week) && preg_match('/^(\d{4})-W(\d{2})$/', $week, $matches)) {
+                $wYear = (int)$matches[1];
+                $wWeek = (int)$matches[2];
+                $startOfWeek = Carbon::now()->setISODate($wYear, $wWeek)->startOfWeek();
+                $endOfWeek   = Carbon::now()->setISODate($wYear, $wWeek)->endOfWeek();
+                $query->whereBetween('created_at', [$startOfWeek, $endOfWeek]);
+            } else {
+                $refDate = !empty($rawStart) ? Carbon::parse($rawStart) : (!empty($rawDate) ? Carbon::parse($rawDate) : Carbon::today());
+                $query->whereBetween('created_at', [
+                    $refDate->copy()->startOfWeek(),
+                    $refDate->copy()->endOfWeek(),
+                ]);
+            }
+        } elseif ($filterType === 'monthly' && !empty($month)) {
+            [$y, $m] = array_pad(explode('-', $month), 2, null);
+            $query->whereYear('created_at', $y ?: date('Y'))
+                  ->whereMonth('created_at', $m ?: date('m'));
+        } elseif ($filterType === 'yearly') {
+            $targetYear = !empty($year) ? $year : date('Y');
+            $query->whereYear('created_at', $targetYear);
+        } elseif ($filterType === 'custom') {
+            if (!empty($rawStart) && !empty($rawEnd)) {
+                $query->whereBetween('created_at', [$rawStart . ' 00:00:00', $rawEnd . ' 23:59:59']);
+            } elseif (!empty($rawStart)) {
+                $query->whereDate('created_at', '>=', $rawStart);
+            } elseif (!empty($rawEnd)) {
+                $query->whereDate('created_at', '<=', $rawEnd);
+            }
+        } elseif (!empty($rawDate)) {
             $query->whereDate('created_at', $rawDate);
         } elseif (!empty($rawStart) && !empty($rawEnd)) {
             $query->whereBetween('created_at', [$rawStart . ' 00:00:00', $rawEnd . ' 23:59:59']);
@@ -229,10 +263,12 @@ class CreditRequestApiController extends Controller
         } elseif (!empty($rawEnd)) {
             $query->whereDate('created_at', '<=', $rawEnd);
         } elseif (!empty($month)) {
-            [$year, $selectedMonth] = array_pad(explode('-', $month), 2, null);
-            $y = $year ?: date('Y');
+            [$yearVal, $selectedMonth] = array_pad(explode('-', $month), 2, null);
+            $y = $yearVal ?: date('Y');
             $m = $selectedMonth ?: date('m');
             $query->whereYear('created_at', $y)->whereMonth('created_at', $m);
+        } elseif (!empty($year)) {
+            $query->whereYear('created_at', $year);
         }
 
         // Summary counts for current user's scope

@@ -35,6 +35,7 @@ $(document).ready(function () {
                 d.month = $('#payment_filter_month').val();
                 d.start_date = $('#payment_filter_start_date').val();
                 d.end_date = $('#payment_filter_end_date').val();
+                d.lead_requirement_id = $('#payment_filter_lead_requirement_id').val();
             },
             dataSrc: 'data'
         },
@@ -56,9 +57,9 @@ $(document).ready(function () {
             {
                 data: null,
                 render: function (data, type, row) {
-                    let sourceName = (row.lead_source && row.lead_source.name) ? row.lead_source.name : ((row.leadSource && row.leadSource.name) ? row.leadSource.name : 'N/A');
-                    if (type !== 'display') return sourceName;
-                    return sourceName !== 'N/A' ? `<strong>${sourceName}</strong>` : '<span class="text-muted">N/A</span>';
+                    let reqName = (row.lead_requirement && row.lead_requirement.name) ? row.lead_requirement.name : ((row.leadRequirement && row.leadRequirement.name) ? row.leadRequirement.name : ((row.lead_source && row.lead_source.name) ? row.lead_source.name : ((row.leadSource && row.leadSource.name) ? row.leadSource.name : 'N/A')));
+                    if (type !== 'display') return reqName;
+                    return reqName !== 'N/A' ? `<strong>${reqName}</strong>` : '<span class="text-muted">N/A</span>';
                 }
             },
             {
@@ -260,7 +261,7 @@ $(document).ready(function () {
                     let payment = response.data;
                     $('#edit_payment_id').val(payment.payment_id);
                     $('#edit_customer_id').val(payment.customer_id);
-                    $('#edit_lead_source_id').val(payment.lead_source_id || '');
+                    $('#edit_lead_requirement_id').val(payment.lead_requirement_id || '');
                     $('#edit_amount').val(payment.amount);
                     $('#edit_tax_percentage').val(payment.tax_percentage);
                     $('#edit_tax_amount').val(payment.tax_amount);
@@ -371,12 +372,18 @@ $(document).ready(function () {
         paymentTable.ajax.reload();
     });
 
+    // Trigger table reload when lead requirement dropdown changes
+    $('#payment_filter_lead_requirement_id').on('change', function () {
+        paymentTable.ajax.reload();
+    });
+
     // Reset Filters
     $('#resetPaymentFilterBtn').on('click', function () {
         $('#paymentFilterForm')[0].reset();
         $('.btn-payment-period').removeClass('active');
         $('.btn-payment-period[data-period="all"]').addClass('active');
         $('#payment_filter_period').val('all');
+        $('#payment_filter_lead_requirement_id').val('');
         $('.payment-filter-date-group').addClass('d-none');
         paymentTable.ajax.reload();
     });
