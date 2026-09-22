@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\FollowupApiController;
 use App\Http\Controllers\Api\AttendanceApiController;
 use App\Http\Controllers\Api\CallLogApiController;
 use App\Http\Controllers\Api\DemoProcessApiController;
+use App\Http\Controllers\Api\CreditRequestApiController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -20,9 +21,21 @@ Route::prefix('v1')->group(function () {
         Route::post('update-fcm-token', [StaffAuthController::class, 'updateFcmToken']);
         Route::post('staff/fcm-token', [StaffAuthController::class, 'updateFcmToken']);
 
-        Route::get('credit-requests', [\App\Http\Controllers\CreditRequestController::class, 'listData']);
-        Route::post('credit-request', [\App\Http\Controllers\CreditRequestController::class, 'store']);
         Route::get('customers/search', [\App\Http\Controllers\CustomerController::class, 'search']);
+
+        // Mobile App Credit Request Management & Additional Custom Fields
+        Route::get('credit-requests/form-data', [CreditRequestApiController::class, 'getFormData']);
+        Route::get('credit-requests', [CreditRequestApiController::class, 'index']);
+        Route::post('credit-requests', [CreditRequestApiController::class, 'store']);
+        Route::post('credit-request', [CreditRequestApiController::class, 'store']);
+        Route::get('credit-requests/edit/{id}', [CreditRequestApiController::class, 'edit']);
+        Route::get('credit-requests/{id}', [CreditRequestApiController::class, 'show']);
+        Route::post('credit-requests/update/{id}', [CreditRequestApiController::class, 'update']);
+        Route::delete('credit-requests/delete/{id}', [CreditRequestApiController::class, 'destroy']);
+        Route::post('credit-requests/approve-admin/{id}', [CreditRequestApiController::class, 'approveAdmin']);
+        Route::post('credit-requests/approve-support/{id}', [CreditRequestApiController::class, 'approveSupport']);
+        Route::post('credit-requests/reject/{id}', [CreditRequestApiController::class, 'reject']);
+        Route::post('credit-requests/change-status/{id}', [CreditRequestApiController::class, 'changeStatus']);
 
         // Mobile App Customer Management & Additional Custom Fields
         Route::get('customers/form-data', [CustomerApiController::class, 'getFormData']);
@@ -84,9 +97,5 @@ Route::prefix('v1')->group(function () {
 
     // Direct / Browser PDF download route with token parameter
     Route::get('call-report/download', [CallLogApiController::class, 'exportPdf']);
-
-    // Public / External API route for credit request submission
-    Route::post('credit-request', [\App\Http\Controllers\CreditRequestController::class, 'store']);
-    Route::get('credit-requests', [\App\Http\Controllers\CreditRequestController::class, 'listData']);
 });
 

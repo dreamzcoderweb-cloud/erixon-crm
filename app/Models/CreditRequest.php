@@ -18,7 +18,6 @@ class CreditRequest extends Model
         'lead_source_id',
         'lead_requirement_id',
         'customer_id',
-        'username',
         'phone',
         'email',
         'credit_amount',

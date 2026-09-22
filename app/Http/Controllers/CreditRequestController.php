@@ -126,7 +126,6 @@ class CreditRequestController extends Controller
             'lead_requirement_id' => ['nullable', 'exists:lead_requirements,lead_requirements_id'],
             'credit_amount'       => ['required', 'numeric', 'min:0.01'],
             'is_estimate'         => ['nullable', 'boolean'],
-            'username'            => ['nullable', 'string', 'max:255'],
             'phone'               => ['nullable', 'string', 'max:30'],
             'email'               => ['nullable', 'email', 'max:255'],
         ];
@@ -145,7 +144,6 @@ class CreditRequestController extends Controller
             'lead_requirement_id' => $validated['lead_requirement_id'] ?? null,
             'credit_amount'       => $validated['credit_amount'],
             'is_estimate'         => !empty($validated['is_estimate']) ? true : false,
-            'username'            => $validated['username'] ?? $customer->name ?? null,
             'phone'               => $validated['phone'] ?? $customer->mobile ?? null,
             'email'               => $validated['email'] ?? $customer->email ?? null,
             'status'              => 'Pending Admin Approval',
@@ -219,7 +217,6 @@ class CreditRequestController extends Controller
             'lead_requirement_id' => ['nullable', 'exists:lead_requirements,lead_requirements_id'],
             'credit_amount'       => ['required', 'numeric', 'min:0.01'],
             'is_estimate'         => ['nullable', 'boolean'],
-            'username'            => ['nullable', 'string', 'max:255'],
             'phone'               => ['nullable', 'string', 'max:30'],
             'email'               => ['nullable', 'email', 'max:255'],
         ];
@@ -238,7 +235,6 @@ class CreditRequestController extends Controller
             'lead_requirement_id' => $validated['lead_requirement_id'] ?? null,
             'credit_amount'       => $validated['credit_amount'],
             'is_estimate'         => !empty($validated['is_estimate']) ? true : false,
-            'username'            => $validated['username'] ?? $customer->name ?? null,
             'phone'               => $validated['phone'] ?? $customer->mobile ?? null,
             'email'               => $validated['email'] ?? $customer->email ?? null,
             'custom_fields'       => $customFieldsData,
