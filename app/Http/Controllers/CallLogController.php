@@ -170,9 +170,9 @@ class CallLogController extends Controller
     private function filteredReportQuery(Request $request)
     {
         $user       = Auth::user();
-        $filterType = $request->input('filter_type', 'daily');
-        $date       = $request->input('date', date('Y-m-d'));
-        $month      = $request->input('month', date('Y-m'));
+        $filterType = $request->input('filter_type', 'all');
+        $date       = $request->input('date');
+        $month      = $request->input('month');
         $startDate  = $request->input('start_date');
         $endDate    = $request->input('end_date');
 
@@ -196,7 +196,7 @@ class CallLogController extends Controller
             $query->where('call_status', $request->input('status'));
         }
 
-        if ($filterType === 'daily') {
+        if ($filterType === 'daily' && !empty($date)) {
             $query->whereDate('created_at', $date);
         } elseif ($filterType === 'weekly') {
             $refDate = !empty($startDate) ? Carbon::parse($startDate) : Carbon::today();

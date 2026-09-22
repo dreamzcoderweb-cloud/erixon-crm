@@ -10,14 +10,15 @@
         <div class="card mb-4">
             <div class="card-body">
                 <div class="btn-group mb-3" role="group">
-                    <button type="button" class="btn btn-outline-primary btn-call-log-period active" data-period="daily">Daily</button>
+                    <button type="button" class="btn btn-outline-primary btn-call-log-period active" data-period="all">All Time</button>
+                    <button type="button" class="btn btn-outline-primary btn-call-log-period" data-period="daily">Daily</button>
                     <button type="button" class="btn btn-outline-primary btn-call-log-period" data-period="weekly">Weekly</button>
                     <button type="button" class="btn btn-outline-primary btn-call-log-period" data-period="monthly">Monthly</button>
                     <button type="button" class="btn btn-outline-primary btn-call-log-period" data-period="custom">Custom</button>
                 </div>
 
                 <form id="callLogReportFilterForm">
-                    <input type="hidden" name="filter_type" id="call_log_filter_type" value="daily">
+                    <input type="hidden" name="filter_type" id="call_log_filter_type" value="all">
                     <div class="row g-3 align-items-end">
                         <div class="col-md-3">
                             <label class="form-label fw-semibold">Staff</label>
@@ -37,7 +38,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-3 call-log-filter-input-group" id="call_log_group_daily">
+                        <div class="col-md-3 call-log-filter-input-group d-none" id="call_log_group_daily">
                             <label class="form-label fw-semibold">Date</label>
                             <input type="date" name="date" id="call_log_filter_date" class="form-control" value="{{ date('Y-m-d') }}">
                         </div>
@@ -144,7 +145,7 @@
         <div class="card">
             <div class="card-header border-bottom d-flex justify-content-between align-items-center">
                 <h5 class="card-title m-0"><i class="bx bx-table me-1"></i> Call Logs</h5>
-                <small class="text-muted" id="call_log_report_period_label">Daily Call Log Report</small>
+                <small class="text-muted" id="call_log_report_period_label">All Call Logs Report</small>
             </div>
             <div class="table-responsive text-nowrap p-3">
                 <table id="call-log-report-table" class="table table-hover align-middle w-100">

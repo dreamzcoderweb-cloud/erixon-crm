@@ -361,7 +361,7 @@ $(document).ready(function () {
                 url: APP_URL + '/admin/call-logs/report/data',
                 type: 'GET',
                 data: function (d) {
-                    d.filter_type = $('#call_log_filter_type').val();
+                    d.filter_type = $('#call_log_filter_type').val() || 'all';
                     d.user_id = $('#call_log_filter_user_id').val();
                     d.lead_id = $('#call_log_filter_lead_id').val();
                     d.date = $('#call_log_filter_date').val();
@@ -396,7 +396,9 @@ $(document).ready(function () {
             $('#call_log_filter_type').val(period);
             $('.call-log-filter-input-group').addClass('d-none');
 
-            if (period === 'daily') {
+            if (period === 'all') {
+                $('#call_log_report_period_label').text('All Call Logs Report');
+            } else if (period === 'daily') {
                 $('#call_log_group_daily').removeClass('d-none');
                 $('#call_log_report_period_label').text('Daily Call Log Report');
             } else if (period === 'weekly') {
@@ -414,6 +416,14 @@ $(document).ready(function () {
             reportTable.ajax.reload();
         });
 
+        $('#call_log_filter_user_id, #call_log_filter_lead_id, #call_log_filter_call_type, #call_log_filter_call_status').on('change', function () {
+            reportTable.ajax.reload();
+        });
+
+        $('#call_log_filter_date, #call_log_filter_month, #call_log_filter_start_date, #call_log_filter_end_date').on('change', function () {
+            reportTable.ajax.reload();
+        });
+
         $('#callLogReportFilterForm').on('submit', function (e) {
             e.preventDefault();
             reportTable.ajax.reload();
@@ -422,11 +432,14 @@ $(document).ready(function () {
         $('#resetCallLogReportFilterBtn').on('click', function () {
             $('#callLogReportFilterForm')[0].reset();
             $('.btn-call-log-period').removeClass('active');
-            $('.btn-call-log-period[data-period="daily"]').addClass('active');
-            $('#call_log_filter_type').val('daily');
+            $('.btn-call-log-period[data-period="all"]').addClass('active');
+            $('#call_log_filter_type').val('all');
+            $('#call_log_filter_user_id').val('');
+            $('#call_log_filter_lead_id').val('');
+            $('#call_log_filter_call_type').val('');
+            $('#call_log_filter_call_status').val('');
             $('.call-log-filter-input-group').addClass('d-none');
-            $('#call_log_group_daily').removeClass('d-none');
-            $('#call_log_report_period_label').text('Daily Call Log Report');
+            $('#call_log_report_period_label').text('All Call Logs Report');
             reportTable.ajax.reload();
         });
     }
