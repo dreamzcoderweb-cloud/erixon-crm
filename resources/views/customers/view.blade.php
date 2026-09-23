@@ -505,7 +505,7 @@
                     </div>
                     <div class="modal-body">
                         <div class="mb-3 text-end">
-                            <a href="{{ route('admin.customers.sample-csv') }}" class="btn btn-sm btn-outline-info">
+                            <a href="{{ route('admin.customers.sample-excel') }}" class="btn btn-sm btn-outline-info">
                                 <i class="bx bx-download me-1"></i> Download Sample Excel
                             </a>
                         </div>

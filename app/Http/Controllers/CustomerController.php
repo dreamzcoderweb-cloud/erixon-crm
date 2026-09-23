@@ -453,6 +453,216 @@ class CustomerController extends Controller
         ]);
     }
 
+    /**
+     * Download sample Excel template for bulk customer import.
+     */
+    public function downloadSampleExcel()
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Sample Customers');
+
+        $headers = [
+            'Customer Type', 'Name', 'Company Name', 'Mobile', 'Email',
+            'Alternate Mobile', 'Address', 'City', 'State', 'Country', 'Pincode'
+        ];
+
+        $sheet->fromArray($headers, null, 'A1');
+
+        $sampleData = [
+            ['user', 'John Doe', 'ABC Enterprises', '9876543210', 'john@example.com', '9876543211', '123 Main St', 'Chennai', 'Tamil Nadu', 'India', '600001'],
+            ['reseller', 'Jane Smith', 'XYZ Solutions', '9123456780', 'jane@example.com', '', '456 Cross Rd', 'Madurai', 'Tamil Nadu', 'India', '625001'],
+        ];
+
+        $sheet->fromArray($sampleData, null, 'A2');
+
+        foreach (range('A', 'K') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $fileName = 'customer_sample_import.xlsx';
+        $writer = new Xlsx($spreadsheet);
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, $fileName, [
+            'Content-Type'  => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Cache-Control' => 'max-age=0',
+        ]);
+    }
+
+    /**
+     * Import customers from Excel or CSV file.
+     */
+    public function import(Request $request)
+    {
+        $request->validate([
+            'excel_file' => 'required|file|mimes:xlsx,xls,csv,txt|max:10240',
+        ]);
+
+        $file = $request->file('excel_file');
+
+        try {
+            $spreadsheet = IOFactory::load($file->getRealPath());
+            $sheet = $spreadsheet->getActiveSheet();
+            $data = $sheet->toArray(null, true, true, false);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Unable to read the uploaded file: ' . $e->getMessage()
+            ], 422);
+        }
+
+        if (empty($data) || count($data) < 2) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'The uploaded file is empty or missing data rows.'
+            ], 422);
+        }
+
+        // Normalize header row
+        $headerRow = array_map(function ($h) {
+            return strtolower(trim(preg_replace('/[^a-zA-Z0-9]/', '', (string)$h)));
+        }, $data[0] ?? []);
+
+        $columnMap = [
+            'customertype'    => 'customer_type',
+            'type'            => 'customer_type',
+            'name'            => 'name',
+            'customername'    => 'name',
+            'companyname'     => 'company_name',
+            'company'         => 'company_name',
+            'mobile'          => 'mobile',
+            'mobilenumber'    => 'mobile',
+            'phone'           => 'mobile',
+            'phonenumber'     => 'mobile',
+            'email'           => 'email',
+            'emailaddress'    => 'email',
+            'alternatemobile' => 'alternate_mobile',
+            'altmobile'       => 'alternate_mobile',
+            'address'         => 'address',
+            'city'            => 'city',
+            'state'           => 'state',
+            'country'         => 'country',
+            'pincode'         => 'pincode',
+            'postalcode'      => 'pincode',
+            'zipcode'         => 'pincode',
+        ];
+
+        $headerIndexes = [];
+        foreach ($headerRow as $idx => $normHeader) {
+            if (isset($columnMap[$normHeader])) {
+                $headerIndexes[$columnMap[$normHeader]] = $idx;
+            }
+        }
+
+        if (!isset($headerIndexes['mobile']) || !isset($headerIndexes['name'])) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Required columns "Name" and "Mobile" were not found in the file headers.'
+            ], 422);
+        }
+
+        $imported = 0;
+        $updated = 0;
+        $skipped = 0;
+        $userId = Auth::id();
+
+        for ($i = 1; $i < count($data); $i++) {
+            $row = $data[$i];
+
+            // If row is entirely empty, skip
+            if (empty(array_filter($row, fn($val) => $val !== null && trim((string)$val) !== ''))) {
+                continue;
+            }
+
+            $name = isset($headerIndexes['name']) ? trim((string)($row[$headerIndexes['name']] ?? '')) : '';
+            $mobile = isset($headerIndexes['mobile']) ? trim((string)($row[$headerIndexes['mobile']] ?? '')) : '';
+            $mobileClean = preg_replace('/[^0-9]/', '', $mobile);
+
+            if (strlen($mobileClean) > 10 && str_starts_with($mobileClean, '91')) {
+                $mobileClean = substr($mobileClean, 2);
+            }
+
+            if (empty($name) || empty($mobileClean)) {
+                $skipped++;
+                continue;
+            }
+
+            $customerTypeRaw = isset($headerIndexes['customer_type']) ? strtolower(trim((string)($row[$headerIndexes['customer_type']] ?? ''))) : 'user';
+            $customerType = in_array($customerTypeRaw, ['reseller'], true) ? 'reseller' : 'user';
+
+            $email = isset($headerIndexes['email']) ? trim((string)($row[$headerIndexes['email']] ?? '')) : null;
+            if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $email = null;
+            }
+
+            $altMobile = isset($headerIndexes['alternate_mobile']) ? preg_replace('/[^0-9]/', '', (string)($row[$headerIndexes['alternate_mobile']] ?? '')) : null;
+            if (strlen((string)$altMobile) > 10 && str_starts_with((string)$altMobile, '91')) {
+                $altMobile = substr((string)$altMobile, 2);
+            }
+            if (empty($altMobile)) {
+                $altMobile = null;
+            }
+
+            $companyName = isset($headerIndexes['company_name']) ? trim((string)($row[$headerIndexes['company_name']] ?? '')) : null;
+            $address = isset($headerIndexes['address']) ? trim((string)($row[$headerIndexes['address']] ?? '')) : null;
+            $city = isset($headerIndexes['city']) ? trim((string)($row[$headerIndexes['city']] ?? '')) : null;
+            $state = isset($headerIndexes['state']) ? trim((string)($row[$headerIndexes['state']] ?? '')) : null;
+            $country = isset($headerIndexes['country']) ? trim((string)($row[$headerIndexes['country']] ?? '')) : 'India';
+            $pincode = isset($headerIndexes['pincode']) ? trim((string)($row[$headerIndexes['pincode']] ?? '')) : null;
+
+            $customer = Customer::where('mobile', $mobileClean)->first();
+            if ($customer) {
+                $customer->update(array_filter([
+                    'name'             => $name,
+                    'customer_type'    => $customerType,
+                    'company_name'     => $companyName,
+                    'email'            => $email,
+                    'alternate_mobile' => $altMobile,
+                    'address'          => $address,
+                    'city'             => $city,
+                    'state'            => $state,
+                    'country'          => $country,
+                    'pincode'          => $pincode,
+                ], fn($v) => $v !== null && $v !== ''));
+                $updated++;
+            } else {
+                Customer::create([
+                    'name'             => $name,
+                    'customer_type'    => $customerType,
+                    'company_name'     => $companyName,
+                    'mobile'           => $mobileClean,
+                    'email'            => $email,
+                    'alternate_mobile' => $altMobile,
+                    'address'          => $address,
+                    'city'             => $city,
+                    'state'            => $state,
+                    'country'          => $country ?: 'India',
+                    'pincode'          => $pincode,
+                    'status'           => 1,
+                    'created_by'       => $userId,
+                ]);
+                $imported++;
+            }
+        }
+
+        $msg = "Import completed: {$imported} new customer(s) created, {$updated} existing updated.";
+        if ($skipped > 0) {
+            $msg .= " ({$skipped} invalid/empty row(s) skipped).";
+        }
+
+        return response()->json([
+            'status'  => true,
+            'message' => $msg,
+            'details' => [
+                'imported' => $imported,
+                'updated'  => $updated,
+                'skipped'  => $skipped,
+            ]
+        ]);
+    }
+
     private function getCustomFieldsRules()
     {
         $customFields = CustomerCustomField::where('status', 1)->get();

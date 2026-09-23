@@ -492,9 +492,9 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
     Route::post('customers/import', [CustomerController::class, 'import'])
         ->middleware('permission:customers.create')
         ->name('customers.import');
-    Route::get('customers/download-sample-csv', [CustomerController::class, 'downloadSampleCsv'])
+    Route::get('customers/download-sample-excel', [CustomerController::class, 'downloadSampleExcel'])
         ->middleware('permission:customers.view')
-        ->name('customers.sample-csv');
+        ->name('customers.sample-excel');
 
     // Credit Requests routes
     Route::get('credit-requests', [\App\Http\Controllers\CreditRequestController::class, 'index'])
