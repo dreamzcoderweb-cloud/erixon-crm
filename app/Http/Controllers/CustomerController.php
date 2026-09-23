@@ -96,7 +96,7 @@ class CustomerController extends Controller
     {
         $request = $request ?? request();
 
-        $query = Customer::forUser(Auth::user());
+        $query = Customer::forUser(Auth::user())->qualifiedForCustomerList();
 
         if ($request->filled('customer_type')) {
             $query->where('customer_type', $request->input('customer_type'));
@@ -149,7 +149,7 @@ class CustomerController extends Controller
             ->orderBy('customer_id', 'DESC')
             ->get();
 
-        $baseCountQuery = Customer::forUser(Auth::user());
+        $baseCountQuery = Customer::forUser(Auth::user())->qualifiedForCustomerList();
 
         if ($request->filled('status') && $request->input('status') !== '') {
             $baseCountQuery->where('status', $request->input('status'));
@@ -341,6 +341,7 @@ class CustomerController extends Controller
         }
 
         $customers = Customer::forUser(Auth::user())
+            ->qualifiedForCustomerList()
             ->where(function ($q) use ($query) {
                 $q->where('name', 'LIKE', "%{$query}%")
                   ->orWhere('mobile', 'LIKE', "%{$query}%")
@@ -362,7 +363,7 @@ class CustomerController extends Controller
      */
     public function export(Request $request)
     {
-        $query = Customer::forUser(Auth::user());
+        $query = Customer::forUser(Auth::user())->qualifiedForCustomerList();
 
         if ($request->filled('customer_type')) {
             $query->where('customer_type', $request->input('customer_type'));

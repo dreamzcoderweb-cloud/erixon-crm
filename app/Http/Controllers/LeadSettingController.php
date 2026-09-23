@@ -56,6 +56,14 @@ class LeadSettingController extends Controller
             $savedColumns = array_values(array_filter($savedColumns, function ($key) use ($allAvailableFields) {
                 return isset($allAvailableFields[$key]);
             }));
+            if (!in_array('lead_title', $savedColumns)) {
+                $custIndex = array_search('customer', $savedColumns);
+                if ($custIndex !== false) {
+                    array_splice($savedColumns, $custIndex, 0, 'lead_title');
+                } else {
+                    array_unshift($savedColumns, 'lead_title');
+                }
+            }
         }
 
         $data['setting']            = $setting;

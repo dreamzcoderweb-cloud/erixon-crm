@@ -166,4 +166,20 @@ class Customer extends Authenticatable
               });
         });
     }
+
+    /**
+     * Scope customers who qualify for the customer list:
+     * If a customer has leads, at least one lead must be in the "Sale closed" stage.
+     * Customers without any leads (direct customers) are also included.
+     */
+    public function scopeQualifiedForCustomerList($query)
+    {
+        return $query->where(function ($q) {
+            $q->doesntHave('leads')
+              ->orWhereHas('leads.leadStage', function ($sq) {
+                  $sq->whereRaw('LOWER(name) LIKE ?', ['%sale%close%']);
+              });
+        });
+    }
 }
+

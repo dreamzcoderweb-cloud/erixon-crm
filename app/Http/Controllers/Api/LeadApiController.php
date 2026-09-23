@@ -391,7 +391,12 @@ class LeadApiController extends Controller
 
         // 3. Build validation rules for all Admin Lead Modal fields
         $baseRules = [
-            'customer_id'         => ['required', 'exists:customers,customer_id'],
+            'customer_id'         => ['nullable', 'exists:customers,customer_id'],
+            'customer_name'       => ['nullable', 'string', 'max:255'],
+            'name'                => ['nullable', 'string', 'max:255'],
+            'customer_type'       => ['nullable', 'in:user,reseller'],
+            'mobile'              => ['nullable', 'string', 'max:20'],
+            'email'               => ['nullable', 'email', 'max:255'],
             'lead_title'          => ['required', 'string', 'max:255'],
             'lead_source_id'      => ['nullable', 'exists:lead_sources,lead_sources_id'],
             'lead_stage_id'       => ['nullable', 'exists:lead_stages,lead_stage_id'],
@@ -408,6 +413,11 @@ class LeadApiController extends Controller
 
         $baseAttributes = [
             'customer_id'         => 'Customer',
+            'customer_name'       => 'Customer Name',
+            'name'                => 'Customer Name',
+            'mobile'              => 'Mobile Number',
+            'email'               => 'Email Address',
+            'customer_type'       => 'Customer Type',
             'lead_title'          => 'Lead Title',
             'lead_source_id'      => 'Lead Source',
             'lead_stage_id'       => 'Lead Stage',
@@ -440,6 +450,62 @@ class LeadApiController extends Controller
 
         $validated = $validator->validated();
 
+        // Stage logic: hide/nullify lost_reason_id & next_followup_date
+        $lostReasonId = !empty($validated['lost_reason_id']) ? (int) $validated['lost_reason_id'] : null;
+        $nextFollowupDate = !empty($validated['next_followup_date']) ? $validated['next_followup_date'] : null;
+        $isSaleClosed = false;
+
+        if (!empty($validated['lead_stage_id'])) {
+            $stage = LeadStage::find($validated['lead_stage_id']);
+            if ($stage) {
+                $stageName = strtolower(trim($stage->name));
+                $isSaleClosed = str_contains($stageName, 'sale') && str_contains($stageName, 'close');
+                $isSharedProposal = str_contains($stageName, 'shared proposal');
+
+                if ($isSaleClosed || $isSharedProposal) {
+                    $lostReasonId = null;
+                }
+                if ($isSaleClosed) {
+                    $nextFollowupDate = null;
+                }
+            }
+        }
+
+        // Resolve or create Customer only when lead stage is "Sale closed"
+        $customerId = null;
+        $custName = trim((string) ($request->input('customer_name') ?? $request->input('name') ?? ''));
+        $custMobile = trim((string) $request->input('mobile', ''));
+        $custEmail = $request->filled('email') ? trim((string) $request->input('email')) : null;
+        $custType = in_array(strtolower((string) $request->input('customer_type')), ['reseller'], true) ? 'reseller' : 'user';
+
+        if (!empty($validated['customer_id'])) {
+            $customer = Customer::find($validated['customer_id']);
+        } else {
+            $customer = !empty($custMobile) ? Customer::where('mobile', $custMobile)->first() : null;
+        }
+
+        if (!$customer && !empty($custMobile)) {
+            $customer = Customer::create([
+                'name'          => !empty($custName) ? $custName : 'Lead Customer',
+                'customer_type' => $custType,
+                'mobile'        => $custMobile,
+                'email'         => $custEmail,
+                'status'        => 1,
+                'created_by'    => $user ? $user->id : null,
+            ]);
+        } elseif ($customer) {
+            $updateCust = [];
+            if (!empty($custName)) $updateCust['name'] = $custName;
+            $updateCust['customer_type'] = $custType;
+            if (!empty($custMobile)) $updateCust['mobile'] = $custMobile;
+            if ($custEmail !== null) $updateCust['email'] = $custEmail;
+            $customer->update($updateCust);
+        }
+
+        if (!empty($customer)) {
+            $customerId = $customer->customer_id;
+        }
+
         // Normalize checkboxes and format in custom_fields
         $processedCustomFields = $this->processCustomFieldsPayload($customFieldsInput);
 
@@ -453,7 +519,11 @@ class LeadApiController extends Controller
             : ($user ? $user->id : null);
 
         $lead = Lead::create([
-            'customer_id'         => (int) $validated['customer_id'],
+            'customer_id'         => $customerId,
+            'customer_name'       => !empty($custName) ? $custName : null,
+            'customer_type'       => $custType,
+            'mobile'              => !empty($custMobile) ? $custMobile : null,
+            'email'               => $custEmail,
             'lead_title'          => trim((string) $validated['lead_title']),
             'lead_source_id'      => !empty($validated['lead_source_id']) ? (int) $validated['lead_source_id'] : null,
             'lead_stage_id'       => !empty($validated['lead_stage_id']) ? (int) $validated['lead_stage_id'] : null,
@@ -462,9 +532,9 @@ class LeadApiController extends Controller
             'priority'            => $priority,
             'expected_amount'     => isset($validated['expected_amount']) && $validated['expected_amount'] !== '' ? $validated['expected_amount'] : null,
             'description'         => !empty($validated['description']) ? $validated['description'] : null,
-            'next_followup_date'  => !empty($validated['next_followup_date']) ? $validated['next_followup_date'] : null,
+            'next_followup_date'  => $nextFollowupDate,
             'status'              => $status,
-            'lost_reason_id'      => !empty($validated['lost_reason_id']) ? (int) $validated['lost_reason_id'] : null,
+            'lost_reason_id'      => $lostReasonId,
             'created_by'          => $createdBy,
             'custom_fields'       => !empty($processedCustomFields) ? $processedCustomFields : null,
         ]);
@@ -784,6 +854,76 @@ class LeadApiController extends Controller
         }
         if ($request->has('lost_reason_id')) {
             $updateData['lost_reason_id'] = $request->filled('lost_reason_id') ? (int) $request->input('lost_reason_id') : null;
+        }
+
+        // Update customer fields on lead
+        if ($request->has('customer_name') || $request->has('name')) {
+            $updateData['customer_name'] = trim((string) ($request->input('customer_name') ?? $request->input('name')));
+        }
+        if ($request->has('customer_type')) {
+            $updateData['customer_type'] = in_array(strtolower((string) $request->input('customer_type')), ['reseller'], true) ? 'reseller' : 'user';
+        }
+        if ($request->has('mobile')) {
+            $updateData['mobile'] = trim((string) $request->input('mobile'));
+        }
+        if ($request->has('email')) {
+            $updateData['email'] = $request->filled('email') ? trim((string) $request->input('email')) : null;
+        }
+
+        // Stage logic: hide/nullify lost_reason_id & next_followup_date
+        $activeStageId = array_key_exists('lead_stage_id', $updateData) ? $updateData['lead_stage_id'] : $lead->lead_stage_id;
+        $isSaleClosed = false;
+        if (!empty($activeStageId)) {
+            $stage = LeadStage::find($activeStageId);
+            if ($stage) {
+                $stageName = strtolower(trim($stage->name));
+                $isSaleClosed = str_contains($stageName, 'sale') && str_contains($stageName, 'close');
+                $isSharedProposal = str_contains($stageName, 'shared proposal');
+
+                if ($isSaleClosed || $isSharedProposal) {
+                    $updateData['lost_reason_id'] = null;
+                }
+                if ($isSaleClosed) {
+                    $updateData['next_followup_date'] = null;
+                }
+            }
+        }
+
+        // Logic: Customer is ONLY added to customer table/menu when lead stage is "Sale closed"
+        $currentCustName = $updateData['customer_name'] ?? $lead->customer_name;
+        $currentCustType = $updateData['customer_type'] ?? ($lead->customer_type ?? 'user');
+        $currentCustMobile = $updateData['mobile'] ?? $lead->mobile;
+        $currentCustEmail = array_key_exists('email', $updateData) ? $updateData['email'] : $lead->email;
+        $customerId = $updateData['customer_id'] ?? $lead->customer_id;
+
+        $customer = null;
+        if ($customerId) {
+            $customer = Customer::find($customerId);
+        }
+        if (!$customer && !empty($currentCustMobile)) {
+            $customer = Customer::where('mobile', $currentCustMobile)->first();
+        }
+
+        if (!$customer && !empty($currentCustMobile)) {
+            $customer = Customer::create([
+                'name'          => !empty($currentCustName) ? $currentCustName : 'Lead Customer',
+                'customer_type' => $currentCustType,
+                'mobile'        => $currentCustMobile,
+                'email'         => $currentCustEmail,
+                'status'        => 1,
+                'created_by'    => $user ? $user->id : null,
+            ]);
+        } elseif ($customer) {
+            $updateCust = [];
+            if (!empty($currentCustName)) $updateCust['name'] = $currentCustName;
+            $updateCust['customer_type'] = $currentCustType;
+            if (!empty($currentCustMobile)) $updateCust['mobile'] = $currentCustMobile;
+            if ($currentCustEmail !== null) $updateCust['email'] = $currentCustEmail;
+            $customer->update($updateCust);
+        }
+
+        if ($customer) {
+            $updateData['customer_id'] = $customer->customer_id;
         }
 
         $lead->update($updateData);

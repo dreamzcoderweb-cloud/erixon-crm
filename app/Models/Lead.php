@@ -16,6 +16,10 @@ class Lead extends Model
 
     protected $fillable = [
         'customer_id',
+        'customer_name',
+        'customer_type',
+        'mobile',
+        'email',
         'lead_title',
         'lead_source_id',
         'lead_stage_id',

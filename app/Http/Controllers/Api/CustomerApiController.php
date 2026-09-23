@@ -336,7 +336,7 @@ class CustomerApiController extends Controller
             'creator:id,name,email',
             'owner:id,name,email',
             'assignedBy:id,name,email',
-        ])->orderBy('customer_id', 'desc');
+        ])->qualifiedForCustomerList()->orderBy('customer_id', 'desc');
 
         if ($user) {
             $query->forUser($user);

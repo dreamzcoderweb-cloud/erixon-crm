@@ -38,10 +38,14 @@ $(document).ready(function () {
             } else if (key === 'customer') {
                 leadTableColumns.push({
                     data: 'customer',
-                    render: function (data, type) {
-                        if (!data) return type !== 'display' ? 'N/A' : '<span class="text-muted">N/A</span>';
-                        if (type !== 'display') return `${data.name} (${data.mobile})`;
-                        return `<div><strong>${data.name}</strong><br><small class="text-muted">${data.mobile}</small></div>`;
+                    render: function (data, type, row) {
+                        let name = row.customer_name || (data ? data.name : null);
+                        let mobile = row.mobile || (data ? data.mobile : null);
+                        if (!name && !mobile) return type !== 'display' ? 'N/A' : '<span class="text-muted">N/A</span>';
+                        let mobileDisplay = mobile ? `<br><small class="text-muted">${mobile}</small>` : '';
+                        let textDisplay = mobile ? `${name} (${mobile})` : (name || 'N/A');
+                        if (type !== 'display') return textDisplay;
+                        return `<div><strong>${name || 'N/A'}</strong>${mobileDisplay}</div>`;
                     }
                 });
             } else if (key === 'lead_source') {
@@ -303,12 +307,68 @@ $(document).ready(function () {
         });
     }
 
+    // Dynamic toggle for Lost Reason and Next Follow-up Date based on Lead Stage
+    function handleLeadStageChanges(stageSelect, lostReasonGroup, lostReasonSelect, followupGroup, followupInput) {
+        let selectedOption = stageSelect.find('option:selected');
+        let stageName = (selectedOption.data('name') || selectedOption.text() || '').toLowerCase().trim();
+
+        let isSaleClosed = stageName.indexOf('sale') !== -1 && stageName.indexOf('close') !== -1;
+        let isSharedProposal = stageName.indexOf('shared proposal') !== -1;
+
+        // Lost reason dropdown hide if Sale closed or Shared Proposal
+        if (isSaleClosed || isSharedProposal) {
+            lostReasonGroup.addClass('d-none');
+            lostReasonSelect.val('');
+        } else {
+            lostReasonGroup.removeClass('d-none');
+        }
+
+        // Next followup date hide if Sale closed
+        if (isSaleClosed) {
+            followupGroup.addClass('d-none');
+            followupInput.val('');
+        } else {
+            followupGroup.removeClass('d-none');
+        }
+    }
+
+    // Attach stage change handlers
+    $('#add_lead_stage_id').on('change', function () {
+        handleLeadStageChanges(
+            $(this),
+            $('#add_lost_reason_group'),
+            $('#add_lost_reason_id'),
+            $('#add_next_followup_group'),
+            $('#add_next_followup_date')
+        );
+    });
+
+    $('#edit_lead_stage_id').on('change', function () {
+        handleLeadStageChanges(
+            $(this),
+            $('#edit_lost_reason_group'),
+            $('#edit_lost_reason_id'),
+            $('#edit_next_followup_group'),
+            $('#edit_lead_next_followup_date')
+        );
+    });
+
     // Reset validation errors on modal hide
     $('.modal').on('hidden.bs.modal', function () {
         let form = $(this).find('form');
         if (form.length) {
             clearValidationErrors(form);
         }
+    });
+
+    $('#addLeadModal').on('show.bs.modal', function () {
+        handleLeadStageChanges(
+            $('#add_lead_stage_id'),
+            $('#add_lost_reason_group'),
+            $('#add_lost_reason_id'),
+            $('#add_next_followup_group'),
+            $('#add_next_followup_date')
+        );
     });
 
     // Add Lead Form Submit
@@ -330,6 +390,13 @@ $(document).ready(function () {
                 if (response.status) {
                     $('#addLeadModal').modal('hide');
                     form[0].reset();
+                    handleLeadStageChanges(
+                        $('#add_lead_stage_id'),
+                        $('#add_lost_reason_group'),
+                        $('#add_lost_reason_id'),
+                        $('#add_next_followup_group'),
+                        $('#add_next_followup_date')
+                    );
                     leadTable.ajax.reload(null, false);
                     showAlert('success', response.message);
                 }
@@ -360,8 +427,19 @@ $(document).ready(function () {
             success: function (response) {
                 if (response.status) {
                     let lead = response.data;
+                    let cust = lead.customer || {};
+                    let custName = lead.customer_name || cust.name || '';
+                    let custType = lead.customer_type || cust.customer_type || 'user';
+                    let custMobile = lead.mobile || cust.mobile || '';
+                    let custEmail = lead.email || cust.email || '';
+
                     $('#edit_lead_id').val(lead.lead_id);
-                    $('#edit_lead_customer_id').val(lead.customer_id);
+                    $('#edit_lead_customer_id').val(lead.customer_id || '');
+                    $('#edit_lead_customer_name').val(custName);
+                    $('#edit_lead_customer_type').val(custType);
+                    $('#edit_lead_mobile').val(custMobile);
+                    $('#edit_lead_email').val(custEmail);
+
                     $('#edit_lead_title').val(lead.lead_title);
                     $('#edit_lead_source_id').val(lead.lead_source_id || '');
                     $('#edit_lead_stage_id').val(lead.lead_stage_id || '');
@@ -373,6 +451,15 @@ $(document).ready(function () {
                     $('#edit_lead_next_followup_date').val(lead.next_followup_date || '');
                     $('#edit_lead_description').val(lead.description || '');
                     $('#edit_lead_status').val(lead.status);
+
+                    // Trigger stage dynamic visibility in Edit modal
+                    handleLeadStageChanges(
+                        $('#edit_lead_stage_id'),
+                        $('#edit_lost_reason_group'),
+                        $('#edit_lost_reason_id'),
+                        $('#edit_next_followup_group'),
+                        $('#edit_lead_next_followup_date')
+                    );
 
                     // Reset and populate custom fields
                     form.find('[name^="custom_fields["]').val('');
@@ -399,6 +486,7 @@ $(document).ready(function () {
             }
         });
     });
+
 
     // Update Lead Form Submit
     $('#editLeadForm').on('submit', function (e) {

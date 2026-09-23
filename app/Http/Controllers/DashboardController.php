@@ -29,9 +29,9 @@ class DashboardController extends Controller
         }
 
         // 1. Customers Module
-        $data['totalcustomers']    = Customer::forUser($user)->count();
-        $data['activecustomers']   = Customer::forUser($user)->where('status', 1)->count();
-        $data['inactivecustomers'] = Customer::forUser($user)->where('status', 0)->count();
+        $data['totalcustomers']    = Customer::forUser($user)->qualifiedForCustomerList()->count();
+        $data['activecustomers']   = Customer::forUser($user)->qualifiedForCustomerList()->where('status', 1)->count();
+        $data['inactivecustomers'] = Customer::forUser($user)->qualifiedForCustomerList()->where('status', 0)->count();
 
         // 2. Staff Module (Excluding Admin / Super Admin)
         $data['totalstaff'] = User::whereDoesntHave('roles', function ($query) {
@@ -88,7 +88,7 @@ class DashboardController extends Controller
         })->count();
 
         // Recent Records
-        $data['recentCustomers'] = Customer::forUser($user)->latest('customer_id')->take(5)->get();
+        $data['recentCustomers'] = Customer::forUser($user)->qualifiedForCustomerList()->latest('customer_id')->take(5)->get();
         $data['recentLeads']     = Lead::forUser($user)->with(['customer', 'leadStage', 'assignedUser'])->latest('lead_id')->take(5)->get();
 
         $data['popularRequirements'] = LeadRequirement::withCount(['leads' => function ($q) use ($user) {

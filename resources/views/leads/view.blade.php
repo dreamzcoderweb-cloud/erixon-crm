@@ -82,7 +82,7 @@
                             </select>
                         </div>
 
-                        <div class="col-md-3">
+                        {{-- <div class="col-md-3">
                             <label class="form-label fw-semibold">Customer</label>
                             <select name="customer_id" id="lead_filter_customer_id" class="form-select form-select-sm select2-search">
                                 <option value="">-- All Customers --</option>
@@ -92,7 +92,7 @@
                                     @endforeach
                                 @endif
                             </select>
-                        </div>
+                        </div> --}}
 
                         <div class="col-md-3">
                             <label class="form-label fw-semibold">Source</label>
@@ -176,13 +176,26 @@
                     <div class="modal-body">
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label">Customer <span class="text-danger">*</span></label>
-                                <select name="customer_id" class="form-select" required>
-                                    <option value="">-- Select Customer --</option>
-                                    @foreach ($customers as $cust)
-                                        <option value="{{ $cust->customer_id }}">{{ $cust->name }} ({{ $cust->mobile }})</option>
-                                    @endforeach
+                                <label class="form-label">Customer Name <span class="text-danger">*</span></label>
+                                <input type="text" name="customer_name" id="add_lead_customer_name" class="form-control" placeholder="Enter customer name" required>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Customer Type <span class="text-danger">*</span></label>
+                                <select name="customer_type" id="add_lead_customer_type" class="form-select" required>
+                                    <option value="user" selected>User</option>
+                                    <option value="reseller">Reseller</option>
                                 </select>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Mobile <span class="text-danger">*</span></label>
+                                <input type="text" name="mobile" id="add_lead_mobile" class="form-control" placeholder="Enter mobile number" required>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Email</label>
+                                <input type="email" name="email" id="add_lead_email" class="form-control" placeholder="Enter email address">
                                 <div class="invalid-feedback"></div>
                             </div>
                             <div class="col-md-6">
@@ -225,9 +238,9 @@
                                 <input type="number" step="0.01" name="expected_amount" class="form-control" placeholder="0.00">
                                 <div class="invalid-feedback"></div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-4" id="add_next_followup_group">
                                 <label class="form-label">Next Follow-up Date</label>
-                                <input type="date" name="next_followup_date" class="form-control">
+                                <input type="date" name="next_followup_date" id="add_next_followup_date" class="form-control">
                                 <div class="invalid-feedback"></div>
                             </div>
                             <div class="col-md-12">
@@ -235,17 +248,17 @@
                                 <textarea name="description" class="form-control" rows="3" placeholder="Enter lead details or requirements"></textarea>
                                 <div class="invalid-feedback"></div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-4" id="add_lead_stage_group">
                                 <label class="form-label">Lead Stage</label>
-                                <select name="lead_stage_id" class="form-select">
+                                <select name="lead_stage_id" id="add_lead_stage_id" class="form-select">
                                     <option value="">-- Select Stage --</option>
                                     @foreach ($leadStages as $stg)
-                                        <option value="{{ $stg->lead_stage_id }}">{{ $stg->name }}</option>
+                                        <option value="{{ $stg->lead_stage_id }}" data-name="{{ strtolower($stg->name) }}">{{ $stg->name }}</option>
                                     @endforeach
                                 </select>
                                 <div class="invalid-feedback"></div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-4" id="add_lead_requirement_group">
                                 <label class="form-label">Lead Requirement</label>
                                 <select name="lead_requirement_id" class="form-select">
                                     <option value="">-- Select Requirement --</option>
@@ -255,9 +268,9 @@
                                 </select>
                                 <div class="invalid-feedback"></div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-4" id="add_lost_reason_group">
                                 <label class="form-label">Lost Reason</label>
-                                <select name="lost_reason_id" class="form-select">
+                                <select name="lost_reason_id" id="add_lost_reason_id" class="form-select">
                                     <option value="">-- Select Lost Reason --</option>
                                     @foreach ($lostReasons as $lr)
                                         <option value="{{ $lr->lost_reason_id }}">{{ $lr->reason }}</option>
@@ -352,14 +365,28 @@
                     </div>
                     <div class="modal-body">
                         <div class="row g-3">
+                            <input type="hidden" name="customer_id" id="edit_lead_customer_id">
                             <div class="col-md-6">
-                                <label class="form-label">Customer <span class="text-danger">*</span></label>
-                                <select name="customer_id" id="edit_lead_customer_id" class="form-select" required>
-                                    <option value="">-- Select Customer --</option>
-                                    @foreach ($customers as $cust)
-                                        <option value="{{ $cust->customer_id }}">{{ $cust->name }} ({{ $cust->mobile }})</option>
-                                    @endforeach
+                                <label class="form-label">Customer Name <span class="text-danger">*</span></label>
+                                <input type="text" name="customer_name" id="edit_lead_customer_name" class="form-control" placeholder="Enter customer name" required>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Customer Type <span class="text-danger">*</span></label>
+                                <select name="customer_type" id="edit_lead_customer_type" class="form-select" required>
+                                    <option value="user">User</option>
+                                    <option value="reseller">Reseller</option>
                                 </select>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Mobile <span class="text-danger">*</span></label>
+                                <input type="text" name="mobile" id="edit_lead_mobile" class="form-control" placeholder="Enter mobile number" required>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Email</label>
+                                <input type="email" name="email" id="edit_lead_email" class="form-control" placeholder="Enter email address">
                                 <div class="invalid-feedback"></div>
                             </div>
                             <div class="col-md-6">
@@ -402,7 +429,7 @@
                                 <input type="number" step="0.01" name="expected_amount" id="edit_lead_expected_amount" class="form-control" placeholder="0.00">
                                 <div class="invalid-feedback"></div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-4" id="edit_next_followup_group">
                                 <label class="form-label">Next Follow-up Date</label>
                                 <input type="date" name="next_followup_date" id="edit_lead_next_followup_date" class="form-control">
                                 <div class="invalid-feedback"></div>
@@ -412,17 +439,17 @@
                                 <textarea name="description" id="edit_lead_description" class="form-control" rows="3" placeholder="Enter lead details"></textarea>
                                 <div class="invalid-feedback"></div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-4" id="edit_lead_stage_group">
                                 <label class="form-label">Lead Stage</label>
                                 <select name="lead_stage_id" id="edit_lead_stage_id" class="form-select">
                                     <option value="">-- Select Stage --</option>
                                     @foreach ($leadStages as $stg)
-                                        <option value="{{ $stg->lead_stage_id }}">{{ $stg->name }}</option>
+                                        <option value="{{ $stg->lead_stage_id }}" data-name="{{ strtolower($stg->name) }}">{{ $stg->name }}</option>
                                     @endforeach
                                 </select>
                                 <div class="invalid-feedback"></div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-4" id="edit_lead_requirement_group">
                                 <label class="form-label">Lead Requirement</label>
                                 <select name="lead_requirement_id" id="edit_lead_requirement_id" class="form-select">
                                     <option value="">-- Select Requirement --</option>
@@ -432,7 +459,7 @@
                                 </select>
                                 <div class="invalid-feedback"></div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-4" id="edit_lost_reason_group">
                                 <label class="form-label">Lost Reason</label>
                                 <select name="lost_reason_id" id="edit_lost_reason_id" class="form-select">
                                     <option value="">-- Select Lost Reason --</option>

@@ -23,7 +23,7 @@ class LeadController extends Controller
         $user = Auth::user();
         $isAdmin = $user->isAdmin();
 
-        $data['customers']        = Customer::forUser($user)->where('status', 1)->orderBy('name')->get();
+        $data['customers']        = Customer::forUser($user)->where('status', 1)->whereHas('leads')->orderBy('name')->get();
         $data['leadSources']      = LeadSource::where('status', 1)->orderBy('name')->get();
         $data['leadStages']       = LeadStage::where('status', 1)->orderBy('sort_order', 'ASC')->get();
         $data['leadRequirements'] = LeadRequirement::where('status', 1)->orderBy('name')->get();
@@ -74,6 +74,14 @@ class LeadController extends Controller
             $savedColumns = array_values(array_filter($savedColumns, function ($key) use ($allAvailableFieldsMap) {
                 return isset($allAvailableFieldsMap[$key]);
             }));
+            if (!in_array('lead_title', $savedColumns)) {
+                $custIndex = array_search('customer', $savedColumns);
+                if ($custIndex !== false) {
+                    array_splice($savedColumns, $custIndex, 0, 'lead_title');
+                } else {
+                    array_unshift($savedColumns, 'lead_title');
+                }
+            }
         }
 
         $visibleColumns = [];
@@ -152,7 +160,7 @@ class LeadController extends Controller
         }
 
         $leads = (clone $query)->with([
-            'customer:customer_id,name,mobile,email',
+            'customer:customer_id,customer_type,name,mobile,email',
             'leadSource:lead_sources_id,name',
             'leadStage:lead_stage_id,name',
             'leadRequirement:lead_requirements_id,name',
@@ -219,7 +227,11 @@ class LeadController extends Controller
         [$customRules, $customAttributes] = $this->getCustomFieldsRules();
 
         $baseRules = [
-            'customer_id'         => ['required', 'exists:customers,customer_id'],
+            'customer_name'       => ['required', 'string', 'max:255'],
+            'customer_type'       => ['required', 'in:user,reseller'],
+            'mobile'              => ['required', 'string', 'max:20'],
+            'email'               => ['nullable', 'email', 'max:255'],
+            'customer_id'         => ['nullable', 'exists:customers,customer_id'],
             'lead_title'          => ['required', 'string', 'max:255'],
             'lead_source_id'      => ['nullable', 'exists:lead_sources,lead_sources_id'],
             'lead_stage_id'       => ['nullable', 'exists:lead_stages,lead_stage_id'],
@@ -238,6 +250,57 @@ class LeadController extends Controller
         $validated = $request->validate($rules, [], $customAttributes);
 
         $validated['custom_fields'] = $this->processCustomFieldsPayload($validated['custom_fields'] ?? []);
+
+        // Stage logic: hide/nullify lost_reason_id & next_followup_date
+        $isSaleClosed = false;
+        if (!empty($validated['lead_stage_id'])) {
+            $stage = LeadStage::find($validated['lead_stage_id']);
+            if ($stage) {
+                $stageName = strtolower(trim($stage->name));
+                $isSaleClosed = str_contains($stageName, 'sale') && str_contains($stageName, 'close');
+                $isSharedProposal = str_contains($stageName, 'shared proposal');
+
+                if ($isSaleClosed || $isSharedProposal) {
+                    $validated['lost_reason_id'] = null;
+                }
+                if ($isSaleClosed) {
+                    $validated['next_followup_date'] = null;
+                }
+            }
+        }
+
+        // Logic: Customer details are stored directly on the lead.
+        // Customer is ONLY added to customer table/menu when lead stage is "Sale closed".
+        $mobile = trim((string) $validated['mobile']);
+        $custName = trim((string) $validated['customer_name']);
+        $custType = $validated['customer_type'] ?? 'user';
+        $custEmail = !empty($validated['email']) ? trim((string) $validated['email']) : null;
+        $customerId = null;
+
+        $customer = Customer::where('mobile', $mobile)->first();
+        if (!$customer) {
+            $customer = Customer::create([
+                'name'          => $custName,
+                'customer_type' => $custType,
+                'mobile'        => $mobile,
+                'email'         => $custEmail,
+                'status'        => 1,
+                'created_by'    => $user->id,
+            ]);
+        } else {
+            $customer->update([
+                'name'          => $custName,
+                'customer_type' => $custType,
+                'email'         => $custEmail,
+            ]);
+        }
+        $customerId = $customer->customer_id;
+
+        $validated['customer_id']   = $customerId;
+        $validated['customer_name'] = $custName;
+        $validated['customer_type'] = $custType;
+        $validated['mobile']        = $mobile;
+        $validated['email']         = $custEmail;
 
         if (!$isAdmin && empty($validated['assigned_to'])) {
             $validated['assigned_to'] = $user->id;
@@ -286,7 +349,11 @@ class LeadController extends Controller
         [$customRules, $customAttributes] = $this->getCustomFieldsRules();
 
         $baseRules = [
-            'customer_id'         => ['required', 'exists:customers,customer_id'],
+            'customer_id'         => ['nullable', 'exists:customers,customer_id'],
+            'customer_name'       => ['sometimes', 'required', 'string', 'max:255'],
+            'customer_type'       => ['sometimes', 'required', 'in:user,reseller'],
+            'mobile'              => ['sometimes', 'required', 'string', 'max:20'],
+            'email'               => ['nullable', 'email', 'max:255'],
             'lead_title'          => ['required', 'string', 'max:255'],
             'lead_source_id'      => ['nullable', 'exists:lead_sources,lead_sources_id'],
             'lead_stage_id'       => ['nullable', 'exists:lead_stages,lead_stage_id'],
@@ -305,6 +372,69 @@ class LeadController extends Controller
         $validated = $request->validate($rules, [], $customAttributes);
 
         $validated['custom_fields'] = $this->processCustomFieldsPayload($validated['custom_fields'] ?? []);
+
+        // Stage logic: hide/nullify lost_reason_id & next_followup_date
+        $isSaleClosed = false;
+        if (!empty($validated['lead_stage_id'])) {
+            $stage = LeadStage::find($validated['lead_stage_id']);
+            if ($stage) {
+                $stageName = strtolower(trim($stage->name));
+                $isSaleClosed = str_contains($stageName, 'sale') && str_contains($stageName, 'close');
+                $isSharedProposal = str_contains($stageName, 'shared proposal');
+
+                if ($isSaleClosed || $isSharedProposal) {
+                    $validated['lost_reason_id'] = null;
+                }
+                if ($isSaleClosed) {
+                    $validated['next_followup_date'] = null;
+                }
+            }
+        }
+
+        $custName = $request->has('customer_name') ? trim((string) $validated['customer_name']) : $lead->customer_name;
+        $custType = $request->has('customer_type') ? $validated['customer_type'] : ($lead->customer_type ?? 'user');
+        $custMobile = $request->has('mobile') ? trim((string) $validated['mobile']) : $lead->mobile;
+        $custEmail = $request->has('email') ? (!empty($validated['email']) ? trim((string) $validated['email']) : null) : $lead->email;
+
+        $customerId = $lead->customer_id;
+
+        // Logic: Customer is ONLY added to customer table/menu when lead stage is "Sale closed"
+        $customer = null;
+        if ($customerId) {
+            $customer = Customer::find($customerId);
+        }
+        if (!$customer && !empty($custMobile)) {
+            $customer = Customer::where('mobile', $custMobile)->first();
+        }
+
+        if (!$customer && !empty($custMobile)) {
+            $customer = Customer::create([
+                'name'          => $custName,
+                'customer_type' => $custType,
+                'mobile'        => $custMobile,
+                'email'         => $custEmail,
+                'status'        => 1,
+                'created_by'    => Auth::id(),
+            ]);
+        } elseif ($customer) {
+            $customer->update([
+                'name'          => $custName,
+                'customer_type' => $custType,
+                'mobile'        => $custMobile,
+                'email'         => $custEmail,
+            ]);
+        }
+
+        if ($customer) {
+            $customerId = $customer->customer_id;
+        }
+
+        $validated['customer_id']   = $customerId;
+        $validated['customer_name'] = $custName;
+        $validated['customer_type'] = $custType;
+        $validated['mobile']        = $custMobile;
+        $validated['email']         = $custEmail;
+
 
         $lead->update($validated);
 
