@@ -360,39 +360,6 @@ class CustomerController extends Controller
             'new_status' => $customer->status
         ]);
     }
-
-    /**
-     * Requirement 11: Find customer by Phone number, Mail ID, or Name
-     */
-    public function search(Request $request)
-    {
-        $query = $request->input('q', '');
-
-        if (strlen($query) < 1) {
-            return response()->json([
-                'status' => true,
-                'data'   => []
-            ]);
-        }
-
-        $customers = Customer::forUser(Auth::user())
-            ->qualifiedForCustomerList()
-            ->where(function ($q) use ($query) {
-                $q->where('name', 'LIKE', "%{$query}%")
-                  ->orWhere('mobile', 'LIKE', "%{$query}%")
-                  ->orWhere('email', 'LIKE', "%{$query}%")
-                  ->orWhere('company_name', 'LIKE', "%{$query}%");
-            })
-            ->where('status', 1)
-            ->limit(20)
-            ->get(['customer_id', 'name', 'mobile', 'email', 'company_name', 'customer_type']);
-
-        return response()->json([
-            'status' => true,
-            'data'   => $customers
-        ]);
-    }
-
     /**
      * Export Customers to Excel (.xlsx)
      */

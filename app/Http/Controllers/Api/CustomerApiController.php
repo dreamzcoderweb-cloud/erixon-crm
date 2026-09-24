@@ -34,6 +34,101 @@ class CustomerApiController extends Controller
         })->values();
     }
 
+    public function search(Request $request)
+    {
+        $currentUser = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$currentUser) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+        if (!$this->hasPermission($currentUser, 'customers.view')) {
+            return $this->permissionDeniedResponse('Customer module');
+        }
+
+        $query = Customer::with([
+            'creator:id,name,email',
+            'owner:id,name,email',
+            'assignedBy:id,name,email',
+            'leadRequirement:lead_requirements_id,name',
+            'leadStage:lead_stage_id,name',
+            'latestLead.leadRequirement:lead_requirements_id,name',
+            'latestLead.leadStage:lead_stage_id,name',
+        ])->orderBy('customer_id', 'desc');
+
+        if ($currentUser) {
+            $query->forUser($currentUser);
+        }
+
+        // Normalize parameter keys and values (trim trailing/leading spaces from query parameters)
+        $params = [];
+        foreach ($request->all() as $k => $v) {
+            $params[trim((string) $k)] = is_string($v) ? trim($v) : $v;
+        }
+
+        $search = $params['search'] ?? $params['q'] ?? $params['keyword'] ?? $params['query'] ?? null;
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('company_name', 'like', "%{$search}%")
+                    ->orWhere('mobile', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('city', 'like', "%{$search}%");
+            });
+        }
+
+        $customerType = $params['customer_type'] ?? null;
+        if (!empty($customerType)) {
+            $query->where('customer_type', $customerType);
+        }
+
+        $rawStatus = $params['status'] ?? null;
+        if ($rawStatus !== '' && $rawStatus !== null) {
+            $lowerStatus = strtolower(trim((string) $rawStatus));
+            if ($lowerStatus === 'active' || $lowerStatus === '1' || $lowerStatus === 'true') {
+                $query->where('status', 1);
+            } elseif ($lowerStatus === 'inactive' || $lowerStatus === 'closed' || $lowerStatus === '0' || $lowerStatus === 'false') {
+                $query->where('status', 0);
+            }
+        }
+
+        $leadReqId = $params['lead_requirement_id'] ?? null;
+        if (!empty($leadReqId)) {
+            $query->where(function ($q) use ($leadReqId) {
+                $q->where('lead_requirement_id', $leadReqId)
+                  ->orWhereHas('leads', function ($lq) use ($leadReqId) {
+                      $lq->where('lead_requirement_id', $leadReqId);
+                  });
+            });
+        }
+
+        $leadStageId = $params['lead_stage_id'] ?? null;
+        if (!empty($leadStageId)) {
+            $query->where(function ($q) use ($leadStageId) {
+                $q->where('lead_stage_id', $leadStageId)
+                  ->orWhereHas('leads', function ($lq) use ($leadStageId) {
+                      $lq->where('lead_stage_id', $leadStageId);
+                  });
+            });
+        }
+
+        $perPage = (int) ($params['per_page'] ?? 20);
+        if ($perPage <= 0) {
+            $perPage = 20;
+        }
+        $customers = $query->paginate($perPage);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Customers retrieved successfully.',
+            'data' => $customers->items(),
+            'pagination' => [
+                'total' => $customers->total(),
+                'per_page' => $customers->perPage(),
+                'current_page' => $customers->currentPage(),
+                'last_page' => $customers->lastPage(),
+            ],
+        ]);
+    }
+
     /**
      * Get formatted customer custom fields definition.
      */

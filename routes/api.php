@@ -21,7 +21,7 @@ Route::prefix('v1')->group(function () {
         Route::post('update-fcm-token', [StaffAuthController::class, 'updateFcmToken']);
         Route::post('staff/fcm-token', [StaffAuthController::class, 'updateFcmToken']);
 
-        Route::get('customers/search', [\App\Http\Controllers\CustomerController::class, 'search']);
+        Route::get('customers/search', [CustomerApiController::class, 'search']);
 
         // Mobile App Credit Request Management & Additional Custom Fields
         Route::get('credit-requests/form-data', [CreditRequestApiController::class, 'getFormData']);
