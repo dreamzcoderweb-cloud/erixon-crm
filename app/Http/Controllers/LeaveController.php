@@ -5,18 +5,21 @@ namespace App\Http\Controllers;
 use App\Models\LeaveRequest;
 use App\Models\SalaryAdjustment;
 use App\Models\User;
+use App\Notifications\AdminLeaveRequestReceived;
 use App\Notifications\LeaveQuotaCompleted;
-use App\Notifications\LeaveRequestSubmitted;
 use App\Notifications\LeaveRequestApproved;
 use App\Notifications\LeaveRequestRejected;
-use App\Notifications\AdminLeaveRequestReceived;
+use App\Notifications\LeaveRequestSubmitted;
 use App\Services\SalaryCalculationService;
+use App\Traits\SendsPushNotifications;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class LeaveController extends Controller
 {
+    use SendsPushNotifications;
     public function index(Request $request)
     {
         if ($request->ajax() || $request->wantsJson()) {
@@ -93,26 +96,83 @@ class LeaveController extends Controller
         ]);
 
         $targetUser = User::find($targetUserId);
-        if ($targetUser) {
-            $targetUser->notify(new LeaveRequestSubmitted($leave));
-        }
 
-        $allowedLeaveDays = (float) ($targetUser?->available_leave_count ?? 0);
-        if ($targetUser && $allowedLeaveDays > 0) {
-            $month = Carbon::parse($validated['from_date']);
-            $usedLeaveDays = (float) LeaveRequest::where('user_id', $targetUser->id)
-                ->whereIn('status', ['Approved', 'Pending'])
-                ->whereDate('from_date', '<=', $month->copy()->endOfMonth())
-                ->whereDate('to_date', '>=', $month->copy()->startOfMonth())
-                ->sum('number_of_days');
+        // Dispatch notifications to target staff and Super Admins
+        try {
+            $fromDate  = Carbon::parse($leave->from_date)->format('d-m-Y');
+            $toDate    = Carbon::parse($leave->to_date)->format('d-m-Y');
+            $monthName = Carbon::parse($leave->from_date)->format('F Y');
+            $days      = $leave->number_of_days;
+            $staffName = $targetUser?->name ?? 'Staff';
+            $staffEmail = $targetUser?->email ?? '';
 
-            if ($usedLeaveDays >= $allowedLeaveDays) {
-                $targetUser->notify(new LeaveQuotaCompleted(
-                    $month->format('F'),
-                    round($usedLeaveDays, 2),
-                    $allowedLeaveDays
-                ));
+            if ($targetUser) {
+                $targetUser->notify(new LeaveRequestSubmitted($leave));
+                $this->sendPushNotification(
+                    $targetUser,
+                    'Leave Request Submitted',
+                    "Your leave request for {$fromDate} to {$toDate} ({$days} day(s)) [{$monthName}] has been submitted and is pending approval.",
+                    [
+                        'leave_id' => (string) $leave->id,
+                        'id'       => (string) $leave->id,
+                        'status'   => (string) $leave->status,
+                        'type'     => 'leave_request',
+                    ]
+                );
             }
+
+            $superAdmins = User::where(function ($q) {
+                $q->whereHas('roles', function ($rq) {
+                    $rq->whereRaw('LOWER(name) IN (?, ?, ?)', ['super admin', 'super-admin', 'admin']);
+                })->orWhere('id', 1);
+            })
+            ->where('id', '!=', Auth::id())
+            ->get();
+
+            foreach ($superAdmins as $admin) {
+                $admin->notify(new AdminLeaveRequestReceived($leave, $targetUser ?? Auth::user()));
+                $this->sendPushNotification(
+                    $admin,
+                    'New Leave Request Pending Approval',
+                    "{$staffName} ({$staffEmail}) submitted a leave request for {$fromDate} to {$toDate} ({$days} day(s)) pending approval.",
+                    [
+                        'leave_id' => (string) $leave->id,
+                        'id'       => (string) $leave->id,
+                        'status'   => (string) $leave->status,
+                        'user_id'  => (string) ($targetUser?->id ?? Auth::id()),
+                        'type'     => 'leave_request',
+                    ]
+                );
+            }
+
+            $allowedLeaveDays = (float) ($targetUser?->available_leave_count ?? 0);
+            if ($targetUser && $allowedLeaveDays > 0) {
+                $month = Carbon::parse($validated['from_date']);
+                $usedLeaveDays = (float) LeaveRequest::where('user_id', $targetUser->id)
+                    ->whereIn('status', ['Approved', 'Pending'])
+                    ->whereDate('from_date', '<=', $month->copy()->endOfMonth())
+                    ->whereDate('to_date', '>=', $month->copy()->startOfMonth())
+                    ->sum('number_of_days');
+
+                if ($usedLeaveDays >= $allowedLeaveDays) {
+                    $targetUser->notify(new LeaveQuotaCompleted(
+                        $month->format('F'),
+                        round($usedLeaveDays, 2),
+                        $allowedLeaveDays
+                    ));
+                    $this->sendPushNotification(
+                        $targetUser,
+                        'Leave Quota Alert',
+                        "You have used " . round($usedLeaveDays, 2) . " of {$allowedLeaveDays} allowed leave days for " . $month->format('F') . ".",
+                        [
+                            'type'  => 'leave_quota',
+                            'month' => $month->format('F'),
+                        ]
+                    );
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::error('LeaveController: Error dispatching notifications: ' . $e->getMessage());
         }
 
         return response()->json([
@@ -150,8 +210,28 @@ class LeaveController extends Controller
         }
 
         // Notify staff member that leave request was approved by admin
-        if ($staff) {
-            $staff->notify(new LeaveRequestApproved($leave));
+        try {
+            if ($staff) {
+                $fromDate  = Carbon::parse($leave->from_date)->format('d-m-Y');
+                $toDate    = Carbon::parse($leave->to_date)->format('d-m-Y');
+                $monthName = Carbon::parse($leave->from_date)->format('F Y');
+                $days      = $leave->number_of_days;
+
+                $staff->notify(new LeaveRequestApproved($leave));
+                $this->sendPushNotification(
+                    $staff,
+                    'Leave Request Approved',
+                    "Your leave request for {$fromDate} to {$toDate} ({$days} day(s)) [{$monthName}] has been approved by admin.",
+                    [
+                        'leave_id' => (string) $leave->id,
+                        'id'       => (string) $leave->id,
+                        'status'   => 'Approved',
+                        'type'     => 'leave_request',
+                    ]
+                );
+            }
+        } catch (\Throwable $e) {
+            Log::error('LeaveController: Error in approve notifications: ' . $e->getMessage());
         }
 
         return response()->json([
@@ -179,9 +259,29 @@ class LeaveController extends Controller
         $leave->save();
 
         // Notify staff member that leave request was rejected by admin
-        $staff = User::find($leave->user_id);
-        if ($staff) {
-            $staff->notify(new LeaveRequestRejected($leave));
+        try {
+            $staff = User::find($leave->user_id);
+            if ($staff) {
+                $fromDate  = Carbon::parse($leave->from_date)->format('d-m-Y');
+                $toDate    = Carbon::parse($leave->to_date)->format('d-m-Y');
+                $monthName = Carbon::parse($leave->from_date)->format('F Y');
+                $days      = $leave->number_of_days;
+
+                $staff->notify(new LeaveRequestRejected($leave));
+                $this->sendPushNotification(
+                    $staff,
+                    'Leave Request Rejected',
+                    "Your leave request for {$fromDate} to {$toDate} ({$days} day(s)) [{$monthName}] has been rejected by admin.",
+                    [
+                        'leave_id' => (string) $leave->id,
+                        'id'       => (string) $leave->id,
+                        'status'   => 'Rejected',
+                        'type'     => 'leave_request',
+                    ]
+                );
+            }
+        } catch (\Throwable $e) {
+            Log::error('LeaveController: Error in reject notifications: ' . $e->getMessage());
         }
 
         return response()->json([

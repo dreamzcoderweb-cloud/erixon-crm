@@ -14,7 +14,7 @@ class NotificationController extends Controller
      */
     public function index(Request $request)
     {
-        $user = Auth::user();
+        $user = $request->user() ?? Auth::user();
         if (!$user) {
             return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
         }
@@ -72,7 +72,7 @@ class NotificationController extends Controller
      */
     public function markAsRead(Request $request, $id)
     {
-        $user = Auth::user();
+        $user = $request->user() ?? Auth::user();
         if (!$user) {
             return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
         }
@@ -112,7 +112,7 @@ class NotificationController extends Controller
      */
     public function markAllAsRead(Request $request)
     {
-        $user = Auth::user();
+        $user = $request->user() ?? Auth::user();
         if (!$user) {
             return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
         }

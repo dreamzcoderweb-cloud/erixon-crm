@@ -914,6 +914,30 @@ class CreditRequestApiController extends Controller
         $creditRequest->admin_remarks = $request->input('remarks') ?? $request->input('admin_remarks', 'Request rejected.');
         $creditRequest->save();
 
+        // Dispatch push notification to requester
+        try {
+            if (!empty($creditRequest->requested_by)) {
+                $requester = User::find($creditRequest->requested_by);
+                if ($requester) {
+                    $amount = number_format((float) $creditRequest->credit_amount, 2);
+                    $customerName = $creditRequest->username ?? ($creditRequest->customer->name ?? 'Customer');
+                    $this->sendPushNotification(
+                        $requester,
+                        'Credit Request Rejected',
+                        "Your credit request of ₹{$amount} for {$customerName} has been rejected.",
+                        [
+                            'credit_request_id' => $creditRequest->credit_request_id,
+                            'id'                => $creditRequest->credit_request_id,
+                            'status'            => 'Rejected',
+                            'type'              => 'credit_request',
+                        ]
+                    );
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::error('CreditRequestApiController: Error in reject notification: ' . $e->getMessage());
+        }
+
         $fresh = $creditRequest->fresh([
             'customer:customer_id,name,mobile,email,credit_balance',
             'adminApprover:id,name',

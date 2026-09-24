@@ -104,6 +104,11 @@ Route::prefix('v1')->group(function () {
         Route::post('leave-requests/approve/{id}', [LeaveApiController::class, 'approve']);
         Route::post('leave-requests/reject/{id}', [LeaveApiController::class, 'reject']);
         Route::delete('leave-requests/delete/{id}', [LeaveApiController::class, 'destroy']);
+
+        // Mobile App Notifications
+        Route::get('notifications', [NotificationController::class, 'index']);
+        Route::post('notifications/mark-as-read/{id}', [NotificationController::class, 'markAsRead']);
+        Route::post('notifications/mark-all-as-read', [NotificationController::class, 'markAllAsRead']);
     });
 
     // Direct / Browser PDF download route with token parameter

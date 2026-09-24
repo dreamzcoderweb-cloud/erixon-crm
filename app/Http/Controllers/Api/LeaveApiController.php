@@ -11,15 +11,17 @@ use App\Notifications\LeaveRequestApproved;
 use App\Notifications\LeaveRequestRejected;
 use App\Notifications\LeaveRequestSubmitted;
 use App\Traits\HasApiPermissionCheck;
+use App\Traits\SendsPushNotifications;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class LeaveApiController extends Controller
 {
-    use HasApiPermissionCheck;
+    use HasApiPermissionCheck, SendsPushNotifications;
 
     /**
      * Dedicated endpoint returning all form metadata, options, and defaults for "Apply Leave Request" in mobile app.
@@ -335,39 +337,83 @@ class LeaveApiController extends Controller
             'status'         => 'Pending',
         ]);
 
-        // 1. Notify target staff member about submission
-        $targetUser->notify(new LeaveRequestSubmitted($leave));
+        // Dispatch notifications to target staff and Super Admins
+        try {
+            $fromDate  = Carbon::parse($leave->from_date)->format('d-m-Y');
+            $toDate    = Carbon::parse($leave->to_date)->format('d-m-Y');
+            $monthName = Carbon::parse($leave->from_date)->format('F Y');
+            $days      = $leave->number_of_days;
+            $staffName = $targetUser->name ?? 'Staff';
+            $staffEmail = $targetUser->email ?? '';
 
-        // 2. Notify Super Admins if request was submitted by staff
-        if (!$currentUser->isSuperAdmin()) {
-            $superAdmins = User::where('id', 1)->orWhereHas('roles', function ($q) {
-                $q->whereIn('name', ['Super Admin', 'super admin', 'super-admin']);
-            })->get();
+            // 1. Notify target staff member about submission
+            $targetUser->notify(new LeaveRequestSubmitted($leave));
+            $this->sendPushNotification(
+                $targetUser,
+                'Leave Request Submitted',
+                "Your leave request for {$fromDate} to {$toDate} ({$days} day(s)) [{$monthName}] has been submitted and is pending approval.",
+                [
+                    'leave_id' => (string) $leave->id,
+                    'id'       => (string) $leave->id,
+                    'status'   => (string) $leave->status,
+                    'type'     => 'leave_request',
+                ]
+            );
+
+            // 2. Notify Super Admins if request was submitted
+            $superAdmins = User::where(function ($q) {
+                $q->whereHas('roles', function ($rq) {
+                    $rq->whereRaw('LOWER(name) IN (?, ?, ?)', ['super admin', 'super-admin', 'admin']);
+                })->orWhere('id', 1);
+            })
+            ->where('id', '!=', $currentUser->id)
+            ->get();
 
             foreach ($superAdmins as $admin) {
-                if ($admin->id !== $currentUser->id) {
-                    $admin->notify(new AdminLeaveRequestReceived($leave, $targetUser));
+                $admin->notify(new AdminLeaveRequestReceived($leave, $targetUser));
+                $this->sendPushNotification(
+                    $admin,
+                    'New Leave Request Pending Approval',
+                    "{$staffName} ({$staffEmail}) submitted a leave request for {$fromDate} to {$toDate} ({$days} day(s)) pending approval.",
+                    [
+                        'leave_id' => (string) $leave->id,
+                        'id'       => (string) $leave->id,
+                        'status'   => (string) $leave->status,
+                        'user_id'  => (string) $targetUser->id,
+                        'type'     => 'leave_request',
+                    ]
+                );
+            }
+
+            // 3. Leave Quota check and notification (matching admin panel logic)
+            $allowedLeaveDays = (float) ($targetUser->available_leave_count ?? 0);
+            if ($allowedLeaveDays > 0) {
+                $month = Carbon::parse($validated['from_date']);
+                $usedLeaveDays = (float) LeaveRequest::where('user_id', $targetUser->id)
+                    ->whereIn('status', ['Approved', 'Pending'])
+                    ->whereDate('from_date', '<=', $month->copy()->endOfMonth())
+                    ->whereDate('to_date', '>=', $month->copy()->startOfMonth())
+                    ->sum('number_of_days');
+
+                if ($usedLeaveDays >= $allowedLeaveDays) {
+                    $targetUser->notify(new LeaveQuotaCompleted(
+                        $month->format('F'),
+                        round($usedLeaveDays, 2),
+                        $allowedLeaveDays
+                    ));
+                    $this->sendPushNotification(
+                        $targetUser,
+                        'Leave Quota Alert',
+                        "You have used " . round($usedLeaveDays, 2) . " of {$allowedLeaveDays} allowed leave days for " . $month->format('F') . ".",
+                        [
+                            'type'  => 'leave_quota',
+                            'month' => $month->format('F'),
+                        ]
+                    );
                 }
             }
-        }
-
-        // 3. Leave Quota check and notification (matching admin panel logic)
-        $allowedLeaveDays = (float) ($targetUser->available_leave_count ?? 0);
-        if ($allowedLeaveDays > 0) {
-            $month = Carbon::parse($validated['from_date']);
-            $usedLeaveDays = (float) LeaveRequest::where('user_id', $targetUser->id)
-                ->whereIn('status', ['Approved', 'Pending'])
-                ->whereDate('from_date', '<=', $month->copy()->endOfMonth())
-                ->whereDate('to_date', '>=', $month->copy()->startOfMonth())
-                ->sum('number_of_days');
-
-            if ($usedLeaveDays >= $allowedLeaveDays) {
-                $targetUser->notify(new LeaveQuotaCompleted(
-                    $month->format('F'),
-                    round($usedLeaveDays, 2),
-                    $allowedLeaveDays
-                ));
-            }
+        } catch (\Throwable $e) {
+            Log::error('LeaveApiController: Error dispatching notifications: ' . $e->getMessage());
         }
 
         $leave->load(['user:id,name,email,profile_image', 'approver:id,name,email']);
@@ -466,8 +512,28 @@ class LeaveApiController extends Controller
         }
 
         // Notify staff member that leave was approved
-        if ($staff) {
-            $staff->notify(new LeaveRequestApproved($leave));
+        try {
+            if ($staff) {
+                $fromDate  = Carbon::parse($leave->from_date)->format('d-m-Y');
+                $toDate    = Carbon::parse($leave->to_date)->format('d-m-Y');
+                $monthName = Carbon::parse($leave->from_date)->format('F Y');
+                $days      = $leave->number_of_days;
+
+                $staff->notify(new LeaveRequestApproved($leave));
+                $this->sendPushNotification(
+                    $staff,
+                    'Leave Request Approved',
+                    "Your leave request for {$fromDate} to {$toDate} ({$days} day(s)) [{$monthName}] has been approved by admin.",
+                    [
+                        'leave_id' => (string) $leave->id,
+                        'id'       => (string) $leave->id,
+                        'status'   => 'Approved',
+                        'type'     => 'leave_request',
+                    ]
+                );
+            }
+        } catch (\Throwable $e) {
+            Log::error('LeaveApiController: Error in approve notifications: ' . $e->getMessage());
         }
 
         $leave->load(['user:id,name,email,profile_image', 'approver:id,name,email']);
@@ -509,9 +575,29 @@ class LeaveApiController extends Controller
         $leave->save();
 
         // Notify staff member that leave was rejected
-        $staff = User::find($leave->user_id);
-        if ($staff) {
-            $staff->notify(new LeaveRequestRejected($leave));
+        try {
+            $staff = User::find($leave->user_id);
+            if ($staff) {
+                $fromDate  = Carbon::parse($leave->from_date)->format('d-m-Y');
+                $toDate    = Carbon::parse($leave->to_date)->format('d-m-Y');
+                $monthName = Carbon::parse($leave->from_date)->format('F Y');
+                $days      = $leave->number_of_days;
+
+                $staff->notify(new LeaveRequestRejected($leave));
+                $this->sendPushNotification(
+                    $staff,
+                    'Leave Request Rejected',
+                    "Your leave request for {$fromDate} to {$toDate} ({$days} day(s)) [{$monthName}] has been rejected by admin.",
+                    [
+                        'leave_id' => (string) $leave->id,
+                        'id'       => (string) $leave->id,
+                        'status'   => 'Rejected',
+                        'type'     => 'leave_request',
+                    ]
+                );
+            }
+        } catch (\Throwable $e) {
+            Log::error('LeaveApiController: Error in reject notifications: ' . $e->getMessage());
         }
 
         $leave->load(['user:id,name,email,profile_image', 'approver:id,name,email']);

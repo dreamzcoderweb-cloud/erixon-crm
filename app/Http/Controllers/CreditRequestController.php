@@ -11,12 +11,14 @@ use App\Models\User;
 use App\Notifications\CreditRequestApprovedByAdmin;
 use App\Notifications\CreditRequestApprovedByProductManager;
 use App\Notifications\CreditRequestCreatedNotification;
+use App\Traits\SendsPushNotifications;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class CreditRequestController extends Controller
 {
+    use SendsPushNotifications;
     public function index(Request $request)
     {
         if ($request->ajax() || $request->wantsJson()) {
@@ -207,9 +209,19 @@ class CreditRequestController extends Controller
 
         // Dispatch notification to Requester (Sales Staff) and Super Admins
         try {
+            $amount = number_format((float) $creditRequest->credit_amount, 2);
+            $customerName = $creditRequest->username ?? ($creditRequest->customer->name ?? 'Customer');
             $requester = Auth::user();
+            $requesterName = $requester?->name ?? 'Sales Staff';
+
             if ($requester) {
                 $requester->notify(new CreditRequestCreatedNotification($creditRequest));
+                $this->sendPushNotification(
+                    $requester,
+                    'Credit Request Submitted',
+                    "Your credit request of ₹{$amount} for {$customerName} has been submitted (Pending Admin Approval).",
+                    ['credit_request_id' => $creditRequest->credit_request_id, 'id' => $creditRequest->credit_request_id, 'status' => $creditRequest->status, 'type' => 'credit_request']
+                );
             }
 
             // Also notify Super Admins (excluding requester if requester is an admin)
@@ -223,6 +235,12 @@ class CreditRequestController extends Controller
 
             foreach ($superAdmins as $adminUser) {
                 $adminUser->notify(new CreditRequestCreatedNotification($creditRequest));
+                $this->sendPushNotification(
+                    $adminUser,
+                    'New Credit Request Pending Approval',
+                    "{$requesterName} submitted a credit request of ₹{$amount} for {$customerName} (Pending Admin Approval).",
+                    ['credit_request_id' => $creditRequest->credit_request_id, 'id' => $creditRequest->credit_request_id, 'status' => $creditRequest->status, 'type' => 'credit_request']
+                );
             }
         } catch (\Throwable $e) {
             Log::error('Error dispatching CreditRequestCreatedNotification: ' . $e->getMessage());
@@ -345,8 +363,24 @@ class CreditRequestController extends Controller
 
         $recipients = $recipients->unique('id');
 
+        $amount = number_format((float) $creditRequest->credit_amount, 2);
+        $customerName = $creditRequest->username ?? ($creditRequest->customer->name ?? 'Customer');
+
         foreach ($recipients as $recipient) {
             $recipient->notify(new CreditRequestApprovedByAdmin($creditRequest));
+
+            $isRequester = ($recipient->id == $creditRequest->requested_by);
+            $title = 'Credit Request Approved by Admin';
+            $body = $isRequester
+                ? "Your credit request of ₹{$amount} for {$customerName} has been approved by Super Admin and forwarded to Product Manager."
+                : "Super Admin approved credit request of ₹{$amount} for {$customerName}. Next, Product Manager approval is required.";
+
+            $this->sendPushNotification(
+                $recipient,
+                $title,
+                $body,
+                ['credit_request_id' => $creditRequest->credit_request_id, 'id' => $creditRequest->credit_request_id, 'status' => $creditRequest->status, 'type' => 'credit_request']
+            );
         }
 
         return response()->json([
@@ -411,8 +445,24 @@ class CreditRequestController extends Controller
 
         $recipients = $recipients->unique('id');
 
+        $amount = number_format((float) $creditRequest->credit_amount, 2);
+        $customerName = $creditRequest->username ?? ($creditRequest->customer->name ?? 'Customer');
+
         foreach ($recipients as $recipient) {
             $recipient->notify(new CreditRequestApprovedByProductManager($creditRequest));
+
+            $isRequester = ($recipient->id == $creditRequest->requested_by);
+            $title = $isRequester ? 'Credit Request Completed' : 'Credit Request Approved by Product Manager';
+            $body = $isRequester
+                ? "Your credit request of ₹{$amount} for {$customerName} has been approved by Product Manager and added to customer credit balance."
+                : "Product Manager has approved the credit request of ₹{$amount} for {$customerName}. Credit has been added to customer balance.";
+
+            $this->sendPushNotification(
+                $recipient,
+                $title,
+                $body,
+                ['credit_request_id' => $creditRequest->credit_request_id, 'id' => $creditRequest->credit_request_id, 'status' => $creditRequest->status, 'type' => 'credit_request']
+            );
         }
 
         return response()->json([
@@ -432,6 +482,30 @@ class CreditRequestController extends Controller
         $creditRequest->status        = 'Rejected';
         $creditRequest->admin_remarks = $request->input('remarks', 'Request rejected.');
         $creditRequest->save();
+
+        // Dispatch push notification to requester
+        try {
+            if (!empty($creditRequest->requested_by)) {
+                $requester = User::find($creditRequest->requested_by);
+                if ($requester) {
+                    $amount = number_format((float) $creditRequest->credit_amount, 2);
+                    $customerName = $creditRequest->username ?? ($creditRequest->customer->name ?? 'Customer');
+                    $this->sendPushNotification(
+                        $requester,
+                        'Credit Request Rejected',
+                        "Your credit request of ₹{$amount} for {$customerName} has been rejected.",
+                        [
+                            'credit_request_id' => $creditRequest->credit_request_id,
+                            'id'                => $creditRequest->credit_request_id,
+                            'status'            => 'Rejected',
+                            'type'              => 'credit_request',
+                        ]
+                    );
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::error('Error dispatching CreditRequest reject push notification: ' . $e->getMessage());
+        }
 
         return response()->json([
             'status'  => true,
