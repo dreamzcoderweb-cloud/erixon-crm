@@ -8,6 +8,8 @@ use App\Http\Controllers\Api\AttendanceApiController;
 use App\Http\Controllers\Api\CallLogApiController;
 use App\Http\Controllers\Api\DemoProcessApiController;
 use App\Http\Controllers\Api\CreditRequestApiController;
+use App\Http\Controllers\Api\LeaveApiController;
+use App\Http\Controllers\NotificationController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -93,6 +95,15 @@ Route::prefix('v1')->group(function () {
         Route::put('demo-processes/{id}', [DemoProcessApiController::class, 'update']);
         Route::delete('demo-processes/delete/{id}', [DemoProcessApiController::class, 'destroy']);
         Route::post('demo-processes/change-status/{id}', [DemoProcessApiController::class, 'changeStatus']);
+
+        // Mobile App Leave Request Management
+        Route::get('leave-requests/form-data', [LeaveApiController::class, 'getFormData']);
+        Route::get('leave-requests', [LeaveApiController::class, 'index']);
+        Route::post('leave-requests', [LeaveApiController::class, 'store']);
+        Route::get('leave-requests/{id}', [LeaveApiController::class, 'show']);
+        Route::post('leave-requests/approve/{id}', [LeaveApiController::class, 'approve']);
+        Route::post('leave-requests/reject/{id}', [LeaveApiController::class, 'reject']);
+        Route::delete('leave-requests/delete/{id}', [LeaveApiController::class, 'destroy']);
     });
 
     // Direct / Browser PDF download route with token parameter

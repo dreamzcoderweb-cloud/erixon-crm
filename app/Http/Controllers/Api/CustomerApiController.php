@@ -44,15 +44,7 @@ class CustomerApiController extends Controller
             return $this->permissionDeniedResponse('Customer module');
         }
 
-        $query = Customer::with([
-            'creator:id,name,email',
-            'owner:id,name,email',
-            'assignedBy:id,name,email',
-            'leadRequirement:lead_requirements_id,name',
-            'leadStage:lead_stage_id,name',
-            'latestLead.leadRequirement:lead_requirements_id,name',
-            'latestLead.leadStage:lead_stage_id,name',
-        ])->orderBy('customer_id', 'desc');
+        $query = Customer::orderBy('customer_id', 'desc');
 
         if ($currentUser) {
             $query->forUser($currentUser);
@@ -116,10 +108,19 @@ class CustomerApiController extends Controller
         }
         $customers = $query->paginate($perPage);
 
+        $data = collect($customers->items())->map(function ($c) {
+            return [
+                'customer_id'   => $c->customer_id,
+                'customer_name' => $c->name,
+                'email'         => $c->email,
+                'mobile'        => $c->mobile,
+            ];
+        })->values();
+
         return response()->json([
             'status' => true,
             'message' => 'Customers retrieved successfully.',
-            'data' => $customers->items(),
+            'data' => $data,
             'pagination' => [
                 'total' => $customers->total(),
                 'per_page' => $customers->perPage(),
