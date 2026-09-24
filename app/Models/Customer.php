@@ -34,6 +34,8 @@ class Customer extends Authenticatable
         'created_by',
         'owner_by',
         'assign_by',
+        'lead_requirement_id',
+        'lead_stage_id',
         'status',
         'credit_balance',
         'password',
@@ -62,6 +64,8 @@ class Customer extends Authenticatable
         'assign_name',
         'assigned_by_name',
         'creator_name',
+        'lead_requirement_name',
+        'lead_stage_name',
     ];
 
     public function getOwnerByNameAttribute()
@@ -137,6 +141,26 @@ class Customer extends Authenticatable
     public function payments()
     {
         return $this->hasMany(Payment::class, 'customer_id', 'customer_id');
+    }
+
+    public function leadRequirement()
+    {
+        return $this->belongsTo(LeadRequirement::class, 'lead_requirement_id', 'lead_requirements_id');
+    }
+
+    public function leadStage()
+    {
+        return $this->belongsTo(LeadStage::class, 'lead_stage_id', 'lead_stage_id');
+    }
+
+    public function getLeadRequirementNameAttribute()
+    {
+        return $this->leadRequirement?->name ?? $this->latestLead?->leadRequirement?->name;
+    }
+
+    public function getLeadStageNameAttribute()
+    {
+        return $this->leadStage?->name ?? $this->latestLead?->leadStage?->name;
     }
 
     /**

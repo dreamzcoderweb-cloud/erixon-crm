@@ -6,6 +6,8 @@ use App\Models\Customer;
 use App\Models\User;
 use App\Models\CustomerCustomField;
 use App\Models\LeadSetting;
+use App\Models\LeadRequirement;
+use App\Models\LeadStage;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -31,6 +33,8 @@ class CustomerController extends Controller
 
         $allUsers = User::orderBy('name')->get();
         $customFields = CustomerCustomField::where('status', 1)->orderBy('sort_order', 'asc')->orderBy('id', 'asc')->get();
+        $leadRequirements = LeadRequirement::where('status', 1)->orderBy('name')->get();
+        $leadStages = LeadStage::where('status', 1)->orderBy('sort_order')->orderBy('name')->get();
 
         $standardFields = [
             'customer_type'    => 'Type',
@@ -89,7 +93,7 @@ class CustomerController extends Controller
             }
         }
 
-        return view('customers.view', compact('staffs', 'allUsers', 'customFields', 'visibleColumns'));
+        return view('customers.view', compact('staffs', 'allUsers', 'customFields', 'visibleColumns', 'leadRequirements', 'leadStages'));
     }
 
     public function listData(Request $request = null)
@@ -108,6 +112,16 @@ class CustomerController extends Controller
 
         if ($request->filled('created_by')) {
             $query->where('created_by', $request->input('created_by'));
+        }
+
+        if ($request->filled('lead_requirement_id')) {
+            $leadReqId = $request->input('lead_requirement_id');
+            $query->where(function ($q) use ($leadReqId) {
+                $q->where('lead_requirement_id', $leadReqId)
+                  ->orWhereHas('leads', function ($lq) use ($leadReqId) {
+                      $lq->where('lead_requirement_id', $leadReqId);
+                  });
+            });
         }
 
         $filterType = $request->input('filter_type');
@@ -141,6 +155,8 @@ class CustomerController extends Controller
             'creator:id,name',
             'owner:id,name',
             'assignedBy:id,name',
+            'leadRequirement:lead_requirements_id,name',
+            'leadStage:lead_stage_id,name',
             'latestLead.leadSource:lead_sources_id,name',
             'latestLead.leadStage:lead_stage_id,name',
             'latestLead.leadRequirement:lead_requirements_id,name',
@@ -157,6 +173,16 @@ class CustomerController extends Controller
 
         if ($request->filled('created_by')) {
             $baseCountQuery->where('created_by', $request->input('created_by'));
+        }
+
+        if ($request->filled('lead_requirement_id')) {
+            $leadReqId = $request->input('lead_requirement_id');
+            $baseCountQuery->where(function ($q) use ($leadReqId) {
+                $q->where('lead_requirement_id', $leadReqId)
+                  ->orWhereHas('leads', function ($lq) use ($leadReqId) {
+                      $lq->where('lead_requirement_id', $leadReqId);
+                  });
+            });
         }
 
         if ($filterType === 'daily' && !empty($date)) {
@@ -209,9 +235,11 @@ class CustomerController extends Controller
             'state'            => ['nullable', 'string', 'max:100'],
             'country'          => ['nullable', 'string', 'max:100'],
             'pincode'          => ['nullable', 'string', 'max:10'],
-            'owner_by'         => ['nullable', 'exists:users,id'],
-            'assign_by'        => ['nullable', 'exists:users,id'],
-            'status'           => ['required', 'in:0,1'],
+            'owner_by'            => ['nullable', 'exists:users,id'],
+            'assign_by'           => ['nullable', 'exists:users,id'],
+            'lead_requirement_id' => ['nullable', 'exists:lead_requirements,lead_requirements_id'],
+            'lead_stage_id'       => ['nullable', 'exists:lead_stages,lead_stage_id'],
+            'status'              => ['required', 'in:0,1'],
         ];
 
         $rules = array_merge($baseRules, $customRules);
@@ -239,6 +267,11 @@ class CustomerController extends Controller
             ], 404);
         }
 
+        $customer->loadMissing([
+            'leadRequirement:lead_requirements_id,name',
+            'leadStage:lead_stage_id,name',
+        ]);
+
         return response()->json([
             'status' => true,
             'data'   => $customer
@@ -258,20 +291,22 @@ class CustomerController extends Controller
         [$customRules, $customAttributes] = $this->getCustomFieldsRules();
 
         $baseRules = [
-            'customer_type'    => ['required', 'in:user,reseller'],
-            'name'             => ['required', 'string', 'max:255'],
-            'company_name'     => ['nullable', 'string', 'max:255'],
-            'mobile'           => ['required', 'string', 'max:10', Rule::unique('customers', 'mobile')->ignore($customer->customer_id, 'customer_id')->withoutTrashed()],
-            'email'            => ['nullable', 'email', 'max:255'],
-            'alternate_mobile' => ['nullable', 'string', 'max:10'],
-            'address'          => ['nullable', 'string'],
-            'city'             => ['nullable', 'string', 'max:100'],
-            'state'            => ['nullable', 'string', 'max:100'],
-            'country'          => ['nullable', 'string', 'max:100'],
-            'pincode'          => ['nullable', 'string', 'max:10'],
-            'owner_by'         => ['nullable', 'exists:users,id'],
-            'assign_by'        => ['nullable', 'exists:users,id'],
-            'status'           => ['required', 'in:0,1'],
+            'customer_type'       => ['required', 'in:user,reseller'],
+            'name'                => ['required', 'string', 'max:255'],
+            'company_name'        => ['nullable', 'string', 'max:255'],
+            'mobile'              => ['required', 'string', 'max:10', Rule::unique('customers', 'mobile')->ignore($customer->customer_id, 'customer_id')->withoutTrashed()],
+            'email'               => ['nullable', 'email', 'max:255'],
+            'alternate_mobile'    => ['nullable', 'string', 'max:10'],
+            'address'             => ['nullable', 'string'],
+            'city'                => ['nullable', 'string', 'max:100'],
+            'state'               => ['nullable', 'string', 'max:100'],
+            'country'             => ['nullable', 'string', 'max:100'],
+            'pincode'             => ['nullable', 'string', 'max:10'],
+            'owner_by'            => ['nullable', 'exists:users,id'],
+            'assign_by'           => ['nullable', 'exists:users,id'],
+            'lead_requirement_id' => ['nullable', 'exists:lead_requirements,lead_requirements_id'],
+            'lead_stage_id'       => ['nullable', 'exists:lead_stages,lead_stage_id'],
+            'status'              => ['required', 'in:0,1'],
         ];
 
         $rules = array_merge($baseRules, $customRules);

@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\CustomerCustomField;
 use App\Models\User;
+use App\Models\LeadRequirement;
+use App\Models\LeadStage;
 use App\Traits\HasApiPermissionCheck;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -83,12 +85,41 @@ class CustomerApiController extends Controller
         $userOptions = $this->getUserDropdownOptions();
         $customFields = $this->getFormattedCustomFields();
 
+        $leadRequirements = LeadRequirement::where('status', 1)
+            ->orderBy('name', 'asc')
+            ->get(['lead_requirements_id', 'name'])
+            ->map(function ($req) {
+                return [
+                    'value' => $req->lead_requirements_id,
+                    'id'    => $req->lead_requirements_id,
+                    'label' => $req->name,
+                    'name'  => $req->name,
+                ];
+            })->values();
+
+        $leadStages = LeadStage::where('status', 1)
+            ->orderBy('sort_order', 'asc')
+            ->orderBy('lead_stage_id', 'asc')
+            ->get(['lead_stage_id', 'name'])
+            ->map(function ($stage) {
+                return [
+                    'value' => $stage->lead_stage_id,
+                    'id'    => $stage->lead_stage_id,
+                    'label' => $stage->name,
+                    'name'  => $stage->name,
+                ];
+            })->values();
+
         return response()->json([
             'status' => true,
             'message' => 'Customer form data retrieved successfully.',
             'data' => [
                 'owner_by_options' => $userOptions,
                 'assign_by_options' => $userOptions,
+                'lead_requirement_options' => $leadRequirements,
+                'lead_stage_options' => $leadStages,
+                'lead_requirements' => $leadRequirements,
+                'lead_stages' => $leadStages,
                 'customer_types' => [
                     ['value' => 'user', 'label' => 'User'],
                     ['value' => 'reseller', 'label' => 'Reseller'],
@@ -104,6 +135,8 @@ class CustomerApiController extends Controller
                     'owner_by' => $currentUser ? $currentUser->id : null,
                     'owner_by_name' => $currentUser ? $currentUser->name : null,
                     'assign_by' => null,
+                    'lead_requirement_id' => null,
+                    'lead_stage_id' => null,
                     'status' => $currentUser ? $currentUser->status : null,
 
                 ],
@@ -209,6 +242,8 @@ class CustomerApiController extends Controller
             'owner_by' => ['nullable', 'exists:users,id'],
             'assign_by' => ['nullable', 'exists:users,id'],
             'created_by' => ['nullable', 'exists:users,id'],
+            'lead_requirement_id' => ['nullable', 'exists:lead_requirements,lead_requirements_id'],
+            'lead_stage_id' => ['nullable', 'exists:lead_stages,lead_stage_id'],
             'remarks' => ['nullable', 'string', 'max:1000'],
         ];
 
@@ -218,6 +253,8 @@ class CustomerApiController extends Controller
             'owner_by' => 'Owner By',
             'assign_by' => 'Assign By',
             'created_by' => 'Created By',
+            'lead_requirement_id' => 'Lead Requirement',
+            'lead_stage_id' => 'Lead Stage',
         ];
 
         // Dynamic validation rules from CustomerCustomField
@@ -289,6 +326,8 @@ class CustomerApiController extends Controller
                 'owner_by' => $ownerId,
                 'assign_by' => $assignId,
                 'created_by' => $creatorId,
+                'lead_requirement_id' => $request->filled('lead_requirement_id') ? (int) $request->input('lead_requirement_id') : null,
+                'lead_stage_id' => $request->filled('lead_stage_id') ? (int) $request->input('lead_stage_id') : null,
                 'status' => $status,
                 'custom_fields' => !empty($customFieldsInput) ? $customFieldsInput : null,
             ]);
@@ -310,6 +349,8 @@ class CustomerApiController extends Controller
             'creator:id,name,email',
             'owner:id,name,email',
             'assignedBy:id,name,email',
+            'leadRequirement:lead_requirements_id,name',
+            'leadStage:lead_stage_id,name',
         ]);
 
         return response()->json([
@@ -336,6 +377,8 @@ class CustomerApiController extends Controller
             'creator:id,name,email',
             'owner:id,name,email',
             'assignedBy:id,name,email',
+            'leadRequirement:lead_requirements_id,name',
+            'leadStage:lead_stage_id,name',
         ])->qualifiedForCustomerList()->orderBy('customer_id', 'desc');
 
         if ($user) {
@@ -355,6 +398,26 @@ class CustomerApiController extends Controller
 
         if ($request->filled('customer_type')) {
             $query->where('customer_type', $request->input('customer_type'));
+        }
+
+        if ($request->filled('lead_requirement_id')) {
+            $leadReqId = $request->input('lead_requirement_id');
+            $query->where(function ($q) use ($leadReqId) {
+                $q->where('lead_requirement_id', $leadReqId)
+                  ->orWhereHas('leads', function ($lq) use ($leadReqId) {
+                      $lq->where('lead_requirement_id', $leadReqId);
+                  });
+            });
+        }
+
+        if ($request->filled('lead_stage_id')) {
+            $leadStageId = $request->input('lead_stage_id');
+            $query->where(function ($q) use ($leadStageId) {
+                $q->where('lead_stage_id', $leadStageId)
+                  ->orWhereHas('leads', function ($lq) use ($leadStageId) {
+                      $lq->where('lead_stage_id', $leadStageId);
+                  });
+            });
         }
 
         if ($request->has('status') && $request->input('status') !== '' && $request->input('status') !== null) {
@@ -408,6 +471,8 @@ class CustomerApiController extends Controller
             'creator:id,name,email',
             'owner:id,name,email',
             'assignedBy:id,name,email',
+            'leadRequirement:lead_requirements_id,name',
+            'leadStage:lead_stage_id,name',
         ]);
 
         return response()->json([
@@ -442,6 +507,8 @@ class CustomerApiController extends Controller
             'creator:id,name,email',
             'owner:id,name,email',
             'assignedBy:id,name,email',
+            'leadRequirement:lead_requirements_id,name',
+            'leadStage:lead_stage_id,name',
         ]);
 
         $customFields = CustomerCustomField::where('status', 1)
@@ -476,6 +543,31 @@ class CustomerApiController extends Controller
 
         $userOptions = $this->getUserDropdownOptions();
 
+        $leadRequirements = LeadRequirement::where('status', 1)
+            ->orderBy('name', 'asc')
+            ->get(['lead_requirements_id', 'name'])
+            ->map(function ($req) {
+                return [
+                    'value' => $req->lead_requirements_id,
+                    'id'    => $req->lead_requirements_id,
+                    'label' => $req->name,
+                    'name'  => $req->name,
+                ];
+            })->values();
+
+        $leadStages = LeadStage::where('status', 1)
+            ->orderBy('sort_order', 'asc')
+            ->orderBy('lead_stage_id', 'asc')
+            ->get(['lead_stage_id', 'name'])
+            ->map(function ($stage) {
+                return [
+                    'value' => $stage->lead_stage_id,
+                    'id'    => $stage->lead_stage_id,
+                    'label' => $stage->name,
+                    'name'  => $stage->name,
+                ];
+            })->values();
+
         return response()->json([
             'status' => true,
             'message' => 'Customer details for edit retrieved successfully.',
@@ -484,6 +576,10 @@ class CustomerApiController extends Controller
             'owner_by_options' => $userOptions,
             'created_by_options' => $userOptions,
             'assign_by_options' => $userOptions,
+            'lead_requirement_options' => $leadRequirements,
+            'lead_stage_options' => $leadStages,
+            'lead_requirements' => $leadRequirements,
+            'lead_stages' => $leadStages,
             'customer_type_options' => [
                 ['value' => 'user', 'label' => 'User'],
                 ['value' => 'reseller', 'label' => 'Reseller'],
@@ -595,6 +691,8 @@ class CustomerApiController extends Controller
             'owner_by' => ['nullable', 'exists:users,id'],
             'assign_by' => ['nullable', 'exists:users,id'],
             'created_by' => ['nullable', 'exists:users,id'],
+            'lead_requirement_id' => ['nullable', 'exists:lead_requirements,lead_requirements_id'],
+            'lead_stage_id' => ['nullable', 'exists:lead_stages,lead_stage_id'],
             'remarks' => ['nullable', 'string', 'max:1000'],
         ];
 
@@ -604,6 +702,8 @@ class CustomerApiController extends Controller
             'owner_by' => 'Owner By',
             'assign_by' => 'Assign By',
             'created_by' => 'Created By',
+            'lead_requirement_id' => 'Lead Requirement',
+            'lead_stage_id' => 'Lead Stage',
         ];
 
         foreach ($allConfiguredFields as $cf) {
@@ -697,6 +797,12 @@ class CustomerApiController extends Controller
         if ($request->has('created_by')) {
             $updateData['created_by'] = $request->input('created_by');
         }
+        if ($request->has('lead_requirement_id')) {
+            $updateData['lead_requirement_id'] = $request->filled('lead_requirement_id') ? (int) $request->input('lead_requirement_id') : null;
+        }
+        if ($request->has('lead_stage_id')) {
+            $updateData['lead_stage_id'] = $request->filled('lead_stage_id') ? (int) $request->input('lead_stage_id') : null;
+        }
 
         try {
             $customer->update($updateData);
@@ -717,6 +823,8 @@ class CustomerApiController extends Controller
             'creator:id,name,email',
             'owner:id,name,email',
             'assignedBy:id,name,email',
+            'leadRequirement:lead_requirements_id,name',
+            'leadStage:lead_stage_id,name',
         ]);
 
         return response()->json([

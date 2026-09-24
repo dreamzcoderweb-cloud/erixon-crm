@@ -115,7 +115,9 @@ $(document).ready(function () {
                 customerTableColumns.push({
                     data: null,
                     render: function (data, type, row) {
-                        let name = (row.latest_lead && row.latest_lead.lead_stage) ? row.latest_lead.lead_stage.name : null;
+                        let name = (row.lead_stage && row.lead_stage.name)
+                            ? row.lead_stage.name
+                            : (row.lead_stage_name || ((row.latest_lead && row.latest_lead.lead_stage) ? row.latest_lead.lead_stage.name : null));
                         if (!name) return type !== 'display' ? 'N/A' : '<span class="text-muted">N/A</span>';
                         if (type !== 'display') return name;
                         return `<span class="badge bg-label-warning">${name}</span>`;
@@ -125,7 +127,9 @@ $(document).ready(function () {
                 customerTableColumns.push({
                     data: null,
                     render: function (data, type, row) {
-                        let name = (row.latest_lead && row.latest_lead.lead_requirement) ? row.latest_lead.lead_requirement.name : null;
+                        let name = (row.lead_requirement && row.lead_requirement.name)
+                            ? row.lead_requirement.name
+                            : (row.lead_requirement_name || ((row.latest_lead && row.latest_lead.lead_requirement) ? row.latest_lead.lead_requirement.name : null));
                         if (!name) return type !== 'display' ? 'N/A' : '<span class="text-muted">N/A</span>';
                         if (type !== 'display') return name;
                         return `<span class="badge bg-label-primary">${name}</span>`;
@@ -238,6 +242,7 @@ $(document).ready(function () {
                 d.created_by = $('#customer_filter_created_by').val();
                 d.customer_type = $('#customer_filter_type').val();
                 d.status = $('#customer_filter_status').val();
+                d.lead_requirement_id = $('#customer_filter_lead_requirement').val();
             },
             dataSrc: function (json) {
                 if (json.resellcount !== undefined) {
@@ -436,6 +441,8 @@ $(document).ready(function () {
                     $('#edit_pincode').val(customer.pincode);
                     $('#edit_owner_by').val(customer.owner_by || '');
                     $('#edit_assign_by').val(customer.assign_by || '');
+                    $('#edit_lead_requirement_id').val(customer.lead_requirement_id || '');
+                    $('#edit_lead_stage_id').val(customer.lead_stage_id || '');
                     $('#edit_status').val(customer.status);
 
                     if (window.customCustomerFields && window.customCustomerFields.length > 0 && customer.custom_fields) {
@@ -624,6 +631,7 @@ $(document).ready(function () {
         $('#customer_filter_created_by').val('');
         $('#customer_filter_type').val('');
         $('#customer_filter_status').val('');
+        $('#customer_filter_lead_requirement').val('');
         $('.customer-filter-date-group').addClass('d-none');
         customerTable.ajax.reload();
     });
