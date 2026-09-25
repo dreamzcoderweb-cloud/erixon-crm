@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\CallLogApiController;
 use App\Http\Controllers\Api\DemoProcessApiController;
 use App\Http\Controllers\Api\CreditRequestApiController;
 use App\Http\Controllers\Api\LeaveApiController;
+use App\Http\Controllers\Api\SalaryApiController;
 use App\Http\Controllers\NotificationController;
 
 use Illuminate\Support\Facades\Route;
@@ -109,6 +110,10 @@ Route::prefix('v1')->group(function () {
         Route::get('notifications', [NotificationController::class, 'index']);
         Route::post('notifications/mark-as-read/{id}', [NotificationController::class, 'markAsRead']);
         Route::post('notifications/mark-all-as-read', [NotificationController::class, 'markAllAsRead']);
+
+        // Mobile App Salary Management (Next Salary Details & Salary History List)
+        Route::get('salary/next-details', [SalaryApiController::class, 'nextSalaryDetails']);
+        Route::get('salary/list', [SalaryApiController::class, 'salaryList']);
     });
 
     // Direct / Browser PDF download route with token parameter
