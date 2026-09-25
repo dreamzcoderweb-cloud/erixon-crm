@@ -53,8 +53,7 @@ class DemoProcessApiController extends Controller
         $productManagers = User::whereHas('roles', function ($q) {
             $q->where('name', 'like', '%Product Manager%')
               ->orWhere('name', 'like', '%Super Admin%')
-              ->orWhere('name', 'like', '%Admin%')
-              ->orWhere('name', 'like', '%manager%');
+              ->orWhere('name', 'like', '%Admin%');
         })->orWhere('id', 1)->orderBy('name', 'asc')->get(['id', 'name', 'email', 'designation']);
 
         if ($productManagers->isEmpty()) {
@@ -66,8 +65,7 @@ class DemoProcessApiController extends Controller
             $q->where('name', 'like', '%Support%')
               ->orWhere('name', 'like', '%Product Manager%')
               ->orWhere('name', 'like', '%Super Admin%')
-              ->orWhere('name', 'like', '%Admin%')
-              ->orWhere('name', 'like', '%manager%');
+              ->orWhere('name', 'like', '%Admin%');
         })->orWhere('id', 1)->orderBy('name', 'asc')->get(['id', 'name', 'email', 'designation']);
 
         if ($supportTeam->isEmpty()) {

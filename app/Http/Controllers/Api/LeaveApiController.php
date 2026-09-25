@@ -41,39 +41,16 @@ class LeaveApiController extends Controller
         $isSuperAdmin = $currentUser->isSuperAdmin();
         $isTemporary = ($currentUser->staff_type === 'Temporary');
 
-        $canManageStaffLeaves = $isSuperAdmin 
-            || $currentUser->isAdmin() 
-            || $currentUser->can('leaves.approve') 
-            || $currentUser->hasRole(['manager', 'Manager']);
-
-        // Staff options: Super Admin, Managers, and Approvers can select any active staff member; regular staff can only select themselves
-        if ($canManageStaffLeaves) {
-            $staffOptions = User::staffOnly()
-                ->where('status', 1)
-                ->orderBy('name', 'asc')
-                ->get(['id', 'name', 'email', 'profile_image'])
-                ->map(function ($u) {
-                    $emailSuffix = !empty($u->email) ? " ({$u->email})" : "";
-                    return [
-                        'id'            => (int) $u->id,
-                        'value'         => (int) $u->id,
-                        'name'          => $u->name,
-                        'email'         => $u->email,
-                        'label'         => $u->name . $emailSuffix,
-                        'profile_image' => $u->profile_image_url,
-                    ];
-                })->values();
-        } else {
-            $emailSuffix = !empty($currentUser->email) ? " ({$currentUser->email})" : "";
-            $staffOptions = collect([[
-                'id'            => (int) $currentUser->id,
-                'value'         => (int) $currentUser->id,
-                'name'          => $currentUser->name,
-                'email'         => $currentUser->email,
-                'label'         => $currentUser->name . $emailSuffix,
-                'profile_image' => $currentUser->profile_image_url,
-            ]]);
-        }
+        // Staff options: Return only the currently logged-in staff member
+        $emailSuffix = !empty($currentUser->email) ? " ({$currentUser->email})" : "";
+        $staffOptions = collect([[
+            'id'            => (int) $currentUser->id,
+            'value'         => (int) $currentUser->id,
+            'name'          => $currentUser->name,
+            'email'         => $currentUser->email,
+            'label'         => $currentUser->name . $emailSuffix,
+            'profile_image' => $currentUser->profile_image_url,
+        ]]);
 
         $leaveTypes = [
             'Casual Leave',
