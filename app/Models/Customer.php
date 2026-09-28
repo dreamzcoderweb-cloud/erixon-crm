@@ -172,7 +172,7 @@ class Customer extends Authenticatable
             return $query->whereRaw('1 = 0');
         }
 
-        if ($user->isAdmin()) {
+        if ($user->isAdmin() || $user->isSuperAdmin()) {
             return $query;
         }
 

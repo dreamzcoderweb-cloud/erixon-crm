@@ -14,17 +14,20 @@ use App\Models\User;
 use App\Notifications\DemoProcessCreated;
 use App\Notifications\DemoProcessFinished;
 use App\Notifications\DemoProcessPending;
+use App\Notifications\DemoProcessConflictNotification;
+use App\Traits\SendsPushNotifications;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 use App\Traits\HasApiPermissionCheck;
 
 class DemoProcessApiController extends Controller
 {
-    use HasApiPermissionCheck;
+    use HasApiPermissionCheck, SendsPushNotifications;
     /**
      * Get dropdown data, custom fields, and configuration for Demo Process form.
      * GET /api/v1/demo-processes/form-data
@@ -76,9 +79,13 @@ class DemoProcessApiController extends Controller
         $leadSources = LeadSource::orderBy('name', 'asc')
             ->get(['lead_sources_id as id', 'name']);
 
-        // Customers list
-        $customers = Customer::orderBy('name', 'asc')
-            ->get(['customer_id as id', 'name', 'mobile', 'email']);
+        // Customers list scoped to current user
+        $customerQuery = Customer::query();
+        if ($currentUser && !$currentUser->isAdmin() && !$currentUser->isSuperAdmin()) {
+            $customerQuery->forUser($currentUser);
+        }
+        $customers = $customerQuery->where('status', 1)->with('latestLead')->orderBy('name', 'asc')
+            ->get(['customer_id as id', 'name', 'mobile', 'email', 'customer_type']);
 
         // Products / Lead Requirements
         $leadRequirements = LeadRequirement::orderBy('name', 'asc')
@@ -293,6 +300,31 @@ class DemoProcessApiController extends Controller
             ], 422);
         }
 
+        // Validate slot conflict (within 1 hour)
+        $conflictingDemo = DemoProcess::findConflictingSlot($request->input('demo_date'), $request->input('demo_time'));
+        if ($conflictingDemo) {
+            $msg = 'A demo is already scheduled for this time. Please schedule the demo at least 1 hour later.';
+            try {
+                $currentUser->notify(new DemoProcessConflictNotification($request->input('demo_date'), $request->input('demo_time'), $conflictingDemo));
+                $this->sendPushNotification(
+                    $currentUser,
+                    'Demo Slot Already Booked',
+                    $msg,
+                    ['type' => 'demo_conflict']
+                );
+            } catch (\Throwable $e) {
+                Log::error('DemoProcessApiController: Error sending DemoProcessConflictNotification: ' . $e->getMessage());
+            }
+
+            return response()->json([
+                'status'  => false,
+                'message' => $msg,
+                'errors'  => [
+                    'demo_time' => [$msg],
+                ],
+            ], 422);
+        }
+
         $isSalesTeam = $this->isSalesTeamUser($currentUser);
 
         // Auto-resolve product / lead requirement from customer phone if omitted
@@ -429,6 +461,31 @@ class DemoProcessApiController extends Controller
                 'status'  => false,
                 'message' => 'Validation error.',
                 'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        // Validate slot conflict (within 1 hour), excluding current demo
+        $conflictingDemo = DemoProcess::findConflictingSlot($request->input('demo_date'), $request->input('demo_time'), (int) $id);
+        if ($conflictingDemo) {
+            $msg = 'A demo is already scheduled for this time. Please schedule the demo at least 1 hour later.';
+            try {
+                $currentUser->notify(new DemoProcessConflictNotification($request->input('demo_date'), $request->input('demo_time'), $conflictingDemo));
+                $this->sendPushNotification(
+                    $currentUser,
+                    'Demo Slot Already Booked',
+                    $msg,
+                    ['type' => 'demo_conflict']
+                );
+            } catch (\Throwable $e) {
+                Log::error('DemoProcessApiController: Error sending DemoProcessConflictNotification: ' . $e->getMessage());
+            }
+
+            return response()->json([
+                'status'  => false,
+                'message' => $msg,
+                'errors'  => [
+                    'demo_time' => [$msg],
+                ],
             ], 422);
         }
 

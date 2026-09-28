@@ -26,6 +26,7 @@ $(document).ready(function () {
         form.find('.is-invalid').removeClass('is-invalid');
         form.find('.select2-container').removeClass('is-invalid');
         form.find('.invalid-feedback').text('').css('display', 'none');
+        form.find('.modal-alert-container').html('');
     }
 
     // Helper: Display Form Validation Errors
@@ -528,8 +529,29 @@ $(document).ready(function () {
             error: function (xhr) {
                 if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
                     displayValidationErrors(form, xhr.responseJSON.errors);
+                    let msg = xhr.responseJSON.message || 'Validation error.';
+                    let modalAlert = form.find('.modal-alert-container');
+                    if (modalAlert.length) {
+                        modalAlert.html(`
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <i class="bx bx-error-circle me-1"></i> ${msg}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        `);
+                    }
+                    showAlert('danger', msg);
                 } else {
-                    showAlert('danger', xhr.responseJSON?.message || 'Failed to create Demo Process.');
+                    let msg = xhr.responseJSON?.message || 'Failed to create Demo Process.';
+                    let modalAlert = form.find('.modal-alert-container');
+                    if (modalAlert.length) {
+                        modalAlert.html(`
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <i class="bx bx-error-circle me-1"></i> ${msg}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        `);
+                    }
+                    showAlert('danger', msg);
                 }
             },
             complete: function () {
@@ -618,8 +640,29 @@ $(document).ready(function () {
             error: function (xhr) {
                 if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
                     displayValidationErrors(form, xhr.responseJSON.errors);
+                    let msg = xhr.responseJSON.message || 'Validation error.';
+                    let modalAlert = form.find('.modal-alert-container');
+                    if (modalAlert.length) {
+                        modalAlert.html(`
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <i class="bx bx-error-circle me-1"></i> ${msg}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        `);
+                    }
+                    showAlert('danger', msg);
                 } else {
-                    showAlert('danger', xhr.responseJSON?.message || 'Failed to update Demo Process.');
+                    let msg = xhr.responseJSON?.message || 'Failed to update Demo Process.';
+                    let modalAlert = form.find('.modal-alert-container');
+                    if (modalAlert.length) {
+                        modalAlert.html(`
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <i class="bx bx-error-circle me-1"></i> ${msg}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        `);
+                    }
+                    showAlert('danger', msg);
                 }
             },
             complete: function () {

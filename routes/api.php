@@ -34,6 +34,7 @@ Route::prefix('v1')->group(function () {
         Route::get('credit-requests/edit/{id}', [CreditRequestApiController::class, 'edit']);
         Route::get('credit-requests/{id}', [CreditRequestApiController::class, 'show']);
         Route::post('credit-requests/update/{id}', [CreditRequestApiController::class, 'update']);
+        Route::delete('credit-requests/{id}', [CreditRequestApiController::class, 'destroy']);
         Route::delete('credit-requests/delete/{id}', [CreditRequestApiController::class, 'destroy']);
         Route::post('credit-requests/approve-admin/{id}', [CreditRequestApiController::class, 'approveAdmin']);
         Route::post('credit-requests/approve-support/{id}', [CreditRequestApiController::class, 'approveSupport']);

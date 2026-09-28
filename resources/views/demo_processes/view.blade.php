@@ -155,6 +155,7 @@
                             </select>
                         </div>
 
+                        @if(Auth::user() && (Auth::user()->isAdmin() || Auth::user()->isSuperAdmin()))
                         <div class="col-md-3">
                             <label class="form-label fw-semibold">Created By</label>
                             <select name="created_by" id="demo_filter_created_by" class="form-select form-select-sm">
@@ -166,6 +167,7 @@
                                 @endif
                             </select>
                         </div>
+                        @endif
 
                         <div class="col-md-3">
                             <div class="d-flex gap-2">
@@ -228,6 +230,7 @@
                 <form id="addDemoProcessForm" novalidate>
                     @csrf
                     <div class="modal-body p-4">
+                        <div class="modal-alert-container"></div>
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Customer Name <span class="text-danger">*</span></label>
@@ -386,6 +389,7 @@
                     @csrf
                     <input type="hidden" id="edit_demo_process_id">
                     <div class="modal-body p-4">
+                        <div class="modal-alert-container"></div>
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Customer Name <span class="text-danger">*</span></label>

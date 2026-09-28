@@ -13,14 +13,19 @@ use App\Models\User;
 use App\Notifications\DemoProcessCreated;
 use App\Notifications\DemoProcessPending;
 use App\Notifications\DemoProcessFinished;
+use App\Notifications\DemoProcessConflictNotification;
+use App\Traits\SendsPushNotifications;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class DemoProcessController extends Controller
 {
+    use SendsPushNotifications;
+
     public function index(Request $request)
     {
         if ($request->ajax() || $request->wantsJson()) {
@@ -52,7 +57,8 @@ class DemoProcessController extends Controller
         }
 
         $leadSources = LeadSource::orderBy('name', 'asc')->get();
-        $customers = Customer::with('latestLead')->orderBy('name', 'asc')->get();
+        $user = Auth::user();
+        $customers = Customer::forUser($user)->with('latestLead')->where('status', 1)->orderBy('name', 'asc')->get();
         $leadRequirements = LeadRequirement::orderBy('name', 'asc')->get();
         $customFields = DemoProcessCustomField::where('status', 1)->orderBy('sort_order', 'asc')->orderBy('id', 'asc')->get();
 
@@ -257,6 +263,34 @@ class DemoProcessController extends Controller
             }
         }
 
+        // Validate slot conflict (two staff cannot book conflicting slots within 1 hour)
+        $conflictingDemo = DemoProcess::findConflictingSlot($request->input('demo_date'), $request->input('demo_time'));
+        if ($conflictingDemo) {
+            $msg = 'A demo is already scheduled for this time. Please schedule the demo at least 1 hour later.';
+            $user = Auth::user();
+            if ($user) {
+                try {
+                    $user->notify(new DemoProcessConflictNotification($request->input('demo_date'), $request->input('demo_time'), $conflictingDemo));
+                    $this->sendPushNotification(
+                        $user,
+                        'Demo Slot Already Booked',
+                        $msg,
+                        ['type' => 'demo_conflict']
+                    );
+                } catch (\Throwable $e) {
+                    Log::error('Error sending DemoProcessConflictNotification: ' . $e->getMessage());
+                }
+            }
+
+            return response()->json([
+                'status'  => false,
+                'message' => $msg,
+                'errors'  => [
+                    'demo_time' => [$msg],
+                ],
+            ], 422);
+        }
+
         $user = Auth::user();
         $isSalesTeam = $this->isSalesTeamUser($user);
 
@@ -368,6 +402,34 @@ class DemoProcessController extends Controller
             return response()->json([
                 'status' => false,
                 'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        // Validate slot conflict (within 1 hour), excluding current demo
+        $conflictingDemo = DemoProcess::findConflictingSlot($request->input('demo_date'), $request->input('demo_time'), (int) $id);
+        if ($conflictingDemo) {
+            $msg = 'A demo is already scheduled for this time. Please schedule the demo at least 1 hour later.';
+            $user = Auth::user();
+            if ($user) {
+                try {
+                    $user->notify(new DemoProcessConflictNotification($request->input('demo_date'), $request->input('demo_time'), $conflictingDemo));
+                    $this->sendPushNotification(
+                        $user,
+                        'Demo Slot Already Booked',
+                        $msg,
+                        ['type' => 'demo_conflict']
+                    );
+                } catch (\Throwable $e) {
+                    Log::error('Error sending DemoProcessConflictNotification: ' . $e->getMessage());
+                }
+            }
+
+            return response()->json([
+                'status'  => false,
+                'message' => $msg,
+                'errors'  => [
+                    'demo_time' => [$msg],
+                ],
             ], 422);
         }
 

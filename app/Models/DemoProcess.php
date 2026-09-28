@@ -76,7 +76,7 @@ class DemoProcess extends Model
     }
 
     /**
-     * User Visibility Scoping
+     * User Visibility Scoping (Staff only see their own created demo processes; Admins see all)
      */
     public function scopeForUser($query, $user)
     {
@@ -90,10 +90,60 @@ class DemoProcess extends Model
 
         $userId = $user->id;
 
-        return $query->where(function ($q) use ($userId) {
-            $q->where('created_by', $userId)
-              ->orWhere('assigned_by', $userId)
-              ->orWhere('sub_assigned_by', $userId);
-        });
+        return $query->where('created_by', $userId);
+    }
+
+    /**
+     * Find if any existing demo conflicts with the requested date and time (within 1 hour / 60 minutes).
+     *
+     * @param string $demoDate
+     * @param string $demoTime
+     * @param int|null $excludeId
+     * @return DemoProcess|null
+     */
+    public static function findConflictingSlot(string $demoDate, string $demoTime, ?int $excludeId = null): ?self
+    {
+        if (empty($demoDate) || empty($demoTime)) {
+            return null;
+        }
+
+        try {
+            $targetDateStr = \Illuminate\Support\Carbon::parse($demoDate)->format('Y-m-d');
+            $targetCarbon  = \Illuminate\Support\Carbon::parse($targetDateStr . ' ' . trim($demoTime));
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        // Query active demo processes around that date (+/- 1 day to cover edge/midnight boundaries)
+        $candidates = self::whereBetween('demo_date', [
+            \Illuminate\Support\Carbon::parse($targetDateStr)->subDay()->toDateString(),
+            \Illuminate\Support\Carbon::parse($targetDateStr)->addDay()->toDateString(),
+        ])
+        ->when($excludeId, function ($q, $id) {
+            $q->where('demo_process_id', '!=', $id);
+        })
+        ->get();
+
+        foreach ($candidates as $cand) {
+            if (empty($cand->demo_time)) {
+                continue;
+            }
+
+            try {
+                $candDateStr = ($cand->demo_date instanceof \DateTimeInterface)
+                    ? $cand->demo_date->format('Y-m-d')
+                    : \Illuminate\Support\Carbon::parse($cand->demo_date)->format('Y-m-d');
+                $candCarbon = \Illuminate\Support\Carbon::parse($candDateStr . ' ' . trim($cand->demo_time));
+
+                $diffMinutes = abs($targetCarbon->diffInMinutes($candCarbon, false));
+                if ($diffMinutes < 60) {
+                    return $cand;
+                }
+            } catch (\Throwable $e) {
+                continue;
+            }
+        }
+
+        return null;
     }
 }

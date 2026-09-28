@@ -85,21 +85,12 @@ class CreditRequest extends Model
             return $query->whereRaw('1 = 0');
         }
 
-        if ($user->isAdmin() || $user->hasRole(['Product Manager', 'product manager', 'Product-Manager', 'product-manager', 'support', 'Support']) || $user->can('credit-requests.approve_admin') || $user->can('credit-requests.approve_support')) {
+        if ($user->isAdmin() || $user->isSuperAdmin()) {
             return $query;
         }
 
         $userId = $user->id;
 
-        return $query->where(function ($q) use ($userId, $user) {
-            $q->where('requested_by', $userId)
-              ->orWhereNull('requested_by')
-              ->orWhereHas('customer', function ($cq) use ($user) {
-                  $cq->forUser($user);
-              })
-              ->orWhereHas('lead', function ($lq) use ($user) {
-                  $lq->forUser($user);
-              });
-        });
+        return $query->where('requested_by', $userId);
     }
 }
