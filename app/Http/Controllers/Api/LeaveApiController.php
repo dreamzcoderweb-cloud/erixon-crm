@@ -64,8 +64,8 @@ class LeaveApiController extends Controller
         $todayFormatted = Carbon::today()->format('d-m-Y');
 
         $canCreate  = !$isTemporary && ($this->hasPermission($currentUser, 'leaves.create'));
-        $canApprove = $currentUser->can('leaves.approve') || $currentUser->isAdmin() || $isSuperAdmin;
-        $canDelete  = $currentUser->can('leaves.delete') || $currentUser->isAdmin() || $isSuperAdmin;
+        $canApprove = $currentUser->isAdmin() || $isSuperAdmin;
+        $canDelete  = $currentUser->isAdmin() || $isSuperAdmin;
 
         return response()->json([
             'status'  => true,
@@ -118,13 +118,10 @@ class LeaveApiController extends Controller
         }
 
         $isSuperAdmin = $currentUser->isSuperAdmin();
-        $canManageStaffLeaves = $isSuperAdmin 
-            || $currentUser->isAdmin() 
-            || $currentUser->can('leaves.approve') 
-            || $currentUser->hasRole(['manager', 'Manager']);
+        $canManageStaffLeaves = $isSuperAdmin || $currentUser->isAdmin();
 
-        $canApprove   = $currentUser->can('leaves.approve') || $currentUser->isAdmin() || $isSuperAdmin;
-        $canDelete    = $currentUser->can('leaves.delete') || $currentUser->isAdmin() || $isSuperAdmin;
+        $canApprove   = $currentUser->isAdmin() || $isSuperAdmin;
+        $canDelete    = $currentUser->isAdmin() || $isSuperAdmin;
         $canCreate    = ($currentUser->staff_type !== 'Temporary') && ($this->hasPermission($currentUser, 'leaves.create'));
 
         $query = LeaveRequest::with([
@@ -273,10 +270,7 @@ class LeaveApiController extends Controller
 
         $validated = $validator->validated();
 
-        $canManageStaffLeaves = $currentUser->isSuperAdmin() 
-            || $currentUser->isAdmin() 
-            || $currentUser->can('leaves.approve') 
-            || $currentUser->hasRole(['manager', 'Manager']);
+        $canManageStaffLeaves = $currentUser->isSuperAdmin() || $currentUser->isAdmin();
 
         $targetUserId = $currentUser->id;
         if (!empty($validated['user_id']) && $canManageStaffLeaves) {
@@ -394,8 +388,8 @@ class LeaveApiController extends Controller
         }
 
         $leave->load(['user:id,name,email,profile_image', 'approver:id,name,email']);
-        $canApprove = $currentUser->can('leaves.approve') || $currentUser->isAdmin() || $currentUser->isSuperAdmin();
-        $canDelete  = $currentUser->can('leaves.delete') || $currentUser->isAdmin() || $currentUser->isSuperAdmin();
+        $canApprove = $currentUser->isAdmin() || $currentUser->isSuperAdmin();
+        $canDelete  = $currentUser->isAdmin() || $currentUser->isSuperAdmin();
 
         return response()->json([
             'status'  => true,
@@ -428,17 +422,14 @@ class LeaveApiController extends Controller
             return response()->json(['status' => false, 'message' => 'Leave request not found.'], 404);
         }
 
-        $canManageStaffLeaves = $currentUser->isSuperAdmin() 
-            || $currentUser->isAdmin() 
-            || $currentUser->can('leaves.approve') 
-            || $currentUser->hasRole(['manager', 'Manager']);
+        $canManageStaffLeaves = $currentUser->isSuperAdmin() || $currentUser->isAdmin();
 
         if (!$canManageStaffLeaves && $leave->user_id !== $currentUser->id) {
             return response()->json(['status' => false, 'message' => 'Unauthorized. You can only view your own leave requests.'], 403);
         }
 
-        $canApprove = $currentUser->can('leaves.approve') || $currentUser->isAdmin() || $currentUser->isSuperAdmin();
-        $canDelete  = $currentUser->can('leaves.delete') || $currentUser->isAdmin() || $currentUser->isSuperAdmin();
+        $canApprove = $currentUser->isAdmin() || $currentUser->isSuperAdmin();
+        $canDelete  = $currentUser->isAdmin() || $currentUser->isSuperAdmin();
 
         return response()->json([
             'status'  => true,
@@ -666,8 +657,8 @@ class LeaveApiController extends Controller
             'created_at'         => $leave->created_at ? $leave->created_at->format('Y-m-d H:i:s') : null,
             'created_at_formatted'=> $leave->created_at ? $leave->created_at->format('d-m-Y h:i A') : null,
             'actions'            => [
-                'can_approve' => $canApprove && ($leave->status === 'Pending'),
-                'can_reject'  => $canApprove && ($leave->status === 'Pending'),
+                'can_approve' => $canApprove && ($leave->status === 'Pending') && ($leave->user_id !== $currentUser->id),
+                'can_reject'  => $canApprove && ($leave->status === 'Pending') && ($leave->user_id !== $currentUser->id),
                 'can_delete'  => $canDelete,
             ],
         ];
