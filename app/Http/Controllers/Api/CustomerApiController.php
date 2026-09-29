@@ -327,7 +327,7 @@ class CustomerApiController extends Controller
         $rules = [
             'name' => ['required', 'string', 'max:255'],
             'company_name' => ['nullable', 'string', 'max:255'],
-            'mobile' => ['required', 'string', 'max:20', Rule::unique('customers', 'mobile')],
+            'mobile' => ['required', 'string', 'max:20', Rule::unique('customers', 'mobile')->withoutTrashed()],
             'email' => ['nullable', 'email', 'max:255'],
             'alternate_mobile' => ['nullable', 'string', 'max:20'],
             'address' => ['nullable', 'string'],
@@ -775,7 +775,7 @@ class CustomerApiController extends Controller
                 'required',
                 'string',
                 'max:20',
-                Rule::unique('customers', 'mobile')->ignore($customer->customer_id, 'customer_id')
+                Rule::unique('customers', 'mobile')->ignore($customer->customer_id, 'customer_id')->withoutTrashed()
             ],
             'email' => ['nullable', 'email', 'max:255'],
             'alternate_mobile' => ['nullable', 'string', 'max:20'],

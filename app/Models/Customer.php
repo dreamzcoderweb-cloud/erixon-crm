@@ -178,17 +178,7 @@ class Customer extends Authenticatable
 
         $userId = $user->id;
 
-        return $query->where(function ($q) use ($userId) {
-            $q->where('created_by', $userId)
-              ->orWhereHas('leads', function ($lq) use ($userId) {
-                  $lq->where('assigned_to', $userId)
-                    ->orWhere('created_by', $userId)
-                    ->orWhereHas('followups', function ($fq) use ($userId) {
-                        $fq->where('forward_to', $userId)
-                          ->orWhere('created_by', $userId);
-                    });
-              });
-        });
+        return $query->where('created_by', $userId);
     }
 
     /**
