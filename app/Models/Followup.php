@@ -15,6 +15,7 @@ class Followup extends Model
     protected $primaryKey = 'followups_id';
 
     protected $fillable = [
+        'customer_id',
         'lead_id',
         'followup_type',
         'duration',
@@ -29,6 +30,11 @@ class Followup extends Model
     protected $casts = [
         'custom_fields' => 'array',
     ];
+
+    public function customer()
+    {
+        return $this->belongsTo(Customer::class, 'customer_id', 'customer_id');
+    }
 
     public function lead()
     {
@@ -75,6 +81,11 @@ class Followup extends Model
               ->orWhereHas('lead', function ($lq) use ($userId) {
                   $lq->where('assigned_to', $userId)
                     ->orWhere('created_by', $userId);
+              })
+              ->orWhereHas('customer', function ($cq) use ($userId) {
+                  $cq->where('created_by', $userId)
+                    ->orWhere('owner_by', $userId)
+                    ->orWhere('assign_by', $userId);
               });
         });
     }

@@ -375,11 +375,12 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
+                        <input type="hidden" name="customer_id" id="edit_followup_customer_id">
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label">Select Lead <span class="text-danger">*</span></label>
-                                <select name="lead_id" id="edit_followup_lead_id" class="form-select" required>
-                                    <option value="">-- Select Lead --</option>
+                                <label class="form-label">Select Lead</label>
+                                <select name="lead_id" id="edit_followup_lead_id" class="form-select">
+                                    <option value="">-- Customer Follow-up / Direct --</option>
                                     @foreach ($leads as $lead)
                                         <option value="{{ $lead->lead_id }}">
                                             {{ $lead->lead_title }} ({{ $lead->customer->name ?? 'N/A' }})

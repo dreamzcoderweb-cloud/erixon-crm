@@ -6,6 +6,8 @@ use App\Models\Followup;
 use App\Models\FollowupReassignment;
 use App\Models\Lead;
 use App\Models\User;
+use App\Models\Customer;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -107,6 +109,9 @@ class FollowupController extends Controller
         $endDate    = $request->input('end_date');
 
         $query = Followup::forUser($user)->with([
+            'customer:customer_id,name,mobile,customer_type,lead_requirement_id,lead_stage_id',
+            'customer.leadRequirement:lead_requirements_id,name',
+            'customer.leadStage:lead_stage_id,name',
             'lead:lead_id,lead_title,customer_id,lead_source_id,lead_stage_id,lead_requirement_id,lost_reason_id',
             'lead.customer:customer_id,name,mobile',
             'lead.leadSource:lead_sources_id,name',
@@ -124,6 +129,11 @@ class FollowupController extends Controller
                   ->orWhereHas('lead', function ($lq) use ($staffId) {
                       $lq->where('assigned_to', $staffId)
                         ->orWhere('created_by', $staffId);
+                  })
+                  ->orWhereHas('customer', function ($cq) use ($staffId) {
+                      $cq->where('created_by', $staffId)
+                        ->orWhere('owner_by', $staffId)
+                        ->orWhere('assign_by', $staffId);
                   });
             });
         }
@@ -133,8 +143,12 @@ class FollowupController extends Controller
         }
 
         if ($request->filled('customer_id')) {
-            $query->whereHas('lead', function ($lq) use ($request) {
-                $lq->where('customer_id', $request->input('customer_id'));
+            $custId = $request->input('customer_id');
+            $query->where(function ($q) use ($custId) {
+                $q->where('customer_id', $custId)
+                  ->orWhereHas('lead', function ($lq) use ($custId) {
+                      $lq->where('customer_id', $custId);
+                  });
             });
         }
 
@@ -188,6 +202,11 @@ class FollowupController extends Controller
                   ->orWhereHas('lead', function ($lq) use ($staffId) {
                       $lq->where('assigned_to', $staffId)
                         ->orWhere('created_by', $staffId);
+                  })
+                  ->orWhereHas('customer', function ($cq) use ($staffId) {
+                      $cq->where('created_by', $staffId)
+                        ->orWhere('owner_by', $staffId)
+                        ->orWhere('assign_by', $staffId);
                   });
             });
         }
@@ -195,8 +214,12 @@ class FollowupController extends Controller
             $baseCountQuery->where('lead_id', $request->input('lead_id'));
         }
         if ($request->filled('customer_id')) {
-            $baseCountQuery->whereHas('lead', function ($lq) use ($request) {
-                $lq->where('customer_id', $request->input('customer_id'));
+            $custId = $request->input('customer_id');
+            $baseCountQuery->where(function ($q) use ($custId) {
+                $q->where('customer_id', $custId)
+                  ->orWhereHas('lead', function ($lq) use ($custId) {
+                      $lq->where('customer_id', $custId);
+                  });
             });
         }
         if ($request->filled('lead_source_id')) {
@@ -230,7 +253,8 @@ class FollowupController extends Controller
     public function store(Request $request)
     {
         $rules = [
-            'lead_id'            => ['required', 'exists:leads,lead_id'],
+            'lead_id'            => ['nullable', 'exists:leads,lead_id'],
+            'customer_id'        => ['nullable', 'exists:customers,customer_id'],
             'followup_type'      => ['required', 'string', 'max:100'],
             'duration'           => ['nullable', 'string', 'max:100'],
             'remarks'            => ['nullable', 'string'],
@@ -267,15 +291,30 @@ class FollowupController extends Controller
             $validated['duration'] = null;
         }
 
+        if (empty($validated['customer_id']) && !empty($validated['lead_id'])) {
+            $validated['customer_id'] = Lead::where('lead_id', $validated['lead_id'])->value('customer_id');
+        }
+
         $validated['created_by'] = Auth::id();
         $validated['custom_fields'] = $this->processCustomFieldsPayload($request->input('custom_fields', []));
 
         $followup = Followup::create($validated);
 
         if (!empty($validated['next_followup_date'])) {
-            Lead::where('lead_id', $validated['lead_id'])->update([
-                'next_followup_date' => $validated['next_followup_date']
-            ]);
+            if (!empty($validated['lead_id'])) {
+                Lead::where('lead_id', $validated['lead_id'])->update([
+                    'next_followup_date' => $validated['next_followup_date']
+                ]);
+            }
+            if (!empty($validated['customer_id'])) {
+                $cust = Customer::find($validated['customer_id']);
+                if ($cust) {
+                    $cFields = $cust->custom_fields ?? [];
+                    $cFields['followup_date'] = Carbon::parse($validated['next_followup_date'])->format('Y-m-d');
+                    $cust->custom_fields = $cFields;
+                    $cust->save();
+                }
+            }
         }
 
         return response()->json([
@@ -287,7 +326,7 @@ class FollowupController extends Controller
 
     public function edit($id)
     {
-        $followup = Followup::forUser(Auth::user())->with(['lead.customer', 'forwardToUser', 'creator'])->find($id);
+        $followup = Followup::forUser(Auth::user())->with(['customer', 'lead.customer', 'forwardToUser', 'creator'])->find($id);
         if (!$followup) {
             return response()->json([
                 'status'  => false,
@@ -312,7 +351,8 @@ class FollowupController extends Controller
         }
 
         $rules = [
-            'lead_id'            => ['required', 'exists:leads,lead_id'],
+            'lead_id'            => ['nullable', 'exists:leads,lead_id'],
+            'customer_id'        => ['nullable', 'exists:customers,customer_id'],
             'followup_type'      => ['required', 'string', 'max:100'],
             'duration'           => ['nullable', 'string', 'max:100'],
             'remarks'            => ['nullable', 'string'],
@@ -354,9 +394,21 @@ class FollowupController extends Controller
         $followup->update($validated);
 
         if (!empty($validated['next_followup_date'])) {
-            Lead::where('lead_id', $validated['lead_id'])->update([
-                'next_followup_date' => $validated['next_followup_date']
-            ]);
+            if (!empty($validated['lead_id'])) {
+                Lead::where('lead_id', $validated['lead_id'])->update([
+                    'next_followup_date' => $validated['next_followup_date']
+                ]);
+            }
+            $targetCustId = $followup->customer_id ?? (!empty($validated['lead_id']) ? Lead::where('lead_id', $validated['lead_id'])->value('customer_id') : null);
+            if ($targetCustId) {
+                $cust = Customer::find($targetCustId);
+                if ($cust) {
+                    $cFields = $cust->custom_fields ?? [];
+                    $cFields['followup_date'] = Carbon::parse($validated['next_followup_date'])->format('Y-m-d');
+                    $cust->custom_fields = $cFields;
+                    $cust->save();
+                }
+            }
         }
 
         return response()->json([
@@ -424,6 +476,7 @@ class FollowupController extends Controller
 
         // The Today Reminder popup must be strictly user-specific for the logged-in user
         $followups = Followup::with([
+            'customer:customer_id,name,mobile,email',
             'lead:lead_id,lead_title,customer_id,assigned_to',
             'lead.customer:customer_id,name,mobile,email',
             'forwardToUser:id,name',
@@ -436,6 +489,11 @@ class FollowupController extends Controller
                   ->orWhere('created_by', $userId)
                   ->orWhereHas('lead', function ($q3) use ($userId) {
                       $q3->where('assigned_to', $userId);
+                  })
+                  ->orWhereHas('customer', function ($cq) use ($userId) {
+                      $cq->where('created_by', $userId)
+                        ->orWhere('owner_by', $userId)
+                        ->orWhere('assign_by', $userId);
                   })
                   ->orWhereHas('reassignments', function ($rq) use ($userId) {
                       $rq->where('new_staff_id', $userId);

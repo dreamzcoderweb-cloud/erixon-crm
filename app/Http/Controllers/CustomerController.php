@@ -8,6 +8,7 @@ use App\Models\CustomerCustomField;
 use App\Models\LeadSetting;
 use App\Models\LeadRequirement;
 use App\Models\LeadStage;
+use App\Models\Followup;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -250,6 +251,10 @@ class CustomerController extends Controller
 
         $customer = Customer::create($validated);
 
+        if (!empty($validated['custom_fields']['followup_date'])) {
+            $this->syncFollowupDate($customer, $validated['custom_fields']['followup_date']);
+        }
+
         return response()->json([
             'status'  => true,
             'message' => 'Customer created successfully.',
@@ -316,11 +321,62 @@ class CustomerController extends Controller
 
         $customer->update($validated);
 
+        if (isset($validated['custom_fields']['followup_date'])) {
+            $this->syncFollowupDate($customer, $validated['custom_fields']['followup_date']);
+        }
+
         return response()->json([
             'status'  => true,
             'message' => 'Customer updated successfully.',
             'data'    => $customer
         ]);
+    }
+
+    /**
+     * Sync Customer "Followup Date" custom field with Follow-ups module
+     */
+    protected function syncFollowupDate(Customer $customer, ?string $followupDate): void
+    {
+        if (empty($followupDate)) {
+            return;
+        }
+
+        try {
+            $parsedDate = Carbon::parse($followupDate)->format('Y-m-d H:i:s');
+        } catch (\Exception $e) {
+            return;
+        }
+
+        $followup = Followup::where('customer_id', $customer->customer_id)
+            ->where('followup_status', 'Pending')
+            ->latest('followups_id')
+            ->first();
+
+        if ($followup) {
+            $followup->update([
+                'next_followup_date' => $parsedDate,
+                'forward_to'         => $customer->assign_by ?? $customer->owner_by ?? $followup->forward_to,
+            ]);
+        } else {
+            Followup::create([
+                'customer_id'        => $customer->customer_id,
+                'lead_id'            => $customer->latestLead?->lead_id,
+                'followup_type'      => 'Call',
+                'duration'           => '5 minutes',
+                'remarks'            => 'Follow-up for customer ' . $customer->name,
+                'next_followup_date' => $parsedDate,
+                'followup_status'    => 'Pending',
+                'forward_to'         => $customer->assign_by ?? $customer->owner_by,
+                'created_by'         => Auth::id() ?? $customer->created_by,
+            ]);
+        }
+
+        // If customer has an associated lead, also sync lead's next_followup_date
+        if ($customer->latestLead) {
+            $customer->latestLead->update([
+                'next_followup_date' => Carbon::parse($followupDate)->format('Y-m-d')
+            ]);
+        }
     }
 
     public function destroy($id)

@@ -143,6 +143,11 @@ class Customer extends Authenticatable
         return $this->hasMany(Payment::class, 'customer_id', 'customer_id');
     }
 
+    public function followups()
+    {
+        return $this->hasMany(Followup::class, 'customer_id', 'customer_id');
+    }
+
     public function leadRequirement()
     {
         return $this->belongsTo(LeadRequirement::class, 'lead_requirement_id', 'lead_requirements_id');

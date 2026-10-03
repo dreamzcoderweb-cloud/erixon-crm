@@ -219,9 +219,11 @@ $(document).ready(function () {
                 d.month = $('#lead_filter_month').val();
                 d.start_date = $('#lead_filter_start_date').val();
                 d.end_date = $('#lead_filter_end_date').val();
-                d.lead_title = $('#lead_filter_title').val();
-                d.customer_id = $('#lead_filter_customer_id').val();
+                d.lead_requirement_id = $('#lead_filter_requirement_id').val();
                 d.lead_source_id = $('#lead_filter_source_id').val();
+                d.lead_stage_id = $('#lead_filter_stage_id').val();
+                d.lost_reason_id = $('#lead_filter_lost_reason_id').val();
+                d.customer_id = $('#lead_filter_customer_id').val();
                 d.created_by = $('#lead_filter_created_by').val();
                 d.status = $('#lead_filter_status').val();
             },
@@ -617,9 +619,11 @@ $(document).ready(function () {
         $('.btn-lead-period').removeClass('active');
         $('.btn-lead-period[data-period="all"]').addClass('active');
         $('#lead_filter_period').val('all');
-        $('#lead_filter_title').val('');
-        $('#lead_filter_customer_id').val('').trigger('change');
+        $('#lead_filter_requirement_id').val('');
         $('#lead_filter_source_id').val('');
+        $('#lead_filter_stage_id').val('');
+        $('#lead_filter_lost_reason_id').val('');
+        $('#lead_filter_customer_id').val('').trigger('change');
         $('#lead_filter_created_by').val('');
         $('#lead_filter_status').val('');
         $('.lead-filter-date-group').addClass('d-none');

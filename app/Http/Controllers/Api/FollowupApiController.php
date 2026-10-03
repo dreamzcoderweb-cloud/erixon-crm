@@ -7,6 +7,7 @@ use App\Models\Followup;
 use App\Models\FollowupCustomField;
 use App\Models\Lead;
 use App\Models\User;
+use App\Models\Customer;
 use App\Traits\HasApiPermissionCheck;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -51,6 +52,23 @@ class FollowupApiController extends Controller
                 ];
             });
 
+        // Accessible customers for the user
+        $customersQuery = Customer::query();
+        if ($currentUser) {
+            $customersQuery->forUser($currentUser);
+        }
+        $customers = $customersQuery->orderBy('customer_id', 'desc')
+            ->get(['customer_id', 'name', 'mobile'])
+            ->map(function ($c) {
+                $customerMobile = !empty($c->mobile) ? " ({$c->mobile})" : "";
+                return [
+                    'value' => $c->customer_id,
+                    'label' => "{$c->name}{$customerMobile}",
+                    'name'  => $c->name,
+                    'mobile'=> $c->mobile,
+                ];
+            });
+
         $staffOptions = $this->getStaffDropdownOptions();
         $customFields = $this->getFormattedCustomFields();
 
@@ -59,6 +77,7 @@ class FollowupApiController extends Controller
             'message' => 'Follow-up form data retrieved successfully.',
             'data' => [
                 'leads' => $leads,
+                'customers' => $customers,
                 'followup_types' => [
                     ['value' => 'Call', 'label' => 'Call'],
                     ['value' => 'Meeting', 'label' => 'Meeting'],
@@ -84,6 +103,8 @@ class FollowupApiController extends Controller
                 'forward_to_staff' => $staffOptions,
                 'custom_fields' => $customFields,
                 'defaults' => [
+                    'lead_id' => null,
+                    'customer_id' => null,
                     'followup_type' => 'Call',
                     'duration' => '5 minutes',
                     'followup_status' => 'Pending',
@@ -112,6 +133,9 @@ class FollowupApiController extends Controller
         $today = Carbon::today()->toDateString();
 
         $query = Followup::with([
+            'customer:customer_id,name,mobile,email,customer_type,lead_requirement_id,lead_stage_id',
+            'customer.leadRequirement:lead_requirements_id,name',
+            'customer.leadStage:lead_stage_id,name',
             'lead:lead_id,lead_title,customer_id,lead_source_id,lead_stage_id,lead_requirement_id,lost_reason_id',
             'lead.customer:customer_id,name,mobile,email',
             'lead.leadSource:lead_sources_id,name',
@@ -132,6 +156,10 @@ class FollowupApiController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('remarks', 'like', "%{$search}%")
                     ->orWhere('followup_type', 'like', "%{$search}%")
+                    ->orWhereHas('customer', function ($cq) use ($search) {
+                        $cq->where('name', 'like', "%{$search}%")
+                            ->orWhere('mobile', 'like', "%{$search}%");
+                    })
                     ->orWhereHas('lead', function ($lq) use ($search) {
                         $lq->where('lead_title', 'like', "%{$search}%")
                             ->orWhereHas('customer', function ($cq) use ($search) {
@@ -149,8 +177,12 @@ class FollowupApiController extends Controller
 
         // Filter by Customer
         if ($request->filled('customer_id')) {
-            $query->whereHas('lead', function ($lq) use ($request) {
-                $lq->where('customer_id', $request->input('customer_id'));
+            $custId = $request->input('customer_id');
+            $query->where(function ($q) use ($custId) {
+                $q->where('customer_id', $custId)
+                  ->orWhereHas('lead', function ($lq) use ($custId) {
+                      $lq->where('customer_id', $custId);
+                  });
             });
         }
 
@@ -207,6 +239,11 @@ class FollowupApiController extends Controller
                   ->orWhere('created_by', $staffId)
                   ->orWhereHas('lead', function ($lq) use ($staffId) {
                       $lq->where('assigned_to', $staffId)
+                        ->orWhere('created_by', $staffId);
+                  })
+                  ->orWhereHas('customer', function ($cq) use ($staffId) {
+                      $cq->where('owner_by', $staffId)
+                        ->orWhere('assign_by', $staffId)
                         ->orWhere('created_by', $staffId);
                   });
             });
@@ -315,7 +352,8 @@ class FollowupApiController extends Controller
 
         // 3. Build validation rules
         $baseRules = [
-            'lead_id'            => ['required', 'exists:leads,lead_id'],
+            'lead_id'            => ['nullable', 'exists:leads,lead_id'],
+            'customer_id'        => ['nullable', 'exists:customers,customer_id'],
             'followup_type'      => ['required', 'string', 'in:Call,Meeting,Email,WhatsApp,Other'],
             'duration'           => ['nullable', 'string', 'max:100'],
             'remarks'            => ['nullable', 'string'],
@@ -330,6 +368,7 @@ class FollowupApiController extends Controller
 
         $baseAttributes = [
             'lead_id'            => 'Lead',
+            'customer_id'        => 'Customer',
             'followup_type'      => 'Follow-up Type',
             'duration'           => 'Duration',
             'remarks'            => 'Remarks / Discussion Details',
@@ -362,6 +401,24 @@ class FollowupApiController extends Controller
 
         $validated = $validator->validated();
 
+        $leadId = !empty($validated['lead_id']) ? (int) $validated['lead_id'] : null;
+        $customerId = !empty($validated['customer_id']) ? (int) $validated['customer_id'] : null;
+
+        if (!$customerId && $leadId) {
+            $lead = Lead::find($leadId);
+            $customerId = $lead?->customer_id;
+        }
+
+        if (empty($leadId) && empty($customerId)) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Either lead_id or customer_id must be provided.',
+                'errors'  => [
+                    'lead_id' => ['Either lead_id or customer_id is required.']
+                ],
+            ], 422);
+        }
+
         // 4. Validate forward_to staff is not on leave
         if (!empty($validated['forward_to'])) {
             $forwardUser = User::find($validated['forward_to']);
@@ -384,7 +441,8 @@ class FollowupApiController extends Controller
         $processedCustomFields = $this->processCustomFieldsPayload($customFieldsInput);
 
         $followup = Followup::create([
-            'lead_id'            => (int) $validated['lead_id'],
+            'customer_id'        => $customerId,
+            'lead_id'            => $leadId,
             'followup_type'      => $validated['followup_type'],
             'duration'           => $validated['duration'],
             'remarks'            => !empty($validated['remarks']) ? $validated['remarks'] : null,
@@ -395,14 +453,27 @@ class FollowupApiController extends Controller
             'custom_fields'      => !empty($processedCustomFields) ? $processedCustomFields : null,
         ]);
 
-        // Sync next_followup_date to the Lead model
+        // Sync next_followup_date to the Lead model and Customer model
         if (!empty($validated['next_followup_date'])) {
-            Lead::where('lead_id', $validated['lead_id'])->update([
-                'next_followup_date' => $validated['next_followup_date'],
-            ]);
+            if ($leadId) {
+                Lead::where('lead_id', $leadId)->update([
+                    'next_followup_date' => $validated['next_followup_date'],
+                ]);
+            }
+            if ($customerId) {
+                $targetCustomer = Customer::find($customerId);
+                if ($targetCustomer) {
+                    $cFields = is_array($targetCustomer->custom_fields) ? $targetCustomer->custom_fields : [];
+                    $cFields['followup_date'] = Carbon::parse($validated['next_followup_date'])->format('Y-m-d');
+                    $targetCustomer->update(['custom_fields' => $cFields]);
+                }
+            }
         }
 
         $followup->loadMissing([
+            'customer:customer_id,name,mobile,email,customer_type,lead_requirement_id,lead_stage_id',
+            'customer.leadRequirement:lead_requirements_id,name',
+            'customer.leadStage:lead_stage_id,name',
             'lead:lead_id,lead_title,customer_id,lead_source_id,lead_stage_id',
             'lead.customer:customer_id,name,mobile,email',
             'forwardToUser:id,name,email,is_on_leave',
@@ -440,6 +511,9 @@ class FollowupApiController extends Controller
         }
 
         $followup->loadMissing([
+            'customer:customer_id,name,mobile,email,customer_type,lead_requirement_id,lead_stage_id',
+            'customer.leadRequirement:lead_requirements_id,name',
+            'customer.leadStage:lead_stage_id,name',
             'lead:lead_id,lead_title,customer_id,lead_source_id,lead_stage_id,lead_requirement_id,lost_reason_id',
             'lead.customer:customer_id,name,mobile,email',
             'lead.leadSource:lead_sources_id,name',
@@ -481,6 +555,7 @@ class FollowupApiController extends Controller
         }
 
         $followup->loadMissing([
+            'customer:customer_id,name,mobile,email',
             'lead:lead_id,lead_title,customer_id',
             'lead.customer:customer_id,name,mobile,email',
             'forwardToUser:id,name,email,is_on_leave',
@@ -533,6 +608,21 @@ class FollowupApiController extends Controller
                 ];
             });
 
+        // Customer options
+        $customersQuery = Customer::query();
+        if ($user) {
+            $customersQuery->forUser($user);
+        }
+        $customerOptions = $customersQuery->orderBy('customer_id', 'desc')
+            ->get(['customer_id', 'name', 'mobile'])
+            ->map(function ($c) {
+                $customerMobile = !empty($c->mobile) ? " ({$c->mobile})" : "";
+                return [
+                    'value' => $c->customer_id,
+                    'label' => "{$c->name}{$customerMobile}",
+                ];
+            });
+
         $staffOptions = $this->getStaffDropdownOptions();
 
         return response()->json([
@@ -541,6 +631,7 @@ class FollowupApiController extends Controller
             'data'                     => $followup,
             'custom_fields_definition' => $formattedFields,
             'lead_options'             => $leads,
+            'customer_options'         => $customerOptions,
             'followup_type_options'    => [
                 ['value' => 'Call', 'label' => 'Call'],
                 ['value' => 'Meeting', 'label' => 'Meeting'],
@@ -612,7 +703,8 @@ class FollowupApiController extends Controller
         [$customRules, $customAttributes] = $this->getCustomFieldsRules(true);
 
         $baseRules = [
-            'lead_id'            => ['sometimes', 'required', 'exists:leads,lead_id'],
+            'lead_id'            => ['sometimes', 'nullable', 'exists:leads,lead_id'],
+            'customer_id'        => ['sometimes', 'nullable', 'exists:customers,customer_id'],
             'followup_type'      => ['sometimes', 'required', 'string', 'in:Call,Meeting,Email,WhatsApp,Other'],
             'duration'           => ['nullable', 'string', 'max:100'],
             'remarks'            => ['nullable', 'string'],
@@ -627,6 +719,7 @@ class FollowupApiController extends Controller
 
         $baseAttributes = [
             'lead_id'            => 'Lead',
+            'customer_id'        => 'Customer',
             'followup_type'      => 'Follow-up Type',
             'duration'           => 'Duration',
             'remarks'            => 'Remarks / Discussion Details',
@@ -678,7 +771,16 @@ class FollowupApiController extends Controller
         ];
 
         if ($request->has('lead_id')) {
-            $updateData['lead_id'] = (int) $request->input('lead_id');
+            $updateData['lead_id'] = $request->filled('lead_id') ? (int) $request->input('lead_id') : null;
+        }
+        if ($request->has('customer_id')) {
+            $updateData['customer_id'] = $request->filled('customer_id') ? (int) $request->input('customer_id') : null;
+        }
+        if (empty($updateData['customer_id']) && !empty($updateData['lead_id'])) {
+            $lead = Lead::find($updateData['lead_id']);
+            if ($lead && $lead->customer_id) {
+                $updateData['customer_id'] = $lead->customer_id;
+            }
         }
         if ($request->has('followup_type')) {
             $updateData['followup_type'] = $followupType;
@@ -704,15 +806,27 @@ class FollowupApiController extends Controller
 
         $followup->update($updateData);
 
-        // Sync next_followup_date to the Lead model if present
-        $targetLeadId = $updateData['lead_id'] ?? $followup->lead_id;
+        // Sync next_followup_date to the Lead model and Customer model
+        $targetLeadId = array_key_exists('lead_id', $updateData) ? $updateData['lead_id'] : $followup->lead_id;
         if (!empty($updateData['next_followup_date']) && $targetLeadId) {
             Lead::where('lead_id', $targetLeadId)->update([
                 'next_followup_date' => $updateData['next_followup_date'],
             ]);
         }
+        $targetCustomerId = array_key_exists('customer_id', $updateData) ? $updateData['customer_id'] : $followup->customer_id;
+        if (!empty($updateData['next_followup_date']) && $targetCustomerId) {
+            $targetCustomer = Customer::find($targetCustomerId);
+            if ($targetCustomer) {
+                $cFields = is_array($targetCustomer->custom_fields) ? $targetCustomer->custom_fields : [];
+                $cFields['followup_date'] = Carbon::parse($updateData['next_followup_date'])->format('Y-m-d');
+                $targetCustomer->update(['custom_fields' => $cFields]);
+            }
+        }
 
         $followup->loadMissing([
+            'customer:customer_id,name,mobile,email,customer_type,lead_requirement_id,lead_stage_id',
+            'customer.leadRequirement:lead_requirements_id,name',
+            'customer.leadStage:lead_stage_id,name',
             'lead:lead_id,lead_title,customer_id,lead_source_id,lead_stage_id',
             'lead.customer:customer_id,name,mobile,email',
             'forwardToUser:id,name,email,is_on_leave',
@@ -818,6 +932,7 @@ class FollowupApiController extends Controller
         $today  = Carbon::today()->toDateString();
 
         $followups = Followup::with([
+            'customer:customer_id,name,mobile,email',
             'lead:lead_id,lead_title,customer_id,assigned_to',
             'lead.customer:customer_id,name,mobile,email',
             'forwardToUser:id,name,email',
@@ -830,6 +945,11 @@ class FollowupApiController extends Controller
                   ->orWhere('created_by', $userId)
                   ->orWhereHas('lead', function ($q3) use ($userId) {
                       $q3->where('assigned_to', $userId);
+                  })
+                  ->orWhereHas('customer', function ($cq) use ($userId) {
+                      $cq->where('owner_by', $userId)
+                        ->orWhere('assign_by', $userId)
+                        ->orWhere('created_by', $userId);
                   })
                   ->orWhereHas('reassignments', function ($rq) use ($userId) {
                       $rq->where('new_staff_id', $userId);

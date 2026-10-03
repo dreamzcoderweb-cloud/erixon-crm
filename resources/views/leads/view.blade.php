@@ -71,28 +71,16 @@
                         </div>
 
                         <div class="col-md-3">
-                            <label class="form-label fw-semibold">Lead Title</label>
-                            <select name="lead_title" id="lead_filter_title" class="form-select form-select-sm">
-                                <option value="">-- All Lead Titles --</option>
-                                @if(isset($leadTitles) && count($leadTitles) > 0)
-                                    @foreach ($leadTitles as $title)
-                                        <option value="{{ $title }}">{{ $title }}</option>
+                            <label class="form-label fw-semibold">Requirement</label>
+                            <select name="lead_requirement_id" id="lead_filter_requirement_id" class="form-select form-select-sm">
+                                <option value="">-- All Requirements --</option>
+                                @if(isset($leadRequirements) && count($leadRequirements) > 0)
+                                    @foreach ($leadRequirements as $req)
+                                        <option value="{{ $req->lead_requirements_id }}">{{ $req->name }}</option>
                                     @endforeach
                                 @endif
                             </select>
                         </div>
-
-                        {{-- <div class="col-md-3">
-                            <label class="form-label fw-semibold">Customer</label>
-                            <select name="customer_id" id="lead_filter_customer_id" class="form-select form-select-sm select2-search">
-                                <option value="">-- All Customers --</option>
-                                @if(isset($customers) && count($customers) > 0)
-                                    @foreach ($customers as $cust)
-                                        <option value="{{ $cust->customer_id }}">{{ $cust->name }} ({{ $cust->mobile }})</option>
-                                    @endforeach
-                                @endif
-                            </select>
-                        </div> --}}
 
                         <div class="col-md-3">
                             <label class="form-label fw-semibold">Source</label>
@@ -101,6 +89,30 @@
                                 @if(isset($leadSources) && count($leadSources) > 0)
                                     @foreach ($leadSources as $src)
                                         <option value="{{ $src->lead_sources_id }}">{{ $src->name }}</option>
+                                    @endforeach
+                                @endif
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Stage</label>
+                            <select name="lead_stage_id" id="lead_filter_stage_id" class="form-select form-select-sm">
+                                <option value="">-- All Stages --</option>
+                                @if(isset($leadStages) && count($leadStages) > 0)
+                                    @foreach ($leadStages as $stg)
+                                        <option value="{{ $stg->lead_stage_id }}">{{ $stg->name }}</option>
+                                    @endforeach
+                                @endif
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Lost Reason</label>
+                            <select name="lost_reason_id" id="lead_filter_lost_reason_id" class="form-select form-select-sm">
+                                <option value="">-- All Lost Reasons --</option>
+                                @if(isset($lostReasons) && count($lostReasons) > 0)
+                                    @foreach ($lostReasons as $lr)
+                                        <option value="{{ $lr->lost_reason_id }}">{{ $lr->reason }}</option>
                                     @endforeach
                                 @endif
                             </select>

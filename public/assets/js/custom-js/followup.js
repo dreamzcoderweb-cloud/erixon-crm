@@ -112,10 +112,10 @@ $(document).ready(function () {
                 {
                     data: null,
                     render: function (data, type, row) {
-                        let title = row.lead ? row.lead.lead_title : 'N/A';
-                        let customerName = (row.lead && row.lead.customer) ? row.lead.customer.name : '';
-                        let mobile = (row.lead && row.lead.customer && row.lead.customer.mobile) ? row.lead.customer.mobile : '';
-                        if (type !== 'display') return title + ' (' + customerName + ')';
+                        let title = row.lead ? row.lead.lead_title : (row.customer ? 'Customer: ' + row.customer.name : 'N/A');
+                        let customerName = (row.lead && row.lead.customer) ? row.lead.customer.name : (row.customer ? row.customer.name : '');
+                        let mobile = (row.lead && row.lead.customer && row.lead.customer.mobile) ? row.lead.customer.mobile : (row.customer ? row.customer.mobile : '');
+                        if (type !== 'display') return title + (customerName ? ' (' + customerName + ')' : '');
                         return `<div><strong>${title}</strong><br><small class="text-muted">${customerName ? '<i class="bx bx-user me-1"></i>' + customerName : ''} ${mobile ? ' (' + mobile + ')' : ''}</small></div>`;
                     }
                 },
@@ -206,10 +206,10 @@ $(document).ready(function () {
                     followupTableColumns.push({
                         data: null,
                         render: function (data, type, row) {
-                            let title = row.lead ? row.lead.lead_title : 'N/A';
-                            let customerName = (row.lead && row.lead.customer) ? row.lead.customer.name : '';
-                            let mobile = (row.lead && row.lead.customer && row.lead.customer.mobile) ? row.lead.customer.mobile : '';
-                            if (type !== 'display') return title + ' (' + customerName + ')';
+                            let title = row.lead ? row.lead.lead_title : (row.customer ? 'Customer: ' + row.customer.name : 'N/A');
+                            let customerName = (row.lead && row.lead.customer) ? row.lead.customer.name : (row.customer ? row.customer.name : '');
+                            let mobile = (row.lead && row.lead.customer && row.lead.customer.mobile) ? row.lead.customer.mobile : (row.customer ? row.customer.mobile : '');
+                            if (type !== 'display') return title + (customerName ? ' (' + customerName + ')' : '');
                             return `<div><strong>${title}</strong><br><small class="text-muted">${customerName ? '<i class="bx bx-user me-1"></i>' + customerName : ''} ${mobile ? ' (' + mobile + ')' : ''}</small></div>`;
                         }
                     });
@@ -227,7 +227,7 @@ $(document).ready(function () {
                     followupTableColumns.push({
                         data: null,
                         render: function (data, type, row) {
-                            let name = (row.lead && row.lead.lead_stage) ? row.lead.lead_stage.name : null;
+                            let name = (row.lead && row.lead.lead_stage) ? row.lead.lead_stage.name : (row.customer && row.customer.lead_stage ? row.customer.lead_stage.name : null);
                             if (!name) return type !== 'display' ? 'N/A' : '<span class="text-muted">N/A</span>';
                             if (type !== 'display') return name;
                             return `<span class="badge bg-label-warning">${name}</span>`;
@@ -237,7 +237,7 @@ $(document).ready(function () {
                     followupTableColumns.push({
                         data: null,
                         render: function (data, type, row) {
-                            let name = (row.lead && row.lead.lead_requirement) ? row.lead.lead_requirement.name : null;
+                            let name = (row.lead && row.lead.lead_requirement) ? row.lead.lead_requirement.name : (row.customer && row.customer.lead_requirement ? row.customer.lead_requirement.name : null);
                             if (!name) return type !== 'display' ? 'N/A' : '<span class="text-muted">N/A</span>';
                             if (type !== 'display') return name;
                             return `<span class="badge bg-label-primary">${name}</span>`;
@@ -512,7 +512,8 @@ $(document).ready(function () {
                 if (response.status) {
                     let followup = response.data;
                     $('#edit_followups_id').val(followup.followups_id);
-                    $('#edit_followup_lead_id').val(followup.lead_id);
+                    $('#edit_followup_lead_id').val(followup.lead_id || '');
+                    $('#edit_followup_customer_id').val(followup.customer_id || '');
                     $('#edit_followup_type').val(followup.followup_type);
 
                     // Handle Duration field

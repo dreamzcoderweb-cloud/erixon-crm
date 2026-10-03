@@ -28,7 +28,6 @@ class LeadController extends Controller
         $data['leadStages']       = LeadStage::where('status', 1)->orderBy('sort_order', 'ASC')->get();
         $data['leadRequirements'] = LeadRequirement::where('status', 1)->orderBy('name')->get();
         $data['lostReasons']      = LostReason::where('status', 1)->orderBy('reason')->get();
-        $data['leadTitles']       = Lead::forUser($user)->select('lead_title')->distinct()->whereNotNull('lead_title')->orderBy('lead_title')->pluck('lead_title');
         $customFields = \App\Models\LeadCustomField::where('status', 1)->orderBy('sort_order', 'asc')->orderBy('id', 'asc')->get();
 
         $standardFields = [
@@ -112,16 +111,24 @@ class LeadController extends Controller
 
         $query = Lead::forUser($user);
 
-        if ($request->filled('lead_title')) {
-            $query->where('lead_title', $request->input('lead_title'));
-        }
-
-        if ($request->filled('customer_id')) {
-            $query->where('customer_id', $request->input('customer_id'));
+        if ($request->filled('lead_requirement_id')) {
+            $query->where('lead_requirement_id', $request->input('lead_requirement_id'));
         }
 
         if ($request->filled('lead_source_id')) {
             $query->where('lead_source_id', $request->input('lead_source_id'));
+        }
+
+        if ($request->filled('lead_stage_id')) {
+            $query->where('lead_stage_id', $request->input('lead_stage_id'));
+        }
+
+        if ($request->filled('lost_reason_id')) {
+            $query->where('lost_reason_id', $request->input('lost_reason_id'));
+        }
+
+        if ($request->filled('customer_id')) {
+            $query->where('customer_id', $request->input('customer_id'));
         }
 
         if ($request->filled('created_by')) {
@@ -171,14 +178,20 @@ class LeadController extends Controller
 
         $baseCountQuery = Lead::forUser($user);
 
-        if ($request->filled('lead_title')) {
-            $baseCountQuery->where('lead_title', $request->input('lead_title'));
-        }
-        if ($request->filled('customer_id')) {
-            $baseCountQuery->where('customer_id', $request->input('customer_id'));
+        if ($request->filled('lead_requirement_id')) {
+            $baseCountQuery->where('lead_requirement_id', $request->input('lead_requirement_id'));
         }
         if ($request->filled('lead_source_id')) {
             $baseCountQuery->where('lead_source_id', $request->input('lead_source_id'));
+        }
+        if ($request->filled('lead_stage_id')) {
+            $baseCountQuery->where('lead_stage_id', $request->input('lead_stage_id'));
+        }
+        if ($request->filled('lost_reason_id')) {
+            $baseCountQuery->where('lost_reason_id', $request->input('lost_reason_id'));
+        }
+        if ($request->filled('customer_id')) {
+            $baseCountQuery->where('customer_id', $request->input('customer_id'));
         }
         if ($request->filled('created_by')) {
             $baseCountQuery->where('created_by', $request->input('created_by'));
