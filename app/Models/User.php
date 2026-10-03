@@ -151,4 +151,56 @@ class User extends Authenticatable
 
         return asset('assets/img/avatars/1.png');
     }
+
+    /**
+     * Get today's answered calls count for the user.
+     */
+    public function getTodayAnsweredCallsCount(): int
+    {
+        $today = \Carbon\Carbon::today()->toDateString();
+
+        return \App\Models\CallLog::where('user_id', $this->id)
+            ->where('call_status', 'Answered')
+            ->where(function ($q) use ($today) {
+                $q->whereDate('call_start_time', $today)
+                  ->orWhere(function ($q2) use ($today) {
+                      $q2->whereNull('call_start_time')
+                         ->whereDate('created_at', $today);
+                  });
+            })
+            ->count();
+    }
+
+    /**
+     * Check if user is eligible to log out based on required answered calls (min 50 for staff).
+     * Super Admin and Admin are exempt and can always log out freely.
+     */
+    public function canLogout(): array
+    {
+        $completed = $this->getTodayAnsweredCallsCount();
+
+        // Super Admin and Admin are completely exempt from call logout restrictions
+        if ($this->isSuperAdmin() || $this->isAdmin()) {
+            return [
+                'allowed'   => true,
+                'completed' => $completed,
+                'required'  => 0,
+                'remaining' => 0,
+                'message'   => 'Admin and Super Admin are exempt from call requirements.',
+            ];
+        }
+
+        $required = 50;
+        $remaining = max(0, $required - $completed);
+
+        return [
+            'allowed'   => $completed >= $required,
+            'completed' => $completed,
+            'required'  => $required,
+            'remaining' => $remaining,
+            'message'   => $completed >= $required
+                ? 'Eligible to logout.'
+                : "Cannot logout. You must complete at least {$required} answered calls today before logging out. You have completed {$completed} answered calls ({$remaining} remaining).",
+        ];
+    }
 }

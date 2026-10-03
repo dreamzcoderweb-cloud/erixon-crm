@@ -128,10 +128,48 @@ class StaffAuthController extends Controller
 
     public function logout(Request $request)
     {
+        $user = $request->user();
+        if ($user) {
+            $check = $user->canLogout();
+            if (!$check['allowed']) {
+                return response()->json([
+                    'status'          => false,
+                    'message'         => $check['message'],
+                    'completed_calls' => $check['completed'],
+                    'required_calls'  => $check['required'],
+                    'remaining_calls' => $check['remaining'],
+                ], 403);
+            }
+        }
+
         $request->user()->currentAccessToken()?->delete();
 
         return response()->json([
+            'status'  => true,
             'message' => 'Logged out successfully',
+        ]);
+    }
+
+    /**
+     * Check answered calls progress toward 50 calls logout requirement.
+     * GET /api/v1/staff/call-logout-status
+     */
+    public function callLogoutStatus(Request $request)
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+
+        $check = $user->canLogout();
+
+        return response()->json([
+            'status'          => true,
+            'can_logout'      => $check['allowed'],
+            'message'         => $check['message'],
+            'completed_calls' => $check['completed'],
+            'required_calls'  => $check['required'],
+            'remaining_calls' => $check['remaining'],
         ]);
     }
 
@@ -146,6 +184,13 @@ class StaffAuthController extends Controller
         $userData['role'] = $roleName;
         $userData['permissions'] = $user->getAllPermissions()->pluck('name')->values();
         $userData['menu_access'] = $this->getMenuAccess($user);
+        $check = $user->canLogout();
+        $userData['call_logout_status'] = [
+            'completed_calls' => $check['completed'],
+            'required_calls'  => $check['required'],
+            'remaining_calls' => $check['remaining'],
+            'can_logout'      => $check['allowed'],
+        ];
 
         return $userData;
     }

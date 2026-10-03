@@ -335,6 +335,16 @@
 
                 <!-- Content wrapper -->
                 <div class="content-wrapper">
+                    @if (session('error') || session('danger'))
+                        <div class="container-xxl container-p-y pb-0 pt-3">
+                            <div class="alert alert-danger alert-dismissible fade show mb-3 shadow-sm" role="alert">
+                                <i class="bx bx-error-circle me-2 fs-5 align-middle"></i>
+                                <span class="align-middle"><strong>{{ session('error') ?: session('danger') }}</strong></span>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        </div>
+                    @endif
+
                     <!-- Content -->
                     @yield('content')
                     <!-- / Content -->
