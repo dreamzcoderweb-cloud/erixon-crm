@@ -170,6 +170,7 @@ class StaffAuthController extends Controller
             'completed_calls' => $check['completed'],
             'required_calls'  => $check['required'],
             'remaining_calls' => $check['remaining'],
+            'is_mandatory'    => $user->isSalesManager(),
         ]);
     }
 
@@ -190,6 +191,7 @@ class StaffAuthController extends Controller
             'required_calls'  => $check['required'],
             'remaining_calls' => $check['remaining'],
             'can_logout'      => $check['allowed'],
+            'is_mandatory'    => $user->isSalesManager(),
         ];
 
         return $userData;
@@ -220,6 +222,7 @@ class StaffAuthController extends Controller
             'staff'              => $isAdmin || $user->can('staff.view'),
             'roles'              => $isAdmin || $user->can('roles.view'),
             'templates'          => $isAdmin || $user->can('templates.view'),
+            'proposals'          => $isAdmin || $user->can('proposals.view'),
             'settings'           => $isAdmin || $user->can('general-settings.view') || $user->can('lead-settings.view'),
         ];
     }

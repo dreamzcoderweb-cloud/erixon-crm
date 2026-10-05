@@ -534,6 +534,26 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
     Route::delete('payments/delete/{id}', [\App\Http\Controllers\PaymentController::class, 'destroy'])
         ->middleware('permission:payments.delete');
 
+    // Proposals routes
+    Route::get('proposals', [\App\Http\Controllers\ProposalController::class, 'index'])
+        ->middleware('permission:proposals.view')
+        ->name('proposals.index');
+    Route::get('proposals/data', [\App\Http\Controllers\ProposalController::class, 'listData'])
+        ->middleware('permission:proposals.view');
+    Route::post('proposals/store', [\App\Http\Controllers\ProposalController::class, 'store'])
+        ->middleware('permission:proposals.create');
+    Route::get('proposals/show/{id}', [\App\Http\Controllers\ProposalController::class, 'show'])
+        ->middleware('permission:proposals.view');
+    Route::get('proposals/edit/{id}', [\App\Http\Controllers\ProposalController::class, 'edit'])
+        ->middleware('permission:proposals.edit');
+    Route::post('proposals/update/{id}', [\App\Http\Controllers\ProposalController::class, 'update'])
+        ->middleware('permission:proposals.edit');
+    Route::delete('proposals/delete/{id}', [\App\Http\Controllers\ProposalController::class, 'destroy'])
+        ->middleware('permission:proposals.delete');
+    Route::get('proposals/print/{id}', [\App\Http\Controllers\ProposalController::class, 'print'])
+        ->middleware('permission:proposals.view')
+        ->name('proposals.print');
+
     // Staff Permission Request routes
     Route::get('permissions/data', [LeaveController::class, 'listPermissions'])
         ->middleware('permission:permissions.view');

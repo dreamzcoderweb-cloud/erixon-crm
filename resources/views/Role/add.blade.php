@@ -148,6 +148,7 @@
                 'profile' => ['title' => 'Profile Settings', 'icon' => 'bx-user-circle', 'badge' => 'bg-label-dark'],
                 'dashboard' => ['title' => 'Dashboard Access', 'icon' => 'bx-home-smile', 'badge' => 'bg-label-primary'],
                 'audit-logs' => ['title' => 'Audit Logs', 'icon' => 'bx-history', 'badge' => 'bg-label-danger'],
+                'proposals' => ['title' => 'Proposal Management', 'icon' => 'bx-file-blank', 'badge' => 'bg-label-success'],
             ];
 
             // Group permissions by prefix

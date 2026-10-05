@@ -136,6 +136,11 @@ class PermissionSeeder extends Seeder
             'payments.edit',
             'payments.delete',
 
+            'proposals.view',
+            'proposals.create',
+            'proposals.edit',
+            'proposals.delete',
+
             'permissions.view',
             'permissions.create',
             'permissions.approve',

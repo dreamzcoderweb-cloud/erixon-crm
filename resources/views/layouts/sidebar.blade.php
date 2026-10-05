@@ -213,6 +213,15 @@
             </li>
         @endcan
 
+        @can('proposals.view')
+            <li class="menu-item {{ request()->is('admin/proposals*') ? 'active' : '' }}">
+                <a href="{{ route('admin.proposals.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-file"></i>
+                    <div class="text-truncate">Proposals</div>
+                </a>
+            </li>
+        @endcan
+
         @can('templates.view')
             <li class="menu-item {{ request()->is('admin/templates*') ? 'active' : '' }}">
                 <a href="{{ route('admin.templates.index') }}" class="menu-link">

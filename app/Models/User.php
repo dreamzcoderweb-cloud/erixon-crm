@@ -172,21 +172,56 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user is eligible to log out based on required answered calls (min 50 for staff).
-     * Super Admin and Admin are exempt and can always log out freely.
+     * Check if user is a Sales Manager
+     */
+    public function isSalesManager(): bool
+    {
+        if ($this->hasAnyRole([
+            'Sales Manager',
+            'sales manager',
+            'Sales manager',
+            'sales_manager',
+            'Sales-Manager',
+            'sales-manager',
+        ])) {
+            return true;
+        }
+
+        $roleName = $this->roles?->first()?->name ?? $this->getRoleNames()->first();
+        if ($roleName && strcasecmp(trim(str_replace(['_', '-'], ' ', $roleName)), 'Sales Manager') === 0) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if user is eligible to log out based on required answered calls (min 50 answered calls per day mandatory ONLY for Sales Manager role).
+     * Super Admin, Admin, and all other staff roles are exempt and can always log out freely.
      */
     public function canLogout(): array
     {
         $completed = $this->getTodayAnsweredCallsCount();
 
-        // Super Admin and Admin are completely exempt from call logout restrictions
-        if ($this->isSuperAdmin() || $this->isAdmin()) {
+        // Super Admin and Admin are always exempt
+        if ($this->isAdmin()) {
             return [
                 'allowed'   => true,
                 'completed' => $completed,
                 'required'  => 0,
                 'remaining' => 0,
                 'message'   => 'Admin and Super Admin are exempt from call requirements.',
+            ];
+        }
+
+        // 50 answered calls per day is mandatory ONLY for Sales Manager role. All other roles are exempt.
+        if (!$this->isSalesManager()) {
+            return [
+                'allowed'   => true,
+                'completed' => $completed,
+                'required'  => 0,
+                'remaining' => 0,
+                'message'   => 'Logout allowed. 50 answered calls requirement is only mandatory for Sales Manager.',
             ];
         }
 
@@ -200,7 +235,7 @@ class User extends Authenticatable
             'remaining' => $remaining,
             'message'   => $completed >= $required
                 ? 'Eligible to logout.'
-                : "Cannot logout. You must complete at least {$required} answered calls today before logging out. You have completed {$completed} answered calls ({$remaining} remaining).",
+                : "Cannot logout. Sales Manager must complete at least {$required} answered calls today before logging out. You have completed {$completed} answered calls ({$remaining} remaining).",
         ];
     }
 }
