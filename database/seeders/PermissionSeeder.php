@@ -141,6 +141,21 @@ class PermissionSeeder extends Seeder
             'proposals.edit',
             'proposals.delete',
 
+            'pending-works.view',
+            'pending-works.create',
+            'pending-works.edit',
+            'pending-works.delete',
+
+            'daily-learnings.view',
+            'daily-learnings.create',
+            'daily-learnings.edit',
+            'daily-learnings.delete',
+
+            'commitments.view',
+            'commitments.create',
+            'commitments.edit',
+            'commitments.delete',
+
             'permissions.view',
             'permissions.create',
             'permissions.approve',

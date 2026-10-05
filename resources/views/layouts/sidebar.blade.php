@@ -231,6 +231,33 @@
             </li>
         @endcan
 
+        @can('pending-works.view')
+            <li class="menu-item {{ request()->is('admin/pending-works*') ? 'active' : '' }}">
+                <a href="{{ route('admin.pending-works.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-task"></i>
+                    <div class="text-truncate">Pending Work</div>
+                </a>
+            </li>
+        @endcan
+
+        @can('daily-learnings.view')
+            <li class="menu-item {{ request()->is('admin/daily-learnings*') ? 'active' : '' }}">
+                <a href="{{ route('admin.daily-learnings.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-book-open"></i>
+                    <div class="text-truncate">Daily Learning</div>
+                </a>
+            </li>
+        @endcan
+
+        @can('commitments.view')
+            <li class="menu-item {{ request()->is('admin/commitments*') ? 'active' : '' }}">
+                <a href="{{ route('admin.commitments.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-check-shield"></i>
+                    <div class="text-truncate">Commitment</div>
+                </a>
+            </li>
+        @endcan
+
         @canany(['general-settings.view', 'lead-settings.view', 'customer-settings.view', 'followup-settings.view', 'credit-request-settings.view', 'demo-process-settings.view'])
             <li class="menu-item {{ request()->is('admin/settings/*') ? 'active' : '' }}">
                 <a href="{{ route('admin.settings.general') }}" class="menu-link">

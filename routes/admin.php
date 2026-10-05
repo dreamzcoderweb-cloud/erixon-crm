@@ -554,6 +554,53 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
         ->middleware('permission:proposals.view')
         ->name('proposals.print');
 
+    // 1. Pending Works routes
+    Route::get('pending-works', [\App\Http\Controllers\PendingWorkController::class, 'index'])
+        ->middleware('permission:pending-works.view')
+        ->name('pending-works.index');
+    Route::get('pending-works/data', [\App\Http\Controllers\PendingWorkController::class, 'listData'])
+        ->middleware('permission:pending-works.view');
+    Route::post('pending-works/store', [\App\Http\Controllers\PendingWorkController::class, 'store'])
+        ->middleware('permission:pending-works.create');
+    Route::get('pending-works/edit/{id}', [\App\Http\Controllers\PendingWorkController::class, 'edit'])
+        ->middleware('permission:pending-works.edit');
+    Route::post('pending-works/update/{id}', [\App\Http\Controllers\PendingWorkController::class, 'update'])
+        ->middleware('permission:pending-works.edit');
+    Route::post('pending-works/change-status/{id}', [\App\Http\Controllers\PendingWorkController::class, 'changeStatus'])
+        ->middleware('permission:pending-works.edit');
+    Route::delete('pending-works/delete/{id}', [\App\Http\Controllers\PendingWorkController::class, 'destroy'])
+        ->middleware('permission:pending-works.delete');
+
+    // 2. Daily Learnings routes
+    Route::get('daily-learnings', [\App\Http\Controllers\DailyLearningController::class, 'index'])
+        ->middleware('permission:daily-learnings.view')
+        ->name('daily-learnings.index');
+    Route::get('daily-learnings/data', [\App\Http\Controllers\DailyLearningController::class, 'listData'])
+        ->middleware('permission:daily-learnings.view');
+    Route::post('daily-learnings/store', [\App\Http\Controllers\DailyLearningController::class, 'store'])
+        ->middleware('permission:daily-learnings.create');
+    Route::get('daily-learnings/edit/{id}', [\App\Http\Controllers\DailyLearningController::class, 'edit'])
+        ->middleware('permission:daily-learnings.edit');
+    Route::post('daily-learnings/update/{id}', [\App\Http\Controllers\DailyLearningController::class, 'update'])
+        ->middleware('permission:daily-learnings.edit');
+    Route::delete('daily-learnings/delete/{id}', [\App\Http\Controllers\DailyLearningController::class, 'destroy'])
+        ->middleware('permission:daily-learnings.delete');
+
+    // 3. Commitments routes
+    Route::get('commitments', [\App\Http\Controllers\CommitmentController::class, 'index'])
+        ->middleware('permission:commitments.view')
+        ->name('commitments.index');
+    Route::get('commitments/data', [\App\Http\Controllers\CommitmentController::class, 'listData'])
+        ->middleware('permission:commitments.view');
+    Route::post('commitments/store', [\App\Http\Controllers\CommitmentController::class, 'store'])
+        ->middleware('permission:commitments.create');
+    Route::get('commitments/edit/{id}', [\App\Http\Controllers\CommitmentController::class, 'edit'])
+        ->middleware('permission:commitments.edit');
+    Route::post('commitments/update/{id}', [\App\Http\Controllers\CommitmentController::class, 'update'])
+        ->middleware('permission:commitments.edit');
+    Route::delete('commitments/delete/{id}', [\App\Http\Controllers\CommitmentController::class, 'destroy'])
+        ->middleware('permission:commitments.delete');
+
     // Staff Permission Request routes
     Route::get('permissions/data', [LeaveController::class, 'listPermissions'])
         ->middleware('permission:permissions.view');

@@ -223,6 +223,9 @@ class StaffAuthController extends Controller
             'roles'              => $isAdmin || $user->can('roles.view'),
             'templates'          => $isAdmin || $user->can('templates.view'),
             'proposals'          => $isAdmin || $user->can('proposals.view'),
+            'pending_works'      => $isAdmin || $user->can('pending-works.view') || true, // Accessible to staff
+            'daily_learnings'    => $isAdmin || $user->can('daily-learnings.view') || true,
+            'commitments'        => $isAdmin || $user->can('commitments.view') || true,
             'settings'           => $isAdmin || $user->can('general-settings.view') || $user->can('lead-settings.view'),
         ];
     }

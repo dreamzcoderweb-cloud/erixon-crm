@@ -464,6 +464,9 @@
     <script src="{{ asset('assets/js/custom-js/credit_request.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/payment.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/proposal.js') }}"></script>
+    <script src="{{ asset('assets/js/custom-js/pending-work.js') }}"></script>
+    <script src="{{ asset('assets/js/custom-js/daily-learning.js') }}"></script>
+    <script src="{{ asset('assets/js/custom-js/commitment.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/incentive.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/notification.js') }}"></script>
     <script src="{{ asset('assets/js/custom-js/demo_process.js') }}"></script>

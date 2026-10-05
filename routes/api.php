@@ -10,6 +10,9 @@ use App\Http\Controllers\Api\DemoProcessApiController;
 use App\Http\Controllers\Api\CreditRequestApiController;
 use App\Http\Controllers\Api\LeaveApiController;
 use App\Http\Controllers\Api\SalaryApiController;
+use App\Http\Controllers\Api\PendingWorkApiController;
+use App\Http\Controllers\Api\DailyLearningApiController;
+use App\Http\Controllers\Api\CommitmentApiController;
 use App\Http\Controllers\NotificationController;
 
 use Illuminate\Support\Facades\Route;
@@ -116,6 +119,37 @@ Route::prefix('v1')->group(function () {
         // Mobile App Salary Management (Next Salary Details & Salary History List)
         Route::get('salary/next-details', [SalaryApiController::class, 'nextSalaryDetails']);
         Route::get('salary/list', [SalaryApiController::class, 'salaryList']);
+
+        // 1. Pending Work Management
+        Route::get('pending-works', [PendingWorkApiController::class, 'index']);
+        Route::get('pending-work', [PendingWorkApiController::class, 'index']);
+        Route::post('pending-works', [PendingWorkApiController::class, 'store']);
+        Route::post('pending-work', [PendingWorkApiController::class, 'store']);
+        Route::get('pending-works/{id}', [PendingWorkApiController::class, 'show']);
+        Route::post('pending-works/update/{id}', [PendingWorkApiController::class, 'update']);
+        Route::post('pending-works/change-status/{id}', [PendingWorkApiController::class, 'changeStatus']);
+        Route::delete('pending-works/{id}', [PendingWorkApiController::class, 'destroy']);
+        Route::delete('pending-works/delete/{id}', [PendingWorkApiController::class, 'destroy']);
+
+        // 2. Daily Learning Management
+        Route::get('daily-learnings', [DailyLearningApiController::class, 'index']);
+        Route::get('daily-learning', [DailyLearningApiController::class, 'index']);
+        Route::post('daily-learnings', [DailyLearningApiController::class, 'store']);
+        Route::post('daily-learning', [DailyLearningApiController::class, 'store']);
+        Route::get('daily-learnings/{id}', [DailyLearningApiController::class, 'show']);
+        Route::post('daily-learnings/update/{id}', [DailyLearningApiController::class, 'update']);
+        Route::delete('daily-learnings/{id}', [DailyLearningApiController::class, 'destroy']);
+        Route::delete('daily-learnings/delete/{id}', [DailyLearningApiController::class, 'destroy']);
+
+        // 3. Commitment Management
+        Route::get('commitments', [CommitmentApiController::class, 'index']);
+        Route::get('commitment', [CommitmentApiController::class, 'index']);
+        Route::post('commitments', [CommitmentApiController::class, 'store']);
+        Route::post('commitment', [CommitmentApiController::class, 'store']);
+        Route::get('commitments/{id}', [CommitmentApiController::class, 'show']);
+        Route::post('commitments/update/{id}', [CommitmentApiController::class, 'update']);
+        Route::delete('commitments/{id}', [CommitmentApiController::class, 'destroy']);
+        Route::delete('commitments/delete/{id}', [CommitmentApiController::class, 'destroy']);
     });
 
     // Direct / Browser PDF download route with token parameter

@@ -149,6 +149,9 @@
                 'dashboard' => ['title' => 'Dashboard Access', 'icon' => 'bx-home-smile', 'badge' => 'bg-label-primary'],
                 'audit-logs' => ['title' => 'Audit Logs', 'icon' => 'bx-history', 'badge' => 'bg-label-danger'],
                 'proposals' => ['title' => 'Proposal Management', 'icon' => 'bx-file-blank', 'badge' => 'bg-label-success'],
+                'pending-works' => ['title' => 'Pending Work Management', 'icon' => 'bx-task', 'badge' => 'bg-label-warning'],
+                'daily-learnings' => ['title' => 'Daily Learning Management', 'icon' => 'bx-book-open', 'badge' => 'bg-label-info'],
+                'commitments' => ['title' => 'Commitment Management', 'icon' => 'bx-check-shield', 'badge' => 'bg-label-primary'],
             ];
 
             // Group permissions by prefix
