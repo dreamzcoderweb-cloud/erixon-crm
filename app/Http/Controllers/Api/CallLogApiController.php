@@ -8,6 +8,7 @@ use App\Models\CallRecording;
 use App\Models\Customer;
 use App\Models\Followup;
 use App\Models\Lead;
+use App\Models\PendingWork;
 use App\Models\User;
 use App\Traits\HasApiPermissionCheck;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -1010,18 +1011,68 @@ class CallLogApiController extends Controller
 
 
 
+        // 5. Query Pending Works for the date range (defaults to today; filters by from_date & to_date)
+        $pendingWorkQuery = PendingWork::with('user:id,name,email,mobile_number');
+
+        if ($request->filled('staff_id') || $request->filled('user_id')) {
+            $targetStaffId = $request->input('staff_id') ?? $request->input('user_id');
+            if ($currentUser->isAdmin() || $currentUser->isSuperAdmin()) {
+                $pendingWorkQuery->where('user_id', $targetStaffId);
+            } else {
+                $pendingWorkQuery->where('user_id', $currentUser->id);
+            }
+        } else {
+            if (!$currentUser->isAdmin() && !$currentUser->isSuperAdmin()) {
+                $pendingWorkQuery->where('user_id', $currentUser->id);
+            }
+        }
+
+        $pendingWorkQuery->whereDate('date', '>=', $fromDate)
+            ->whereDate('date', '<=', $toDate);
+
+        if ($request->filled('pending_work_status')) {
+            $pendingWorkQuery->where('status', (int) $request->input('pending_work_status'));
+        }
+
+        $pendingWorksList = $pendingWorkQuery->orderBy('date', 'desc')->orderBy('pending_id', 'desc')->get();
+
+        $pendingWorksData = $pendingWorksList->map(function ($pw) {
+            return [
+                'pending_id'     => (int) $pw->pending_id,
+                'user_id'        => (int) $pw->user_id,
+                'staff_name'     => $pw->user ? $pw->user->name : null,
+                'staff_email'    => $pw->user ? $pw->user->email : null,
+                'staff_mobile'   => $pw->user ? $pw->user->mobile_number : null,
+                'date'           => $pw->date ? Carbon::parse($pw->date)->format('Y-m-d') : null,
+                'formatted_date' => $pw->date ? Carbon::parse($pw->date)->format('d M Y') : null,
+                'notes'          => $pw->notes,
+                'status'         => (int) $pw->status,
+                'status_label'   => $pw->status_label,
+                'created_at'     => $pw->created_at ? $pw->created_at->format('Y-m-d H:i:s') : null,
+            ];
+        })->values();
+
         return response()->json([
             'status' => true,
             'message' => 'Call report fetched successfully.',
             'data' => [
                 'top_card' => [
-                    'report_title' => $reportTitle,
-                    'date_text' => $formattedDate,
-                    'time_range' => $timeRangeText,
-                    'total_customers' => $totalCustomers,
-                    'calls_completed' => $callsCompleted,
-                    'pending_calls' => $pendingCalls,
+                    'report_title'        => $reportTitle,
+                    'date_text'           => $formattedDate,
+                    'time_range'          => $timeRangeText,
+                    'total_customers'     => $totalCustomers,
+                    'calls_completed'     => $callsCompleted,
+                    'pending_calls'       => $pendingCalls,
+                    'pending_works_count' => $pendingWorksList->count(),
                 ],
+                'pending_works_count' => $pendingWorksList->count(),
+                'pending_works_summary' => [
+                    'total'      => $pendingWorksList->count(),
+                    'pending'    => $pendingWorksList->where('status', PendingWork::STATUS_PENDING)->count(),
+                    'in_process' => $pendingWorksList->where('status', PendingWork::STATUS_PROCESS)->count(),
+                    'finished'   => $pendingWorksList->where('status', PendingWork::STATUS_FINISHED)->count(),
+                ],
+                'pending_works' => $pendingWorksData,
                 'time_breakdown' => $timeBreakdown,
                 'filter_options' => [
                     'from_date' => $fromDate,

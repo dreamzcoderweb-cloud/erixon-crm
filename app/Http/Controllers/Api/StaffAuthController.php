@@ -128,20 +128,6 @@ class StaffAuthController extends Controller
 
     public function logout(Request $request)
     {
-        $user = $request->user();
-        if ($user) {
-            $check = $user->canLogout();
-            if (!$check['allowed']) {
-                return response()->json([
-                    'status'          => false,
-                    'message'         => $check['message'],
-                    'completed_calls' => $check['completed'],
-                    'required_calls'  => $check['required'],
-                    'remaining_calls' => $check['remaining'],
-                ], 403);
-            }
-        }
-
         $request->user()->currentAccessToken()?->delete();
 
         return response()->json([
@@ -151,27 +137,37 @@ class StaffAuthController extends Controller
     }
 
     /**
-     * Check answered calls progress toward 50 calls logout requirement.
-     * GET /api/v1/staff/call-logout-status
+     * Check answered calls progress toward 50 calls check-out requirement.
+     * GET /api/v1/staff/call-checkout-status
      */
-    public function callLogoutStatus(Request $request)
+    public function callCheckOutStatus(Request $request)
     {
         $user = $request->user();
         if (!$user) {
             return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
         }
 
-        $check = $user->canLogout();
+        $check = $user->canCheckOut();
 
         return response()->json([
             'status'          => true,
-            'can_logout'      => $check['allowed'],
+            'can_checkout'    => $check['allowed'],
+            'can_logout'      => true,
             'message'         => $check['message'],
             'completed_calls' => $check['completed'],
             'required_calls'  => $check['required'],
             'remaining_calls' => $check['remaining'],
             'is_mandatory'    => $user->isSalesManager(),
         ]);
+    }
+
+    /**
+     * Backward-compatible call-logout-status endpoint.
+     * GET /api/v1/staff/call-logout-status
+     */
+    public function callLogoutStatus(Request $request)
+    {
+        return $this->callCheckOutStatus($request);
     }
 
     /**
@@ -185,13 +181,21 @@ class StaffAuthController extends Controller
         $userData['role'] = $roleName;
         $userData['permissions'] = $user->getAllPermissions()->pluck('name')->values();
         $userData['menu_access'] = $this->getMenuAccess($user);
-        $check = $user->canLogout();
-        $userData['call_logout_status'] = [
+
+        $check = $user->canCheckOut();
+        $userData['call_checkout_status'] = [
             'completed_calls' => $check['completed'],
             'required_calls'  => $check['required'],
             'remaining_calls' => $check['remaining'],
-            'can_logout'      => $check['allowed'],
+            'can_checkout'    => $check['allowed'],
             'is_mandatory'    => $user->isSalesManager(),
+        ];
+        $userData['call_logout_status'] = [
+            'completed_calls' => $check['completed'],
+            'required_calls'  => 0,
+            'remaining_calls' => 0,
+            'can_logout'      => true,
+            'is_mandatory'    => false,
         ];
 
         return $userData;

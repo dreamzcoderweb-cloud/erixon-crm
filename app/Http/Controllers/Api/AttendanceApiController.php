@@ -326,6 +326,17 @@ class AttendanceApiController extends Controller
             return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
         }
 
+        $check = $user->canCheckOut();
+        if (!$check['allowed']) {
+            return response()->json([
+                'status'          => false,
+                'message'         => $check['message'],
+                'completed_calls' => $check['completed'],
+                'required_calls'  => $check['required'],
+                'remaining_calls' => $check['remaining'],
+            ], 403);
+        }
+
         $validator = Validator::make($request->all(), [
             'latitude'  => ['nullable', 'numeric'],
             'longitude' => ['nullable', 'numeric'],

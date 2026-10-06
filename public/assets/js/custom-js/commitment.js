@@ -70,11 +70,18 @@ $(document).ready(function () {
         ajax: {
             url: appUrl('/admin/commitments/data'),
             data: function (d) {
-                d.filter_type = $('#filter_period').val();
-                d.date = $('#filter_date').val();
-                d.month = $('#filter_month').val();
-                d.start_date = $('#filter_start_date').val();
-                d.end_date = $('#filter_end_date').val();
+                const period = $('#filter_period').val() || 'all';
+                d.filter_type = period;
+                if (period === 'daily') {
+                    d.date = $('#filter_date').val();
+                } else if (period === 'monthly') {
+                    d.month = $('#filter_month').val();
+                } else if (period === 'weekly') {
+                    d.start_date = $('#filter_start_date').val();
+                } else if (period === 'custom') {
+                    d.start_date = $('#filter_start_date').val();
+                    d.end_date = $('#filter_end_date').val();
+                }
                 d.staff_id = $('#filter_staff_id').val();
             },
             dataSrc: function (json) {
@@ -90,6 +97,8 @@ $(document).ready(function () {
             {
                 data: null,
                 className: 'text-center',
+                orderable: false,
+                searchable: false,
                 render: function (data, type, row, meta) {
                     return meta.row + 1;
                 }
@@ -196,7 +205,7 @@ $(document).ready(function () {
             bottomStart: 'info',
             bottomEnd: 'paging'
         },
-        order: [[2, 'desc']]
+        ordering: false
     });
 
     // Period Toggle Buttons (Customer Module Pattern)

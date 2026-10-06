@@ -196,10 +196,10 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user is eligible to log out based on required answered calls (min 50 answered calls per day mandatory ONLY for Sales Manager role).
-     * Super Admin, Admin, and all other staff roles are exempt and can always log out freely.
+     * Check if user is eligible to check out based on required answered calls (min 50 answered calls per day mandatory ONLY for Sales Manager role).
+     * Super Admin, Admin, and all other staff roles are exempt and can always check out freely.
      */
-    public function canLogout(): array
+    public function canCheckOut(): array
     {
         $completed = $this->getTodayAnsweredCallsCount();
 
@@ -221,7 +221,7 @@ class User extends Authenticatable
                 'completed' => $completed,
                 'required'  => 0,
                 'remaining' => 0,
-                'message'   => 'Logout allowed. 50 answered calls requirement is only mandatory for Sales Manager.',
+                'message'   => 'Check-out allowed. 50 answered calls requirement is only mandatory for Sales Manager.',
             ];
         }
 
@@ -234,8 +234,25 @@ class User extends Authenticatable
             'required'  => $required,
             'remaining' => $remaining,
             'message'   => $completed >= $required
-                ? 'Eligible to logout.'
-                : "Cannot logout. Sales Manager must complete at least {$required} answered calls today before logging out. You have completed {$completed} answered calls ({$remaining} remaining).",
+                ? 'Eligible to check out.'
+                : "Cannot check out. Sales Manager must complete at least {$required} answered calls today before checking out. You have completed {$completed} answered calls ({$remaining} remaining).",
+        ];
+    }
+
+    /**
+     * Check if user is eligible to log out.
+     * Call requirement has been replaced to attendance check-out; logout is now unrestricted.
+     */
+    public function canLogout(): array
+    {
+        $completed = $this->getTodayAnsweredCallsCount();
+
+        return [
+            'allowed'   => true,
+            'completed' => $completed,
+            'required'  => 0,
+            'remaining' => 0,
+            'message'   => 'Logout allowed.',
         ];
     }
 }

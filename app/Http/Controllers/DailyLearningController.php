@@ -47,8 +47,9 @@ class DailyLearningController extends Controller
         $startDate  = $request->input('start_date');
         $endDate    = $request->input('end_date');
 
-        if ($filterType === 'daily' && !empty($date)) {
-            $query->whereDate('date', $date);
+        if ($filterType === 'daily') {
+            $filterDate = !empty($date) ? $date : Carbon::today()->toDateString();
+            $query->whereDate('date', $filterDate);
         } elseif ($filterType === 'weekly') {
             $refDate = !empty($startDate) ? Carbon::parse($startDate) : Carbon::today();
             $query->whereBetween('date', [
@@ -66,8 +67,6 @@ class DailyLearningController extends Controller
             if (!empty($endDate)) {
                 $query->whereDate('date', '<=', $endDate);
             }
-        } elseif (!empty($date)) {
-            $query->whereDate('date', $date);
         }
 
         // Text Search

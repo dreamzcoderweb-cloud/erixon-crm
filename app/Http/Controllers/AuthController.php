@@ -48,18 +48,6 @@ class AuthController extends Controller
     {
         $user = Auth::user();
         if ($user) {
-            $check = $user->canLogout();
-            if (!$check['allowed']) {
-                $targetUrl = url()->previous();
-                if (empty($targetUrl) || str_contains($targetUrl, 'logout') || str_contains($targetUrl, 'login')) {
-                    $targetUrl = route('admin.dashboard');
-                }
-
-                return redirect($targetUrl)
-                    ->with('error', $check['message'])
-                    ->with('danger', $check['message']);
-            }
-
             AuditLogger::log(
                 event: 'logout',
                 module: 'Authentication',
