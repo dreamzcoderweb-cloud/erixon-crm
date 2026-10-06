@@ -75,6 +75,26 @@
         .kpi-warning { color: #d97706; border-left: 3px solid #d97706; }
         .kpi-danger  { color: #dc2626; border-left: 3px solid #dc2626; }
         .kpi-secondary { color: #475569; border-left: 3px solid #475569; }
+        .kpi-info    { color: #0284c7; border-left: 3px solid #0284c7; }
+
+        .section-header {
+            margin-top: 14px;
+            margin-bottom: 6px;
+            padding-bottom: 3px;
+            border-bottom: 2px solid #2563eb;
+        }
+        .section-title {
+            font-size: 11.5px;
+            font-weight: bold;
+            color: #1e293b;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .section-subtitle {
+            font-size: 9.5px;
+            color: #64748b;
+            margin-left: 8px;
+        }
 
         /* Main Table */
         .data-table {
@@ -204,19 +224,25 @@
         </tr>
     </table>
 
+    <!-- Call Log Section Title -->
+    <div class="section-header">
+        <span class="section-title">Call Logs ({{ count($calls) }})</span>
+    </div>
+
     <!-- Call Log Data Table -->
     <table class="data-table" cellpadding="0" cellspacing="0">
         <thead>
             <tr>
-                <th style="width: 4%; text-align: center;">#</th>
-                <th style="width: 14%;">Date & Time</th>
-                <th style="width: 18%;">Customer / Phone</th>
-                <th style="width: 16%;">Lead Info</th>
-                <th style="width: 8%;">Type</th>
-                <th style="width: 8%;">Duration</th>
-                <th style="width: 10%; text-align: center;">Status</th>
-                <th style="width: 10%;">Staff</th>
-                <th style="width: 12%;">Notes</th>
+                <th style="width: 3.5%; text-align: center;">#</th>
+                <th style="width: 11.5%;">Date & Time</th>
+                <th style="width: 14%;">Customer / Phone</th>
+                <th style="width: 12%;">Lead Info</th>
+                <th style="width: 7%;">Type</th>
+                <th style="width: 7%;">Duration</th>
+                <th style="width: 9%; text-align: center;">Status</th>
+                <th style="width: 9%;">Staff</th>
+                <th style="width: 12%;">Call Notes</th>
+                <th style="width: 15%;">Pending Work</th>
             </tr>
         </thead>
         <tbody>
@@ -274,10 +300,15 @@
                             {{ $c['notes'] ?: '—' }}
                         </div>
                     </td>
+                    <td>
+                        <div style="font-size: 9px; white-space: pre-wrap; word-break: break-word;">
+                            {{ $c['pending_work_notes'] ?: '—' }}
+                        </div>
+                    </td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="9" style="text-align: center; padding: 25px; color: #64748b; font-size: 11px;">
+                    <td colspan="10" style="text-align: center; padding: 25px; color: #64748b; font-size: 11px;">
                         No call records found for the selected criteria.
                     </td>
                 </tr>

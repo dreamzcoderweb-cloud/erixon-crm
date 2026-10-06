@@ -950,8 +950,72 @@ class CallLogApiController extends Controller
             });
         }
 
+        // 5. Query Pending Works for the date range (defaults to today; filters by from_date & to_date)
+        $pendingWorkQuery = PendingWork::with('user:id,name,email,mobile_number');
+
+        if ($request->filled('staff_id') || $request->filled('user_id')) {
+            $targetStaffId = $request->input('staff_id') ?? $request->input('user_id');
+            if ($currentUser->isAdmin() || $currentUser->isSuperAdmin()) {
+                $pendingWorkQuery->where('user_id', $targetStaffId);
+            } else {
+                $pendingWorkQuery->where('user_id', $currentUser->id);
+            }
+        } else {
+            if (!$currentUser->isAdmin() && !$currentUser->isSuperAdmin()) {
+                $pendingWorkQuery->where('user_id', $currentUser->id);
+            }
+        }
+
+        $pendingWorkQuery->whereDate('date', '>=', $fromDate)
+            ->whereDate('date', '<=', $toDate);
+
+        if ($request->filled('pending_work_status')) {
+            $pendingWorkQuery->where('status', (int) $request->input('pending_work_status'));
+        }
+
+        $pendingWorksList = $pendingWorkQuery->orderBy('date', 'desc')->orderBy('pending_id', 'desc')->get();
+
+        $pendingWorksByStaffAndDate = [];
+        $pendingWorksByDate = [];
+        foreach ($pendingWorksList as $pw) {
+            $pwDate = $pw->date ? Carbon::parse($pw->date)->format('Y-m-d') : null;
+            if (!$pwDate) {
+                continue;
+            }
+            $staffKey = ($pw->user_id ?? 0) . '_' . $pwDate;
+            if (!isset($pendingWorksByStaffAndDate[$staffKey])) {
+                $pendingWorksByStaffAndDate[$staffKey] = [];
+            }
+            if (!empty(trim((string)$pw->notes))) {
+                $pendingWorksByStaffAndDate[$staffKey][] = trim($pw->notes);
+            }
+
+            if (!isset($pendingWorksByDate[$pwDate])) {
+                $pendingWorksByDate[$pwDate] = [];
+            }
+            if (!empty(trim((string)$pw->notes))) {
+                $pendingWorksByDate[$pwDate][] = trim($pw->notes);
+            }
+        }
+
+        $pendingWorksData = $pendingWorksList->map(function ($pw) {
+            return [
+                'pending_id'     => (int) $pw->pending_id,
+                'user_id'        => (int) $pw->user_id,
+                'staff_name'     => $pw->user ? $pw->user->name : null,
+                'staff_email'    => $pw->user ? $pw->user->email : null,
+                'staff_mobile'   => $pw->user ? $pw->user->mobile_number : null,
+                'date'           => $pw->date ? Carbon::parse($pw->date)->format('Y-m-d') : null,
+                'formatted_date' => $pw->date ? Carbon::parse($pw->date)->format('d M Y') : null,
+                'notes'          => $pw->notes,
+                'status'         => (int) $pw->status,
+                'status_label'   => $pw->status_label,
+                'created_at'     => $pw->created_at ? $pw->created_at->format('Y-m-d H:i:s') : null,
+            ];
+        })->values();
+
         // Format Call Details items for mobile UI cards
-        $callDetails = $callLogs->map(function ($log) {
+        $callDetails = $callLogs->map(function ($log) use ($pendingWorksByStaffAndDate, $pendingWorksByDate) {
             $statusLower = strtolower(trim($log->call_status ?? ''));
             $isAnswered = in_array($statusLower, ['answered', 'completed']);
             $isBusy = in_array($statusLower, ['busy', 'line busy']);
@@ -987,6 +1051,13 @@ class CallLogApiController extends Controller
             $startTime = $log->call_start_time ? $log->call_start_time->copy()->setTimezone($tz) : null;
             $createdAt = $log->created_at ? $log->created_at->copy()->setTimezone($tz) : null;
             $primaryTime = $startTime ?: $createdAt;
+            $callDateYmd = $primaryTime ? $primaryTime->format('Y-m-d') : null;
+
+            $staffId = $log->user_id ?? 0;
+            $staffDateKey = $staffId . '_' . $callDateYmd;
+            $pwNotesList = $pendingWorksByStaffAndDate[$staffDateKey]
+                ?? ($pendingWorksByDate[$callDateYmd] ?? []);
+            $pwNotesText = !empty($pwNotesList) ? implode("\n", array_unique($pwNotesList)) : null;
 
             return [
                 'call_id' => (int) $log->call_id,
@@ -1004,51 +1075,9 @@ class CallLogApiController extends Controller
                 'lead_id' => $log->lead_id ? (int) $log->lead_id : null,
                 'lead_title' => $log->lead ? $log->lead->lead_title : null,
                 'notes' => $log->notes,
+                'pending_work_notes' => $pwNotesText,
                 'recording_file' => $recordingFile ? basename($recordingFile) : null,
                 'recording_url' => $recordingUrl,
-            ];
-        })->values();
-
-
-
-        // 5. Query Pending Works for the date range (defaults to today; filters by from_date & to_date)
-        $pendingWorkQuery = PendingWork::with('user:id,name,email,mobile_number');
-
-        if ($request->filled('staff_id') || $request->filled('user_id')) {
-            $targetStaffId = $request->input('staff_id') ?? $request->input('user_id');
-            if ($currentUser->isAdmin() || $currentUser->isSuperAdmin()) {
-                $pendingWorkQuery->where('user_id', $targetStaffId);
-            } else {
-                $pendingWorkQuery->where('user_id', $currentUser->id);
-            }
-        } else {
-            if (!$currentUser->isAdmin() && !$currentUser->isSuperAdmin()) {
-                $pendingWorkQuery->where('user_id', $currentUser->id);
-            }
-        }
-
-        $pendingWorkQuery->whereDate('date', '>=', $fromDate)
-            ->whereDate('date', '<=', $toDate);
-
-        if ($request->filled('pending_work_status')) {
-            $pendingWorkQuery->where('status', (int) $request->input('pending_work_status'));
-        }
-
-        $pendingWorksList = $pendingWorkQuery->orderBy('date', 'desc')->orderBy('pending_id', 'desc')->get();
-
-        $pendingWorksData = $pendingWorksList->map(function ($pw) {
-            return [
-                'pending_id'     => (int) $pw->pending_id,
-                'user_id'        => (int) $pw->user_id,
-                'staff_name'     => $pw->user ? $pw->user->name : null,
-                'staff_email'    => $pw->user ? $pw->user->email : null,
-                'staff_mobile'   => $pw->user ? $pw->user->mobile_number : null,
-                'date'           => $pw->date ? Carbon::parse($pw->date)->format('Y-m-d') : null,
-                'formatted_date' => $pw->date ? Carbon::parse($pw->date)->format('d M Y') : null,
-                'notes'          => $pw->notes,
-                'status'         => (int) $pw->status,
-                'status_label'   => $pw->status_label,
-                'created_at'     => $pw->created_at ? $pw->created_at->format('Y-m-d H:i:s') : null,
             ];
         })->values();
 
@@ -1341,6 +1370,56 @@ class CallLogApiController extends Controller
         $noAnswerCalls = 0;
         $totalDurationSec = 0;
 
+        // Query Pending Works for mapping into call logs
+        $pendingWorkQuery = PendingWork::with('user:id,name,email,mobile_number');
+
+        if ($request->filled('staff_id') || $request->filled('user_id')) {
+            $targetStaffId = $request->input('staff_id') ?? $request->input('user_id');
+            if ($currentUser->isAdmin() || $currentUser->isSuperAdmin()) {
+                $pendingWorkQuery->where('user_id', $targetStaffId);
+            } else {
+                $pendingWorkQuery->where('user_id', $currentUser->id);
+            }
+        } else {
+            if (!$currentUser->isAdmin() && !$currentUser->isSuperAdmin()) {
+                $pendingWorkQuery->where('user_id', $currentUser->id);
+            }
+        }
+
+        if ($hasDateFilter && !empty($fromDate) && !empty($toDate)) {
+            $pendingWorkQuery->whereDate('date', '>=', $fromDate)
+                ->whereDate('date', '<=', $toDate);
+        }
+
+        if ($request->filled('pending_work_status')) {
+            $pendingWorkQuery->where('status', (int) $request->input('pending_work_status'));
+        }
+
+        $pendingWorksList = $pendingWorkQuery->orderBy('date', 'desc')->orderBy('pending_id', 'desc')->get();
+
+        $pendingWorksByStaffAndDate = [];
+        $pendingWorksByDate = [];
+        foreach ($pendingWorksList as $pw) {
+            $pwDate = $pw->date ? Carbon::parse($pw->date)->format('Y-m-d') : null;
+            if (!$pwDate) {
+                continue;
+            }
+            $staffKey = ($pw->user_id ?? 0) . '_' . $pwDate;
+            if (!isset($pendingWorksByStaffAndDate[$staffKey])) {
+                $pendingWorksByStaffAndDate[$staffKey] = [];
+            }
+            if (!empty(trim((string)$pw->notes))) {
+                $pendingWorksByStaffAndDate[$staffKey][] = trim($pw->notes);
+            }
+
+            if (!isset($pendingWorksByDate[$pwDate])) {
+                $pendingWorksByDate[$pwDate] = [];
+            }
+            if (!empty(trim((string)$pw->notes))) {
+                $pendingWorksByDate[$pwDate][] = trim($pw->notes);
+            }
+        }
+
         $formattedCalls = [];
 
         foreach ($callLogs as $log) {
@@ -1384,9 +1463,16 @@ class CallLogApiController extends Controller
             $startTime = $log->call_start_time ? $log->call_start_time->copy()->setTimezone($tz) : null;
             $createdAt = $log->created_at ? $log->created_at->copy()->setTimezone($tz) : null;
             $primaryTime = $startTime ?: $createdAt;
+            $callDateYmd = $primaryTime ? $primaryTime->format('Y-m-d') : null;
 
             $customerName = $log->customer_name ?: ($log->customer ? $log->customer->name : 'Unknown Customer');
             $customerId = $log->customer_code ?? (!empty($log->customer_id) ? "CUST_{$log->customer_id}" : null);
+
+            $staffId = $log->user_id ?? 0;
+            $staffDateKey = $staffId . '_' . $callDateYmd;
+            $pwNotesList = $pendingWorksByStaffAndDate[$staffDateKey]
+                ?? ($pendingWorksByDate[$callDateYmd] ?? []);
+            $pwNotesText = !empty($pwNotesList) ? implode("\n", array_unique($pwNotesList)) : null;
 
             $formattedCalls[] = [
                 'call_id' => (int) $log->call_id,
@@ -1402,6 +1488,7 @@ class CallLogApiController extends Controller
                 'status' => $displayStatus,
                 'staff_name' => $log->user ? $log->user->name : 'Staff',
                 'notes' => $log->notes,
+                'pending_work_notes' => $pwNotesText,
             ];
         }
 
