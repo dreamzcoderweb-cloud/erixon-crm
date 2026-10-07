@@ -98,10 +98,13 @@ class StaffAuthController extends Controller
     {
         $user = $request->user();
         $userData = $this->formatUserData($user);
+        $salaryStatus = (int) general_setting('salary', 0);
 
         return response()->json([
-            'status' => true,
-            'user'   => $userData,
+            'status'        => true,
+            'salary_status' => $salaryStatus,
+            'salary'        => $salaryStatus,
+            'user'          => $userData,
         ]);
     }
 
@@ -182,6 +185,10 @@ class StaffAuthController extends Controller
         $userData['permissions'] = $user->getAllPermissions()->pluck('name')->values();
         $userData['menu_access'] = $this->getMenuAccess($user);
 
+        $salaryStatus = (int) general_setting('salary', 0);
+        $userData['salary_status'] = $salaryStatus;
+        $userData['salary'] = $salaryStatus;
+
         $check = $user->canCheckOut();
         $userData['call_checkout_status'] = [
             'completed_calls' => $check['completed'],
@@ -207,6 +214,7 @@ class StaffAuthController extends Controller
     private function getMenuAccess(User $user): array
     {
         $isAdmin = $user->isAdmin() || $user->isSuperAdmin();
+        $salaryEnabled = (int) general_setting('salary', 0) === 1;
 
         return [
             'dashboard'          => true,
@@ -222,6 +230,7 @@ class StaffAuthController extends Controller
             'attendance'         => $isAdmin || $user->can('attendance.view'),
             'attendance_reports' => $isAdmin || $user->can('attendance-reports.view'),
             'leaves'             => $isAdmin || $user->can('leaves.view'),
+            'salary'             => $salaryEnabled && ($isAdmin || $user->can('salary.view')),
             'incentives'         => $isAdmin || $user->can('incentives.view'),
             'staff'              => $isAdmin || $user->can('staff.view'),
             'roles'              => $isAdmin || $user->can('roles.view'),

@@ -51,7 +51,6 @@ class CustomerApiController extends Controller
         if ($currentUser) {
             $query->forUser($currentUser);
         }
-
         // Normalize parameter keys and values (trim trailing/leading spaces from query parameters)
         $params = [];
         foreach ($request->all() as $k => $v) {
@@ -86,22 +85,12 @@ class CustomerApiController extends Controller
 
         $leadReqId = $params['lead_requirement_id'] ?? null;
         if (!empty($leadReqId)) {
-            $query->where(function ($q) use ($leadReqId) {
-                $q->where('lead_requirement_id', $leadReqId)
-                  ->orWhereHas('leads', function ($lq) use ($leadReqId) {
-                      $lq->where('lead_requirement_id', $leadReqId);
-                  });
-            });
+            $query->where('lead_requirement_id', $leadReqId);
         }
 
         $leadStageId = $params['lead_stage_id'] ?? null;
         if (!empty($leadStageId)) {
-            $query->where(function ($q) use ($leadStageId) {
-                $q->where('lead_stage_id', $leadStageId)
-                  ->orWhereHas('leads', function ($lq) use ($leadStageId) {
-                      $lq->where('lead_stage_id', $leadStageId);
-                  });
-            });
+            $query->where('lead_stage_id', $leadStageId);
         }
 
         $perPage = (int) ($params['per_page'] ?? 20);
@@ -113,6 +102,7 @@ class CustomerApiController extends Controller
         $data = collect($customers->items())->map(function ($c) {
             return [
                 'customer_id'   => $c->customer_id,
+                'customer_type' => $c->customer_type,
                 'customer_name' => $c->name,
                 'email'         => $c->email,
                 'mobile'        => $c->mobile,
@@ -545,20 +535,20 @@ class CustomerApiController extends Controller
         }
 
         // Date Range filters (supports from_date/to_date, start_date/end_date, fromDate/toDate, to.date)
-        $rawFrom = $request->input('from_date') 
-            ?? $request->input('form_date') 
-            ?? $request->input('start_date') 
-            ?? $request->input('fromDate') 
-            ?? $request->query('from_date') 
-            ?? $request->query('form_date') 
+        $rawFrom = $request->input('from_date')
+            ?? $request->input('form_date')
+            ?? $request->input('start_date')
+            ?? $request->input('fromDate')
+            ?? $request->query('from_date')
+            ?? $request->query('form_date')
             ?? $request->input('from-date');
 
-        $rawTo = $request->input('to_date') 
-            ?? $request->input('end_date') 
-            ?? $request->input('toDate') 
-            ?? $request->query('to_date') 
-            ?? $request->query('to.date') 
-            ?? $request->input('to.date') 
+        $rawTo = $request->input('to_date')
+            ?? $request->input('end_date')
+            ?? $request->input('toDate')
+            ?? $request->query('to_date')
+            ?? $request->query('to.date')
+            ?? $request->input('to.date')
             ?? $request->input('to-date');
 
         if (!empty($rawFrom) && !empty($rawTo)) {

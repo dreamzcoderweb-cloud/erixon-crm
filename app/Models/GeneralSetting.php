@@ -15,6 +15,11 @@ class GeneralSetting extends Model
         'favicon',
         'whatsapp_no',
         'theme_color',
+        'salary',
+    ];
+
+    protected $casts = [
+        'salary' => 'integer',
     ];
 
     /**
@@ -40,6 +45,7 @@ class GeneralSetting extends Model
                     'favicon' => null,
                     'whatsapp_no' => null,
                     'theme_color' => '#00b2a9',
+                    'salary' => 0,
                 ]);
             }
             static::$cachedSettings = $setting;

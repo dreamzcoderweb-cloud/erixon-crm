@@ -24,11 +24,13 @@ class GeneralSettingController extends Controller
             'favicon' => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp,svg,ico,cur', 'max:2048'],
             'whatsapp_no' => ['nullable', 'string', 'max:20'],
             'theme_color' => ['required', 'string', 'regex:/^#([a-fA-F0-9]{3}|[a-fA-F0-9]{6})$/i'],
+            'salary' => ['nullable'],
         ]);
 
         $setting->company_name = $validated['company_name'];
         $setting->whatsapp_no = $validated['whatsapp_no'] ?? null;
         $setting->theme_color = strtolower($validated['theme_color']);
+        $setting->salary = ($request->has('salary') && in_array($request->input('salary'), [1, '1', true, 'true', 'on'], true)) ? 1 : 0;
 
         if ($request->hasFile('logo')) {
             $setting->logo = upload_file($request->file('logo'), 'settings', $setting->logo, 'logo');
