@@ -29,7 +29,16 @@ class CreditRequestController extends Controller
         $data['leads']            = Lead::forUser($user)->with('customer')->orderBy('lead_id', 'DESC')->get();
         $data['leadSources']      = LeadSource::where('status', 1)->orderBy('lead_sources_id')->get();
         $data['leadRequirements'] = LeadRequirement::where('status', 1)->orderBy('name')->get();
-        $data['customers']        = Customer::forUser($user)->where('status', 1)->orderBy('name')->get();
+        $data['customers']        = Customer::forUser($user)
+            ->where('status', 1)
+            ->where(function ($q) {
+                $q->where('lead_stage_id', 6)
+                  ->orWhereHas('leads', function ($lq) {
+                      $lq->where('lead_stage_id', 6);
+                  });
+            })
+            ->orderBy('name')
+            ->get();
 
         $customFields = \App\Models\CreditRequestCustomField::where('status', 1)->orderBy('sort_order', 'asc')->orderBy('id', 'asc')->get();
 

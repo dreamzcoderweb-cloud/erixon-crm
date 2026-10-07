@@ -544,6 +544,47 @@ class CustomerApiController extends Controller
             }
         }
 
+        // Date Range filters (supports from_date/to_date, start_date/end_date, fromDate/toDate, to.date)
+        $rawFrom = $request->input('from_date') 
+            ?? $request->input('form_date') 
+            ?? $request->input('start_date') 
+            ?? $request->input('fromDate') 
+            ?? $request->query('from_date') 
+            ?? $request->query('form_date') 
+            ?? $request->input('from-date');
+
+        $rawTo = $request->input('to_date') 
+            ?? $request->input('end_date') 
+            ?? $request->input('toDate') 
+            ?? $request->query('to_date') 
+            ?? $request->query('to.date') 
+            ?? $request->input('to.date') 
+            ?? $request->input('to-date');
+
+        if (!empty($rawFrom) && !empty($rawTo)) {
+            try {
+                $start = Carbon::parse(trim((string) $rawFrom))->startOfDay();
+                $end   = Carbon::parse(trim((string) $rawTo))->endOfDay();
+                $query->whereBetween('created_at', [$start, $end]);
+            } catch (\Exception $e) {
+                $query->whereBetween('created_at', [trim((string) $rawFrom) . ' 00:00:00', trim((string) $rawTo) . ' 23:59:59']);
+            }
+        } elseif (!empty($rawFrom)) {
+            try {
+                $start = Carbon::parse(trim((string) $rawFrom))->startOfDay();
+                $query->where('created_at', '>=', $start);
+            } catch (\Exception $e) {
+                $query->whereDate('created_at', '>=', trim((string) $rawFrom));
+            }
+        } elseif (!empty($rawTo)) {
+            try {
+                $end = Carbon::parse(trim((string) $rawTo))->endOfDay();
+                $query->where('created_at', '<=', $end);
+            } catch (\Exception $e) {
+                $query->whereDate('created_at', '<=', trim((string) $rawTo));
+            }
+        }
+
         $perPage = (int) $request->input('per_page', 20);
         $customers = $query->paginate($perPage);
 

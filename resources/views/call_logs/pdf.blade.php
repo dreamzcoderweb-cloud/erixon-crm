@@ -233,16 +233,17 @@
     <table class="data-table" cellpadding="0" cellspacing="0">
         <thead>
             <tr>
-                <th style="width: 3.5%; text-align: center;">#</th>
-                <th style="width: 11.5%;">Date & Time</th>
-                <th style="width: 14%;">Customer / Phone</th>
-                <th style="width: 12%;">Lead Info</th>
-                <th style="width: 7%;">Type</th>
-                <th style="width: 7%;">Duration</th>
-                <th style="width: 9%; text-align: center;">Status</th>
-                <th style="width: 9%;">Staff</th>
-                <th style="width: 12%;">Call Notes</th>
-                <th style="width: 15%;">Pending Work</th>
+                <th style="width: 3%; text-align: center;">#</th>
+                <th style="width: 10%;">Date & Time</th>
+                <th style="width: 13%;">Customer / Phone</th>
+                <th style="width: 10%;">Lead Info</th>
+                <th style="width: 6%;">Type</th>
+                <th style="width: 6%;">Duration</th>
+                <th style="width: 8%; text-align: center;">Status</th>
+                <th style="width: 8%;">Staff</th>
+                <th style="width: 11%;">Call Notes</th>
+                <th style="width: 12%;">Pending Work</th>
+                <th style="width: 13%;">Daily Learning</th>
             </tr>
         </thead>
         <tbody>
@@ -305,10 +306,15 @@
                             {{ $c['pending_work_notes'] ?: '—' }}
                         </div>
                     </td>
+                    <td>
+                        <div style="font-size: 9px; white-space: pre-wrap; word-break: break-word;">
+                            {{ $c['daily_learning_notes'] ?: '—' }}
+                        </div>
+                    </td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="10" style="text-align: center; padding: 25px; color: #64748b; font-size: 11px;">
+                    <td colspan="11" style="text-align: center; padding: 25px; color: #64748b; font-size: 11px;">
                         No call records found for the selected criteria.
                     </td>
                 </tr>

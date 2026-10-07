@@ -306,6 +306,37 @@ $(document).ready(function () {
         });
     }
 
+    // Initialize Select2 searchable dropdown on customer selects
+    $('#addCreditRequestModal').on('shown.bs.modal', function () {
+        if ($('#customer_search_select').hasClass('select2-hidden-accessible')) {
+            $('#customer_search_select').select2('destroy');
+        }
+        $('#customer_search_select').select2({
+            dropdownParent: $('#addCreditRequestModal'),
+            placeholder: '-- Select or Search Customer --',
+            allowClear: true,
+            width: '100%'
+        });
+    });
+
+    $('#addCreditRequestModal').on('hidden.bs.modal', function () {
+        if ($('#customer_search_select').hasClass('select2-hidden-accessible')) {
+            $('#customer_search_select').val('').trigger('change');
+        }
+    });
+
+    $('#editCreditRequestModal').on('shown.bs.modal', function () {
+        if ($('#edit_customer_id').hasClass('select2-hidden-accessible')) {
+            $('#edit_customer_id').select2('destroy');
+        }
+        $('#edit_customer_id').select2({
+            dropdownParent: $('#editCreditRequestModal'),
+            placeholder: '-- Select Customer --',
+            allowClear: true,
+            width: '100%'
+        });
+    });
+
     $('.modal').on('hidden.bs.modal', function () {
         let form = $(this).find('form');
         if (form.length) {
@@ -459,8 +490,12 @@ $(document).ready(function () {
             success: function (res) {
                 if (res.status && res.data) {
                     let d = res.data;
-                    $('#edit_credit_request_id').val(d.credit_request_id);
-                    $('#edit_customer_id').val(d.customer_id);
+                    if (d.customer_id && $('#edit_customer_id option[value="' + d.customer_id + '"]').length === 0 && d.customer) {
+                        let label = d.customer.name + ' | ' + (d.customer.mobile || '') + ' | ' + (d.customer.email || 'No Email');
+                        let newOption = new Option(label, d.customer_id, true, true);
+                        $('#edit_customer_id').append(newOption);
+                    }
+                    $('#edit_customer_id').val(d.customer_id).trigger('change');
                     $('#edit_lead_source_id').val(d.lead_source_id || '');
                     $('#edit_lead_requirement_id').val(d.lead_requirement_id || (d.lead ? d.lead.lead_requirement_id : ''));
                     $('#edit_credit_amount').val(d.credit_amount);

@@ -575,7 +575,7 @@
                         <div class="mb-3">
                             <label class="form-label">Select Excel / CSV File <span class="text-danger">*</span></label>
                             <input type="file" name="excel_file" class="form-control" accept=".xlsx,.xls,.csv" required>
-                            <small class="text-muted">Upload an Excel (.xlsx/.xls) or CSV file with headers: Name, Mobile, Email, Company Name, Customer Type, Alternate Mobile, Address, City, State, Country, Pincode.</small>
+                            <small class="text-muted">Upload an Excel (.xlsx/.xls) or CSV file with headers: Customer Type, Name, Company Name, Mobile, Email, Alternate Mobile, Address, City, State, Country, Pincode, Lead Stage.</small>
                         </div>
                         <div id="import-results" class="d-none mt-2 alert alert-info"></div>
                     </div>

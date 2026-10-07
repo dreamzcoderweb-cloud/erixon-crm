@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\CallLog;
 use App\Models\CallRecording;
 use App\Models\Customer;
+use App\Models\DailyLearning;
 use App\Models\Followup;
 use App\Models\Lead;
 use App\Models\PendingWork;
@@ -1029,8 +1030,65 @@ class CallLogApiController extends Controller
             ];
         })->values();
 
+        // Fetch Daily Learning records for the same date range and staff context
+        $dailyLearningQuery = DailyLearning::with('user:id,name,email,mobile_number');
+        if ($request->filled('staff_id') || $request->filled('user_id')) {
+            $targetStaffId = $request->input('staff_id') ?? $request->input('user_id');
+            if ($currentUser->isAdmin() || $currentUser->isSuperAdmin()) {
+                $dailyLearningQuery->where('user_id', $targetStaffId);
+            } else {
+                $dailyLearningQuery->where('user_id', $currentUser->id);
+            }
+        } else {
+            if (!$currentUser->isAdmin() && !$currentUser->isSuperAdmin()) {
+                $dailyLearningQuery->where('user_id', $currentUser->id);
+            }
+        }
+
+        $dailyLearningQuery->whereDate('date', '>=', $fromDate)
+            ->whereDate('date', '<=', $toDate);
+
+        $dailyLearningsList = $dailyLearningQuery->orderBy('date', 'desc')->orderBy('daily_learning_id', 'desc')->get();
+
+        $dailyLearningsByStaffAndDate = [];
+        $dailyLearningsByDate = [];
+        foreach ($dailyLearningsList as $dl) {
+            $dlDate = $dl->date ? Carbon::parse($dl->date)->format('Y-m-d') : null;
+            if (!$dlDate) {
+                continue;
+            }
+            $staffKey = ($dl->user_id ?? 0) . '_' . $dlDate;
+            if (!isset($dailyLearningsByStaffAndDate[$staffKey])) {
+                $dailyLearningsByStaffAndDate[$staffKey] = [];
+            }
+            if (!empty(trim((string)$dl->notes))) {
+                $dailyLearningsByStaffAndDate[$staffKey][] = trim($dl->notes);
+            }
+
+            if (!isset($dailyLearningsByDate[$dlDate])) {
+                $dailyLearningsByDate[$dlDate] = [];
+            }
+            if (!empty(trim((string)$dl->notes))) {
+                $dailyLearningsByDate[$dlDate][] = trim($dl->notes);
+            }
+        }
+
+        $dailyLearningsData = $dailyLearningsList->map(function ($dl) {
+            return [
+                'daily_learning_id' => (int) $dl->daily_learning_id,
+                'user_id'           => (int) $dl->user_id,
+                'staff_name'        => $dl->user ? $dl->user->name : null,
+                'staff_email'       => $dl->user ? $dl->user->email : null,
+                'staff_mobile'      => $dl->user ? $dl->user->mobile_number : null,
+                'date'              => $dl->date ? Carbon::parse($dl->date)->format('Y-m-d') : null,
+                'formatted_date'    => $dl->date ? Carbon::parse($dl->date)->format('d M Y') : null,
+                'notes'             => $dl->notes,
+                'created_at'        => $dl->created_at ? $dl->created_at->format('Y-m-d H:i:s') : null,
+            ];
+        })->values();
+
         // Format Call Details items for mobile UI cards
-        $callDetails = $callLogs->map(function ($log) use ($pendingWorksByStaffAndDate, $pendingWorksByDate) {
+        $callDetails = $callLogs->map(function ($log) use ($pendingWorksByStaffAndDate, $pendingWorksByDate, $dailyLearningsByStaffAndDate, $dailyLearningsByDate) {
             $statusLower = strtolower(trim($log->call_status ?? ''));
             $isAnswered = in_array($statusLower, ['answered', 'completed']);
             $isBusy = in_array($statusLower, ['busy', 'line busy']);
@@ -1074,6 +1132,10 @@ class CallLogApiController extends Controller
                 ?? ($pendingWorksByDate[$callDateYmd] ?? []);
             $pwNotesText = !empty($pwNotesList) ? implode("\n", array_unique($pwNotesList)) : null;
 
+            $dlNotesList = $dailyLearningsByStaffAndDate[$staffDateKey]
+                ?? ($dailyLearningsByDate[$callDateYmd] ?? []);
+            $dlNotesText = !empty($dlNotesList) ? implode("\n", array_unique($dlNotesList)) : null;
+
             return [
                 'call_id' => (int) $log->call_id,
                 'customer_name' => $log->customer_name ?: ($log->customer ? $log->customer->name : 'Unknown Customer'),
@@ -1091,6 +1153,7 @@ class CallLogApiController extends Controller
                 'lead_title' => $log->lead ? $log->lead->lead_title : null,
                 'notes' => $log->notes,
                 'pending_work_notes' => $pwNotesText,
+                'daily_learning_notes' => $dlNotesText,
                 'recording_file' => $recordingFile ? basename($recordingFile) : null,
                 'recording_url' => $recordingUrl,
             ];
@@ -1101,13 +1164,14 @@ class CallLogApiController extends Controller
             'message' => 'Call report fetched successfully.',
             'data' => [
                 'top_card' => [
-                    'report_title'        => $reportTitle,
-                    'date_text'           => $formattedDate,
-                    'time_range'          => $timeRangeText,
-                    'total_customers'     => $totalCustomers,
-                    'calls_completed'     => $callsCompleted,
-                    'pending_calls'       => $pendingCalls,
-                    'pending_works_count' => $pendingWorksList->count(),
+                    'report_title'          => $reportTitle,
+                    'date_text'             => $formattedDate,
+                    'time_range'            => $timeRangeText,
+                    'total_customers'       => $totalCustomers,
+                    'calls_completed'       => $callsCompleted,
+                    'pending_calls'         => $pendingCalls,
+                    'pending_works_count'   => $pendingWorksList->count(),
+                    'daily_learnings_count' => $dailyLearningsList->count(),
                 ],
                 'pending_works_count' => $pendingWorksList->count(),
                 'pending_works_summary' => [
@@ -1117,6 +1181,8 @@ class CallLogApiController extends Controller
                     'finished'   => $pendingWorksList->where('status', PendingWork::STATUS_FINISHED)->count(),
                 ],
                 'pending_works' => $pendingWorksData,
+                'daily_learnings_count' => $dailyLearningsList->count(),
+                'daily_learnings' => $dailyLearningsData,
                 'time_breakdown' => $timeBreakdown,
                 'filter_options' => [
                     'from_date' => $fromDate,
@@ -1435,6 +1501,52 @@ class CallLogApiController extends Controller
             }
         }
 
+        // Query Daily Learnings for mapping into call logs
+        $dailyLearningQuery = DailyLearning::with('user:id,name,email,mobile_number');
+
+        if ($request->filled('staff_id') || $request->filled('user_id')) {
+            $targetStaffId = $request->input('staff_id') ?? $request->input('user_id');
+            if ($currentUser->isAdmin() || $currentUser->isSuperAdmin()) {
+                $dailyLearningQuery->where('user_id', $targetStaffId);
+            } else {
+                $dailyLearningQuery->where('user_id', $currentUser->id);
+            }
+        } else {
+            if (!$currentUser->isAdmin() && !$currentUser->isSuperAdmin()) {
+                $dailyLearningQuery->where('user_id', $currentUser->id);
+            }
+        }
+
+        if ($hasDateFilter && !empty($fromDate) && !empty($toDate)) {
+            $dailyLearningQuery->whereDate('date', '>=', $fromDate)
+                ->whereDate('date', '<=', $toDate);
+        }
+
+        $dailyLearningsList = $dailyLearningQuery->orderBy('date', 'desc')->orderBy('daily_learning_id', 'desc')->get();
+
+        $dailyLearningsByStaffAndDate = [];
+        $dailyLearningsByDate = [];
+        foreach ($dailyLearningsList as $dl) {
+            $dlDate = $dl->date ? Carbon::parse($dl->date)->format('Y-m-d') : null;
+            if (!$dlDate) {
+                continue;
+            }
+            $staffKey = ($dl->user_id ?? 0) . '_' . $dlDate;
+            if (!isset($dailyLearningsByStaffAndDate[$staffKey])) {
+                $dailyLearningsByStaffAndDate[$staffKey] = [];
+            }
+            if (!empty(trim((string)$dl->notes))) {
+                $dailyLearningsByStaffAndDate[$staffKey][] = trim($dl->notes);
+            }
+
+            if (!isset($dailyLearningsByDate[$dlDate])) {
+                $dailyLearningsByDate[$dlDate] = [];
+            }
+            if (!empty(trim((string)$dl->notes))) {
+                $dailyLearningsByDate[$dlDate][] = trim($dl->notes);
+            }
+        }
+
         $formattedCalls = [];
 
         foreach ($callLogs as $log) {
@@ -1489,6 +1601,10 @@ class CallLogApiController extends Controller
                 ?? ($pendingWorksByDate[$callDateYmd] ?? []);
             $pwNotesText = !empty($pwNotesList) ? implode("\n", array_unique($pwNotesList)) : null;
 
+            $dlNotesList = $dailyLearningsByStaffAndDate[$staffDateKey]
+                ?? ($dailyLearningsByDate[$callDateYmd] ?? []);
+            $dlNotesText = !empty($dlNotesList) ? implode("\n", array_unique($dlNotesList)) : null;
+
             $formattedCalls[] = [
                 'call_id' => (int) $log->call_id,
                 'call_date' => $primaryTime ? $primaryTime->format('d M Y') : '—',
@@ -1504,6 +1620,7 @@ class CallLogApiController extends Controller
                 'staff_name' => $log->user ? $log->user->name : 'Staff',
                 'notes' => $log->notes,
                 'pending_work_notes' => $pwNotesText,
+                'daily_learning_notes' => $dlNotesText,
             ];
         }
 

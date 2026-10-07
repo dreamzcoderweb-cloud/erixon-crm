@@ -186,9 +186,23 @@ class DemoProcessApiController extends Controller
             });
         }
 
-        // Date Range filters (supports from_date/to_date, start_date/end_date, date, or month)
-        $rawStart = $request->input('start_date') ?? $request->input('from_date');
-        $rawEnd   = $request->input('end_date') ?? $request->input('to_date');
+        // Date Range filters (supports from_date/to_date, form_date/to_date, start_date/end_date, date, or month)
+        $rawStart = $request->input('from_date') 
+            ?? $request->input('form_date') 
+            ?? $request->input('start_date') 
+            ?? $request->input('fromDate') 
+            ?? $request->query('from_date') 
+            ?? $request->query('form_date') 
+            ?? $request->input('from-date');
+
+        $rawEnd   = $request->input('to_date') 
+            ?? $request->input('end_date') 
+            ?? $request->input('toDate') 
+            ?? $request->query('to_date') 
+            ?? $request->query('to.date') 
+            ?? $request->input('to.date') 
+            ?? $request->input('to-date');
+
         $rawDate  = $request->input('date');
         $month    = $request->input('month');
 

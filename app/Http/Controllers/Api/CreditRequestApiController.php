@@ -47,8 +47,14 @@ class CreditRequestApiController extends Controller
             $customerQuery->forUser($currentUser);
         }
         $customers = $customerQuery->where('status', 1)
+            ->where(function ($q) {
+                $q->where('lead_stage_id', 6)
+                  ->orWhereHas('leads', function ($lq) {
+                      $lq->where('lead_stage_id', 6);
+                  });
+            })
             ->orderBy('name', 'asc')
-            ->get(['customer_id', 'name', 'mobile', 'email', 'credit_balance'])
+            ->get(['customer_id', 'name', 'mobile', 'email', 'credit_balance', 'lead_stage_id'])
             ->map(function ($c) {
                 $phoneSuffix = !empty($c->mobile) ? " ({$c->mobile})" : "";
                 return [
@@ -58,6 +64,7 @@ class CreditRequestApiController extends Controller
                     'name'           => $c->name,
                     'mobile'         => $c->mobile,
                     'email'          => $c->email,
+                    'lead_stage_id'  => $c->lead_stage_id ? (int) $c->lead_stage_id : 6,
                     'credit_balance' => (float) ($c->credit_balance ?? 0),
                     'label'          => $c->name . $phoneSuffix,
                 ];
@@ -214,10 +221,24 @@ class CreditRequestApiController extends Controller
             });
         }
 
-        // Date range & period filters (supports filter_type: daily, weekly, monthly, yearly, custom, start_date/end_date, date, month, week, year)
+        // Date range & period filters (supports filter_type: daily, weekly, monthly, yearly, custom, from_date/to_date, form_date/to_date, start_date/end_date, date, month, week, year)
         $filterType = $request->input('filter_type');
-        $rawStart   = $request->input('start_date') ?? $request->input('from_date');
-        $rawEnd     = $request->input('end_date') ?? $request->input('to_date');
+        $rawStart   = $request->input('from_date') 
+            ?? $request->input('form_date') 
+            ?? $request->input('start_date') 
+            ?? $request->input('fromDate') 
+            ?? $request->query('from_date') 
+            ?? $request->query('form_date') 
+            ?? $request->input('from-date');
+
+        $rawEnd     = $request->input('to_date') 
+            ?? $request->input('end_date') 
+            ?? $request->input('toDate') 
+            ?? $request->query('to_date') 
+            ?? $request->query('to.date') 
+            ?? $request->input('to.date') 
+            ?? $request->input('to-date');
+
         $rawDate    = $request->input('date');
         $week       = $request->input('week');
         $month      = $request->input('month');
@@ -248,20 +269,44 @@ class CreditRequestApiController extends Controller
             $query->whereYear('created_at', $targetYear);
         } elseif ($filterType === 'custom') {
             if (!empty($rawStart) && !empty($rawEnd)) {
-                $query->whereBetween('created_at', [$rawStart . ' 00:00:00', $rawEnd . ' 23:59:59']);
+                try {
+                    $query->whereBetween('created_at', [Carbon::parse(trim((string)$rawStart))->startOfDay(), Carbon::parse(trim((string)$rawEnd))->endOfDay()]);
+                } catch (\Exception $e) {
+                    $query->whereBetween('created_at', [trim((string)$rawStart) . ' 00:00:00', trim((string)$rawEnd) . ' 23:59:59']);
+                }
             } elseif (!empty($rawStart)) {
-                $query->whereDate('created_at', '>=', $rawStart);
+                try {
+                    $query->where('created_at', '>=', Carbon::parse(trim((string)$rawStart))->startOfDay());
+                } catch (\Exception $e) {
+                    $query->whereDate('created_at', '>=', trim((string)$rawStart));
+                }
             } elseif (!empty($rawEnd)) {
-                $query->whereDate('created_at', '<=', $rawEnd);
+                try {
+                    $query->where('created_at', '<=', Carbon::parse(trim((string)$rawEnd))->endOfDay());
+                } catch (\Exception $e) {
+                    $query->whereDate('created_at', '<=', trim((string)$rawEnd));
+                }
             }
         } elseif (!empty($rawDate)) {
             $query->whereDate('created_at', $rawDate);
         } elseif (!empty($rawStart) && !empty($rawEnd)) {
-            $query->whereBetween('created_at', [$rawStart . ' 00:00:00', $rawEnd . ' 23:59:59']);
+            try {
+                $query->whereBetween('created_at', [Carbon::parse(trim((string)$rawStart))->startOfDay(), Carbon::parse(trim((string)$rawEnd))->endOfDay()]);
+            } catch (\Exception $e) {
+                $query->whereBetween('created_at', [trim((string)$rawStart) . ' 00:00:00', trim((string)$rawEnd) . ' 23:59:59']);
+            }
         } elseif (!empty($rawStart)) {
-            $query->whereDate('created_at', '>=', $rawStart);
+            try {
+                $query->where('created_at', '>=', Carbon::parse(trim((string)$rawStart))->startOfDay());
+            } catch (\Exception $e) {
+                $query->whereDate('created_at', '>=', trim((string)$rawStart));
+            }
         } elseif (!empty($rawEnd)) {
-            $query->whereDate('created_at', '<=', $rawEnd);
+            try {
+                $query->where('created_at', '<=', Carbon::parse(trim((string)$rawEnd))->endOfDay());
+            } catch (\Exception $e) {
+                $query->whereDate('created_at', '<=', trim((string)$rawEnd));
+            }
         } elseif (!empty($month)) {
             [$yearVal, $selectedMonth] = array_pad(explode('-', $month), 2, null);
             $y = $yearVal ?: date('Y');

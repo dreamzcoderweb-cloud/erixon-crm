@@ -161,7 +161,7 @@
                         <div class="row g-3">
                             <div class="col-md-12">
                                 <label class="form-label">Find Customer (Name / Phone / Email) <span class="text-danger">*</span></label>
-                                <select name="customer_id" id="customer_search_select" class="form-select" required style="width: 100%;">
+                                <select name="customer_id" id="customer_search_select" class="form-select select2-search" required style="width: 100%;">
                                     <option value="">-- Select or Search Customer --</option>
                                     @foreach ($customers as $cust)
                                         <option value="{{ $cust->customer_id }}" data-phone="{{ $cust->mobile }}" data-email="{{ $cust->email }}" data-name="{{ $cust->name }}">
@@ -276,7 +276,7 @@
                         <div class="row g-3">
                             <div class="col-md-12">
                                 <label class="form-label">Customer (Name / Phone / Email) <span class="text-danger">*</span></label>
-                                <select name="customer_id" id="edit_customer_id" class="form-select" required style="width: 100%;">
+                                <select name="customer_id" id="edit_customer_id" class="form-select select2-search" required style="width: 100%;">
                                     <option value="">-- Select Customer --</option>
                                     @foreach ($customers as $cust)
                                         <option value="{{ $cust->customer_id }}">

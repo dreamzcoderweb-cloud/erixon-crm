@@ -313,12 +313,25 @@ class LeadApiController extends Controller
             }
         }
 
-        // Date period filtering
+        // Date period filtering (supports filter_type: daily, weekly, monthly, custom, from_date/to_date, start_date/end_date, date, month)
         $filterType = $request->input('filter_type');
         $date       = $request->input('date');
         $month      = $request->input('month');
-        $startDate  = $request->input('start_date');
-        $endDate    = $request->input('end_date');
+        $startDate = $request->input('from_date') 
+            ?? $request->input('form_date') 
+            ?? $request->input('start_date') 
+            ?? $request->input('fromDate') 
+            ?? $request->query('from_date') 
+            ?? $request->query('form_date') 
+            ?? $request->input('from-date');
+
+        $endDate   = $request->input('to_date') 
+            ?? $request->input('end_date') 
+            ?? $request->input('toDate') 
+            ?? $request->query('to_date') 
+            ?? $request->query('to.date') 
+            ?? $request->input('to.date') 
+            ?? $request->input('to-date');
 
         if ($filterType === 'daily' && !empty($date)) {
             $query->whereDate('created_at', $date);
@@ -333,11 +346,42 @@ class LeadApiController extends Controller
             $query->whereYear('created_at', $year ?: date('Y'))
                 ->whereMonth('created_at', $selectedMonth ?: date('m'));
         } elseif ($filterType === 'custom') {
-            if (!empty($startDate)) {
-                $query->whereDate('created_at', '>=', $startDate);
+            if (!empty($startDate) && !empty($endDate)) {
+                try {
+                    $query->whereBetween('created_at', [Carbon::parse(trim((string)$startDate))->startOfDay(), Carbon::parse(trim((string)$endDate))->endOfDay()]);
+                } catch (\Exception $e) {
+                    $query->whereBetween('created_at', [trim((string)$startDate) . ' 00:00:00', trim((string)$endDate) . ' 23:59:59']);
+                }
+            } elseif (!empty($startDate)) {
+                try {
+                    $query->where('created_at', '>=', Carbon::parse(trim((string)$startDate))->startOfDay());
+                } catch (\Exception $e) {
+                    $query->whereDate('created_at', '>=', trim((string)$startDate));
+                }
+            } elseif (!empty($endDate)) {
+                try {
+                    $query->where('created_at', '<=', Carbon::parse(trim((string)$endDate))->endOfDay());
+                } catch (\Exception $e) {
+                    $query->whereDate('created_at', '<=', trim((string)$endDate));
+                }
             }
-            if (!empty($endDate)) {
-                $query->whereDate('created_at', '<=', $endDate);
+        } elseif (!empty($startDate) && !empty($endDate)) {
+            try {
+                $query->whereBetween('created_at', [Carbon::parse(trim((string)$startDate))->startOfDay(), Carbon::parse(trim((string)$endDate))->endOfDay()]);
+            } catch (\Exception $e) {
+                $query->whereBetween('created_at', [trim((string)$startDate) . ' 00:00:00', trim((string)$endDate) . ' 23:59:59']);
+            }
+        } elseif (!empty($startDate)) {
+            try {
+                $query->where('created_at', '>=', Carbon::parse(trim((string)$startDate))->startOfDay());
+            } catch (\Exception $e) {
+                $query->whereDate('created_at', '>=', trim((string)$startDate));
+            }
+        } elseif (!empty($endDate)) {
+            try {
+                $query->where('created_at', '<=', Carbon::parse(trim((string)$endDate))->endOfDay());
+            } catch (\Exception $e) {
+                $query->whereDate('created_at', '<=', trim((string)$endDate));
             }
         }
 

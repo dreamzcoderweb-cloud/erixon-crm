@@ -569,19 +569,19 @@ class CustomerController extends Controller
 
         $headers = [
             'Customer Type', 'Name', 'Company Name', 'Mobile', 'Email',
-            'Alternate Mobile', 'Address', 'City', 'State', 'Country', 'Pincode'
+            'Alternate Mobile', 'Address', 'City', 'State', 'Country', 'Pincode', 'Lead Stage'
         ];
 
         $sheet->fromArray($headers, null, 'A1');
 
         $sampleData = [
-            ['user', 'John Doe', 'ABC Enterprises', '9876543210', 'john@example.com', '9876543211', '123 Main St', 'Chennai', 'Tamil Nadu', 'India', '600001'],
-            ['reseller', 'Jane Smith', 'XYZ Solutions', '9123456780', 'jane@example.com', '', '456 Cross Rd', 'Madurai', 'Tamil Nadu', 'India', '625001'],
+            ['user', 'John Doe', 'ABC Enterprises', '9876543210', 'john@example.com', '9876543211', '123 Main St', 'Chennai', 'Tamil Nadu', 'India', '600001', 'Sale closed'],
+            ['reseller', 'Jane Smith', 'XYZ Solutions', '9123456780', 'jane@example.com', '', '456 Cross Rd', 'Madurai', 'Tamil Nadu', 'India', '625001', 'Sale closed'],
         ];
 
         $sheet->fromArray($sampleData, null, 'A2');
 
-        foreach (range('A', 'K') as $col) {
+        foreach (range('A', 'L') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
@@ -652,6 +652,12 @@ class CustomerController extends Controller
             'pincode'         => 'pincode',
             'postalcode'      => 'pincode',
             'zipcode'         => 'pincode',
+            'leadstage'       => 'lead_stage',
+            'leadstageid'     => 'lead_stage',
+            'leadstagename'   => 'lead_stage',
+            'stage'           => 'lead_stage',
+            'stageid'         => 'lead_stage',
+            'stagename'       => 'lead_stage',
         ];
 
         $headerIndexes = [];
@@ -667,6 +673,20 @@ class CustomerController extends Controller
                 'message' => 'Required columns "Name" and "Mobile" were not found in the file headers.'
             ], 422);
         }
+
+        $leadStages = LeadStage::all();
+        $leadStageMap = [];
+        foreach ($leadStages as $ls) {
+            $leadStageMap[(string)$ls->lead_stage_id] = $ls->lead_stage_id;
+            $cleanName = strtolower(trim(preg_replace('/[^a-zA-Z0-9]/', '', (string)$ls->name)));
+            $leadStageMap[$cleanName] = $ls->lead_stage_id;
+        }
+
+        $saleClosedStage = $leadStages->first(function ($s) {
+            $low = strtolower($s->name);
+            return str_contains($low, 'sale') && str_contains($low, 'close');
+        });
+        $defaultSaleClosedId = $saleClosedStage ? $saleClosedStage->lead_stage_id : null;
 
         $imported = 0;
         $updated = 0;
@@ -717,12 +737,39 @@ class CustomerController extends Controller
             $country = isset($headerIndexes['country']) ? trim((string)($row[$headerIndexes['country']] ?? '')) : 'India';
             $pincode = isset($headerIndexes['pincode']) ? trim((string)($row[$headerIndexes['pincode']] ?? '')) : null;
 
+            // Resolve Lead Stage from master
+            $leadStageId = null;
+            if (isset($headerIndexes['lead_stage'])) {
+                $rawStageVal = trim((string)($row[$headerIndexes['lead_stage']] ?? ''));
+                if ($rawStageVal !== '') {
+                    $normStageVal = strtolower(trim(preg_replace('/[^a-zA-Z0-9]/', '', $rawStageVal)));
+                    if (isset($leadStageMap[$normStageVal])) {
+                        $leadStageId = $leadStageMap[$normStageVal];
+                    } elseif (isset($leadStageMap[$rawStageVal])) {
+                        $leadStageId = $leadStageMap[$rawStageVal];
+                    } else {
+                        $matchedStage = $leadStages->first(function ($s) use ($rawStageVal) {
+                            return strcasecmp($s->name, $rawStageVal) === 0 
+                                || str_contains(strtolower($s->name), strtolower($rawStageVal))
+                                || str_contains(strtolower($rawStageVal), strtolower($s->name));
+                        });
+                        if ($matchedStage) {
+                            $leadStageId = $matchedStage->lead_stage_id;
+                        }
+                    }
+                }
+            }
+
+            if ($leadStageId === null && $defaultSaleClosedId !== null) {
+                $leadStageId = $defaultSaleClosedId;
+            }
+
             $customer = Customer::withTrashed()->where('mobile', $mobileClean)->first();
             if ($customer) {
                 if ($customer->trashed()) {
                     $customer->restore();
                 }
-                $customer->update(array_filter([
+                $updateData = [
                     'name'             => $name,
                     'customer_type'    => $customerType,
                     'company_name'     => $companyName,
@@ -733,10 +780,14 @@ class CustomerController extends Controller
                     'state'            => $state,
                     'country'          => $country,
                     'pincode'          => $pincode,
-                ], fn($v) => $v !== null && $v !== ''));
+                ];
+                if ($leadStageId !== null) {
+                    $updateData['lead_stage_id'] = $leadStageId;
+                }
+                $customer->update(array_filter($updateData, fn($v) => $v !== null && $v !== ''));
                 $updated++;
             } else {
-                Customer::create([
+                $createData = [
                     'name'             => $name,
                     'customer_type'    => $customerType,
                     'company_name'     => $companyName,
@@ -750,7 +801,11 @@ class CustomerController extends Controller
                     'pincode'          => $pincode,
                     'status'           => 1,
                     'created_by'       => $userId,
-                ]);
+                ];
+                if ($leadStageId !== null) {
+                    $createData['lead_stage_id'] = $leadStageId;
+                }
+                Customer::create($createData);
                 $imported++;
             }
         }
