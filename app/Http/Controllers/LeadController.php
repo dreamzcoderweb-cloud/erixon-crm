@@ -290,24 +290,36 @@ class LeadController extends Controller
         $custEmail = !empty($validated['email']) ? trim((string) $validated['email']) : null;
         $customerId = null;
 
-        $customer = Customer::where('mobile', $mobile)->first();
-        if (!$customer) {
-            $customer = Customer::create([
-                'name'          => $custName,
-                'customer_type' => $custType,
-                'mobile'        => $mobile,
-                'email'         => $custEmail,
-                'status'        => 1,
-                'created_by'    => $user->id,
-            ]);
-        } else {
-            $customer->update([
-                'name'          => $custName,
-                'customer_type' => $custType,
-                'email'         => $custEmail,
-            ]);
+        $customer = null;
+        try {
+            $existingCustomer = !empty($mobile) ? Customer::withTrashed()->where('mobile', $mobile)->first() : null;
+            if ($existingCustomer) {
+                if ($existingCustomer->trashed()) {
+                    $existingCustomer->restore();
+                }
+                $existingCustomer->update([
+                    'name'          => $custName,
+                    'customer_type' => $custType,
+                    'email'         => $custEmail,
+                ]);
+                $customer = $existingCustomer;
+            } else {
+                $customer = Customer::create([
+                    'name'          => $custName,
+                    'customer_type' => $custType,
+                    'mobile'        => $mobile,
+                    'email'         => $custEmail,
+                    'status'        => 1,
+                    'created_by'    => $user->id,
+                ]);
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Error resolving customer in web lead store: ' . $e->getMessage());
+            if (!empty($mobile)) {
+                $customer = Customer::withTrashed()->where('mobile', $mobile)->first();
+            }
         }
-        $customerId = $customer->customer_id;
+        $customerId = $customer?->customer_id;
 
         $validated['customer_id']   = $customerId;
         $validated['customer_name'] = $custName;
@@ -411,31 +423,54 @@ class LeadController extends Controller
 
         $customerId = $lead->customer_id;
 
-        // Logic: Customer is ONLY added to customer table/menu when lead stage is "Sale closed"
+        // Logic: Resolve customer safely avoiding unique constraint violations on customers_mobile_unique
         $customer = null;
-        if ($customerId) {
-            $customer = Customer::find($customerId);
-        }
-        if (!$customer && !empty($custMobile)) {
-            $customer = Customer::where('mobile', $custMobile)->first();
-        }
+        try {
+            $existingCustomerWithMobile = !empty($custMobile)
+                ? Customer::withTrashed()->where('mobile', $custMobile)->first()
+                : null;
 
-        if (!$customer && !empty($custMobile)) {
-            $customer = Customer::create([
-                'name'          => $custName,
-                'customer_type' => $custType,
-                'mobile'        => $custMobile,
-                'email'         => $custEmail,
-                'status'        => 1,
-                'created_by'    => Auth::id(),
-            ]);
-        } elseif ($customer) {
-            $customer->update([
-                'name'          => $custName,
-                'customer_type' => $custType,
-                'mobile'        => $custMobile,
-                'email'         => $custEmail,
-            ]);
+            if ($existingCustomerWithMobile) {
+                if ($existingCustomerWithMobile->trashed()) {
+                    $existingCustomerWithMobile->restore();
+                }
+                $customer = $existingCustomerWithMobile;
+                $updateCust = [
+                    'name'          => $custName,
+                    'customer_type' => $custType,
+                    'email'         => $custEmail,
+                ];
+                $customer->update($updateCust);
+            } elseif ($customerId) {
+                $customer = Customer::find($customerId);
+                if ($customer) {
+                    $updateCust = [
+                        'name'          => $custName,
+                        'customer_type' => $custType,
+                        'email'         => $custEmail,
+                    ];
+                    if (!empty($custMobile)) {
+                        $updateCust['mobile'] = $custMobile;
+                    }
+                    $customer->update($updateCust);
+                }
+            }
+
+            if (!$customer && !empty($custMobile)) {
+                $customer = Customer::create([
+                    'name'          => $custName,
+                    'customer_type' => $custType,
+                    'mobile'        => $custMobile,
+                    'email'         => $custEmail,
+                    'status'        => 1,
+                    'created_by'    => Auth::id(),
+                ]);
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Error resolving customer in web lead update: ' . $e->getMessage());
+            if (!empty($custMobile)) {
+                $customer = Customer::withTrashed()->where('mobile', $custMobile)->first();
+            }
         }
 
         if ($customer) {

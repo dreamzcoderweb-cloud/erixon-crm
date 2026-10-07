@@ -434,15 +434,30 @@ class CallLogApiController extends Controller
                             $leadId = $newLead->lead_id;
                         }
                     } else {
-                        // Create customer and lead
-                        $newCust = Customer::create([
-                            'name'       => !empty($customerName) ? $customerName : "Customer ({$phoneNumber})",
-                            'mobile'     => $phoneNumber,
-                            'created_by' => $currentUser->id,
-                        ]);
-                        $customerId = $newCust->customer_id;
-                        $customerCode = "CUST_{$customerId}";
-                        $customerName = $newCust->name;
+                        // Check if customer already exists by phone or create new
+                        $existingCust = !empty($phoneNumber)
+                            ? Customer::withTrashed()->where('mobile', $phoneNumber)->first()
+                            : null;
+
+                        if ($existingCust) {
+                            if ($existingCust->trashed()) {
+                                $existingCust->restore();
+                            }
+                            $customerId = $existingCust->customer_id;
+                            $customerCode = "CUST_{$customerId}";
+                            if (empty($customerName)) {
+                                $customerName = $existingCust->name;
+                            }
+                        } else {
+                            $newCust = Customer::create([
+                                'name'       => !empty($customerName) ? $customerName : "Customer ({$phoneNumber})",
+                                'mobile'     => $phoneNumber,
+                                'created_by' => $currentUser->id,
+                            ]);
+                            $customerId = $newCust->customer_id;
+                            $customerCode = "CUST_{$customerId}";
+                            $customerName = $newCust->name;
+                        }
 
                         $newLead = Lead::create([
                             'customer_id'        => $customerId,

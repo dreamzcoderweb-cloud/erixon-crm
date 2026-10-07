@@ -228,7 +228,7 @@ class CustomerController extends Controller
             'customer_type'    => ['required', 'in:user,reseller'],
             'name'             => ['required', 'string', 'max:255'],
             'company_name'     => ['nullable', 'string', 'max:255'],
-            'mobile'           => ['required', 'string', 'max:10', Rule::unique('customers', 'mobile')->withoutTrashed()],
+            'mobile'           => ['required', 'string', 'max:10', Rule::unique('customers', 'mobile')],
             'email'            => ['nullable', 'email', 'max:255'],
             'alternate_mobile' => ['nullable', 'string', 'max:10'],
             'address'          => ['nullable', 'string'],
@@ -249,7 +249,18 @@ class CustomerController extends Controller
         $validated['created_by']    = Auth::id();
         $validated['custom_fields'] = $this->processCustomFieldsPayload($validated['custom_fields'] ?? []);
 
-        $customer = Customer::create($validated);
+        try {
+            $customer = Customer::create($validated);
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->errorInfo[1] == 1062 || str_contains($e->getMessage(), 'Duplicate entry')) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'The mobile number has already been taken.',
+                    'errors'  => ['mobile' => ['The mobile number has already been taken.']],
+                ], 422);
+            }
+            throw $e;
+        }
 
         if (!empty($validated['custom_fields']['followup_date'])) {
             $this->syncFollowupDate($customer, $validated['custom_fields']['followup_date']);
@@ -299,7 +310,7 @@ class CustomerController extends Controller
             'customer_type'       => ['required', 'in:user,reseller'],
             'name'                => ['required', 'string', 'max:255'],
             'company_name'        => ['nullable', 'string', 'max:255'],
-            'mobile'              => ['required', 'string', 'max:10', Rule::unique('customers', 'mobile')->ignore($customer->customer_id, 'customer_id')->withoutTrashed()],
+            'mobile'              => ['required', 'string', 'max:10', Rule::unique('customers', 'mobile')->ignore($customer->customer_id, 'customer_id')],
             'email'               => ['nullable', 'email', 'max:255'],
             'alternate_mobile'    => ['nullable', 'string', 'max:10'],
             'address'             => ['nullable', 'string'],
@@ -319,7 +330,18 @@ class CustomerController extends Controller
 
         $validated['custom_fields'] = $this->processCustomFieldsPayload($validated['custom_fields'] ?? []);
 
-        $customer->update($validated);
+        try {
+            $customer->update($validated);
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->errorInfo[1] == 1062 || str_contains($e->getMessage(), 'Duplicate entry')) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'The mobile number has already been taken.',
+                    'errors'  => ['mobile' => ['The mobile number has already been taken.']],
+                ], 422);
+            }
+            throw $e;
+        }
 
         if (isset($validated['custom_fields']['followup_date'])) {
             $this->syncFollowupDate($customer, $validated['custom_fields']['followup_date']);
@@ -670,8 +692,11 @@ class CustomerController extends Controller
             $country = isset($headerIndexes['country']) ? trim((string)($row[$headerIndexes['country']] ?? '')) : 'India';
             $pincode = isset($headerIndexes['pincode']) ? trim((string)($row[$headerIndexes['pincode']] ?? '')) : null;
 
-            $customer = Customer::where('mobile', $mobileClean)->first();
+            $customer = Customer::withTrashed()->where('mobile', $mobileClean)->first();
             if ($customer) {
+                if ($customer->trashed()) {
+                    $customer->restore();
+                }
                 $customer->update(array_filter([
                     'name'             => $name,
                     'customer_type'    => $customerType,
