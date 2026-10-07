@@ -548,6 +548,9 @@
                 <div class="modal-body">
                     <p>Are you sure you want to delete customer <strong id="delete_customer_name"></strong>?</p>
                 </div>
+                <div class="modal-footer gap-2">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteCustomerBtn">Delete</button>
                 </div>
             </div>
         </div>

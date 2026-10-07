@@ -22,6 +22,16 @@ class RoleController extends Controller
             return view('Role.add', $data);
         }
 
+        if ($request->filled('name')) {
+            $trashedRole = Role::onlyTrashed()->where('name', trim((string)$request->input('name')))->first();
+            if ($trashedRole) {
+                $suffix = '_d' . $trashedRole->id;
+                $maxLen = 125 - strlen($suffix);
+                $trashedRole->name = substr($trashedRole->name, 0, $maxLen) . $suffix;
+                $trashedRole->saveQuietly();
+            }
+        }
+
         $validated = $request->validate(
             [
                 'name' => ['required', 'string', 'min:3', 'max:50', 'regex:/^[a-zA-Z0-9 _-]+$/', Rule::unique('roles', 'name')->withoutTrashed()],
@@ -54,6 +64,16 @@ class RoleController extends Controller
             $data['permissions'] = Permission::orderBy('name')->get();
             $data['selectedPermissionIds'] = $role->permissions->pluck('id')->all();
             return view('Role.edit', $data);
+        }
+
+        if ($request->filled('name')) {
+            $trashedRole = Role::onlyTrashed()->where('name', trim((string)$request->input('name')))->where('id', '!=', $role->id)->first();
+            if ($trashedRole) {
+                $suffix = '_d' . $trashedRole->id;
+                $maxLen = 125 - strlen($suffix);
+                $trashedRole->name = substr($trashedRole->name, 0, $maxLen) . $suffix;
+                $trashedRole->saveQuietly();
+            }
         }
 
         $validated = $request->validate(

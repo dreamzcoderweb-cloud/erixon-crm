@@ -325,11 +325,22 @@ class CustomerApiController extends Controller
             }
         }
 
+        // If an existing soft-deleted customer holds this mobile number, free it first
+        if ($request->filled('mobile')) {
+            $trashed = Customer::onlyTrashed()->where('mobile', trim((string)$request->input('mobile')))->first();
+            if ($trashed) {
+                $suffix = '_d' . $trashed->customer_id;
+                $maxLen = 20 - strlen($suffix);
+                $trashed->mobile = substr($trashed->mobile, 0, $maxLen) . $suffix;
+                $trashed->saveQuietly();
+            }
+        }
+
         // 4. Build Validation Rules
         $rules = [
             'name' => ['required', 'string', 'max:255'],
             'company_name' => ['nullable', 'string', 'max:255'],
-            'mobile' => ['required', 'string', 'max:20', Rule::unique('customers', 'mobile')],
+            'mobile' => ['required', 'string', 'max:20', Rule::unique('customers', 'mobile')->withoutTrashed()],
             'email' => ['nullable', 'email', 'max:255'],
             'alternate_mobile' => ['nullable', 'string', 'max:20'],
             'address' => ['nullable', 'string'],
@@ -774,6 +785,20 @@ class CustomerApiController extends Controller
             }
         }
 
+        // If an existing soft-deleted customer holds this mobile number, free it first
+        if ($request->filled('mobile')) {
+            $trashed = Customer::onlyTrashed()
+                ->where('mobile', trim((string)$request->input('mobile')))
+                ->where('customer_id', '!=', $customer->customer_id)
+                ->first();
+            if ($trashed) {
+                $suffix = '_d' . $trashed->customer_id;
+                $maxLen = 20 - strlen($suffix);
+                $trashed->mobile = substr($trashed->mobile, 0, $maxLen) . $suffix;
+                $trashed->saveQuietly();
+            }
+        }
+
         // 4. Build Validation Rules
         $rules = [
             'name' => ['sometimes', 'required', 'string', 'max:255'],
@@ -783,7 +808,7 @@ class CustomerApiController extends Controller
                 'required',
                 'string',
                 'max:20',
-                Rule::unique('customers', 'mobile')->ignore($customer->customer_id, 'customer_id')
+                Rule::unique('customers', 'mobile')->ignore($customer->customer_id, 'customer_id')->withoutTrashed()
             ],
             'email' => ['nullable', 'email', 'max:255'],
             'alternate_mobile' => ['nullable', 'string', 'max:20'],

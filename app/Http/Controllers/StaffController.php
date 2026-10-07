@@ -33,6 +33,16 @@ class StaffController extends Controller
             return view('staff.add', $data);
         }
 
+        if ($request->filled('email')) {
+            $trashedUser = User::onlyTrashed()->where('email', trim((string)$request->input('email')))->first();
+            if ($trashedUser) {
+                $suffix = '_d' . $trashedUser->id;
+                $maxLen = 191 - strlen($suffix);
+                $trashedUser->email = substr($trashedUser->email, 0, $maxLen) . $suffix;
+                $trashedUser->saveQuietly();
+            }
+        }
+
         $validated = $request->validate(
             [
                 'name' => ['required', 'string', 'min:3', 'max:50'],
@@ -109,6 +119,16 @@ class StaffController extends Controller
             return view('staff.edit', $data);
         }
 
+        if ($request->filled('email')) {
+            $trashedUser = User::onlyTrashed()->where('email', trim((string)$request->input('email')))->where('id', '!=', $user->id)->first();
+            if ($trashedUser) {
+                $suffix = '_d' . $trashedUser->id;
+                $maxLen = 191 - strlen($suffix);
+                $trashedUser->email = substr($trashedUser->email, 0, $maxLen) . $suffix;
+                $trashedUser->saveQuietly();
+            }
+        }
+
         $validated = $request->validate(
             [
                 'name' => ['required', 'string', 'min:3', 'max:50'],
@@ -181,8 +201,18 @@ class StaffController extends Controller
             return view('errors.404');
         }
 
-        if ($user->id === 1 || $user->hasRole('Super Admin')) {
-            session()->flash('danger', 'Super Admin user cannot be deleted');
+        if ($user->id === 1) {
+            session()->flash('danger', 'Primary Super Admin account cannot be deleted');
+            return redirect('admin/staff');
+        }
+
+        if ($user->id === Auth::id()) {
+            session()->flash('danger', 'You cannot delete your own account');
+            return redirect('admin/staff');
+        }
+
+        if ($user->hasRole('Super Admin') && !Auth::user()->isSuperAdmin()) {
+            session()->flash('danger', 'Only a Super Admin can delete a Super Admin staff');
             return redirect('admin/staff');
         }
 

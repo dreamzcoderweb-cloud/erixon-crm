@@ -117,7 +117,7 @@
                                                     <i class="bx bx-edit-alt me-1"></i> Edit
                                                 </a>
                                             @endcan
-                                            @if(!$staff->hasRole('Super Admin') && $staff->id !== 1)
+                                            @if($staff->id !== 1 && $staff->id !== auth()->id())
                                                 @can('staff.delete')
                                                     <a class="dropdown-item text-danger btn-delete" href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#deleteModal" data-id="{{ $staff->id }}" data-name="admin/delete_staff">
                                                         <i class="bx bx-trash me-1"></i> Delete

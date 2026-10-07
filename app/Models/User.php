@@ -18,6 +18,18 @@ class User extends Authenticatable
 
     protected $auditModule = 'Staff';
 
+    protected static function booted()
+    {
+        static::deleting(function ($user) {
+            if (!$user->isForceDeleting() && !empty($user->email) && !str_contains($user->email, '_d')) {
+                $suffix = '_d' . $user->id;
+                $maxLen = 191 - strlen($suffix);
+                $user->email = substr($user->email, 0, $maxLen) . $suffix;
+                $user->saveQuietly();
+            }
+        });
+    }
+
     /**
      * The attributes that are mass assignable.
      *

@@ -16,6 +16,18 @@ class Customer extends Authenticatable
     protected $table = 'customers';
     protected $primaryKey = 'customer_id';
 
+    protected static function booted()
+    {
+        static::deleting(function ($customer) {
+            if (!$customer->isForceDeleting() && !empty($customer->mobile) && !str_contains($customer->mobile, '_d')) {
+                $suffix = '_d' . $customer->customer_id;
+                $maxLen = 20 - strlen($suffix);
+                $customer->mobile = substr($customer->mobile, 0, $maxLen) . $suffix;
+                $customer->saveQuietly();
+            }
+        });
+    }
+
     /**
      * @var list<string>
      */

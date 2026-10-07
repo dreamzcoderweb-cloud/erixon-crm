@@ -222,13 +222,24 @@ class CustomerController extends Controller
 
     public function store(Request $request)
     {
+        // If an existing soft-deleted customer holds this mobile number, free it first
+        if ($request->filled('mobile')) {
+            $trashed = Customer::onlyTrashed()->where('mobile', trim((string)$request->input('mobile')))->first();
+            if ($trashed) {
+                $suffix = '_d' . $trashed->customer_id;
+                $maxLen = 20 - strlen($suffix);
+                $trashed->mobile = substr($trashed->mobile, 0, $maxLen) . $suffix;
+                $trashed->saveQuietly();
+            }
+        }
+
         [$customRules, $customAttributes] = $this->getCustomFieldsRules();
 
         $baseRules = [
             'customer_type'    => ['required', 'in:user,reseller'],
             'name'             => ['required', 'string', 'max:255'],
             'company_name'     => ['nullable', 'string', 'max:255'],
-            'mobile'           => ['required', 'string', 'max:10', Rule::unique('customers', 'mobile')],
+            'mobile'           => ['required', 'string', 'max:10', Rule::unique('customers', 'mobile')->withoutTrashed()],
             'email'            => ['nullable', 'email', 'max:255'],
             'alternate_mobile' => ['nullable', 'string', 'max:10'],
             'address'          => ['nullable', 'string'],
@@ -304,13 +315,27 @@ class CustomerController extends Controller
             ], 404);
         }
 
+        // If an existing soft-deleted customer holds this mobile number, free it first
+        if ($request->filled('mobile')) {
+            $trashed = Customer::onlyTrashed()
+                ->where('mobile', trim((string)$request->input('mobile')))
+                ->where('customer_id', '!=', $customer->customer_id)
+                ->first();
+            if ($trashed) {
+                $suffix = '_d' . $trashed->customer_id;
+                $maxLen = 20 - strlen($suffix);
+                $trashed->mobile = substr($trashed->mobile, 0, $maxLen) . $suffix;
+                $trashed->saveQuietly();
+            }
+        }
+
         [$customRules, $customAttributes] = $this->getCustomFieldsRules();
 
         $baseRules = [
             'customer_type'       => ['required', 'in:user,reseller'],
             'name'                => ['required', 'string', 'max:255'],
             'company_name'        => ['nullable', 'string', 'max:255'],
-            'mobile'              => ['required', 'string', 'max:10', Rule::unique('customers', 'mobile')->ignore($customer->customer_id, 'customer_id')],
+            'mobile'              => ['required', 'string', 'max:10', Rule::unique('customers', 'mobile')->ignore($customer->customer_id, 'customer_id')->withoutTrashed()],
             'email'               => ['nullable', 'email', 'max:255'],
             'alternate_mobile'    => ['nullable', 'string', 'max:10'],
             'address'             => ['nullable', 'string'],
