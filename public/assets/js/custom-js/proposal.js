@@ -50,30 +50,10 @@ $(document).ready(function () {
     }
 
     // -------------------------------------------------------------
-    // 1. Customer Name Searchable Dropdown (Select2)
+    // 1. Select2 Dropdowns (Sales Manager)
     // -------------------------------------------------------------
     function initSelect2Dropdowns() {
         if ($.fn.select2) {
-            // Customer Name Select2 Searchable Dropdown
-            if (!$('#customer_select').hasClass('select2-hidden-accessible')) {
-                $('#customer_select').select2({
-                    dropdownParent: $('#proposalModal'),
-                    placeholder: '-- Search Customer by Name or Mobile --',
-                    allowClear: true,
-                    width: '100%',
-                    tags: true, // Allows typing custom customer name if not in list
-                    createTag: function (params) {
-                        const term = $.trim(params.term);
-                        if (term === '') return null;
-                        return {
-                            id: term,
-                            text: term + ' (New Customer)',
-                            newTag: true
-                        };
-                    }
-                });
-            }
-
             // Sales Manager Select2 Searchable Dropdown
             if (!$('#sales_manager_id').hasClass('select2-hidden-accessible')) {
                 $('#sales_manager_id').select2({
@@ -89,36 +69,6 @@ $(document).ready(function () {
     // Initialize or re-align Select2 whenever modal is displayed
     $('#proposalModal').on('shown.bs.modal', function () {
         initSelect2Dropdowns();
-    });
-
-    // Handle Customer Name Selection from Searchable Dropdown
-    $('#customer_select').on('change select2:select', function () {
-        const $selected = $(this).find('option:selected');
-        const val = $(this).val();
-
-        if (!val) {
-            $('#customer_id').val('');
-            $('#customer_name').val('');
-            $('#customer_mobile').val('');
-            return;
-        }
-
-        const customerId = $selected.data('id');
-        const customerName = $selected.data('name');
-        const customerMobile = $selected.data('mobile');
-
-        if (customerId && customerName) {
-            // Existing customer from database
-            $('#customer_id').val(customerId);
-            $('#customer_name').val(customerName);
-            if (customerMobile) {
-                $('#customer_mobile').val(customerMobile);
-            }
-        } else {
-            // Typed custom customer name
-            $('#customer_id').val('');
-            $('#customer_name').val(val);
-        }
     });
 
     // Handle Sales Manager Selection & Auto-populate Mobile
@@ -146,27 +96,27 @@ $(document).ready(function () {
         const rowHtml = `
             <tr class="item-row" data-row-idx="${itemRowIndex}">
                 <td>
-                    <input type="text" class="form-control form-control-sm item-pkg" 
-                        name="items[${itemRowIndex}][product_package]" 
-                        value="${pkg}" 
+                    <input type="text" class="form-control form-control-sm item-pkg"
+                        name="items[${itemRowIndex}][product_package]"
+                        value="${pkg}"
                         placeholder="e.g. ERP Software Package" required>
                 </td>
                 <td>
                     <div class="input-group input-group-sm">
                         <span class="input-group-text">₹</span>
-                        <input type="number" step="0.01" min="0" 
-                            class="form-control form-control-sm item-price text-end" 
-                            name="items[${itemRowIndex}][price]" 
-                            value="${price}" 
+                        <input type="number" step="0.01" min="0"
+                            class="form-control form-control-sm item-price text-end"
+                            name="items[${itemRowIndex}][price]"
+                            value="${price}"
                             placeholder="0.00" required>
                     </div>
                 </td>
                 <td>
                     <div class="input-group input-group-sm">
-                        <input type="number" step="0.01" min="0" 
-                            class="form-control form-control-sm item-tax-pct text-center px-1 fw-semibold" 
-                            name="items[${itemRowIndex}][tax_percentage]" 
-                            value="${taxPct}" 
+                        <input type="number" step="0.01" min="0"
+                            class="form-control form-control-sm item-tax-pct text-center px-1 fw-semibold"
+                            name="items[${itemRowIndex}][tax_percentage]"
+                            value="${taxPct}"
                             placeholder="18"
                             style="-moz-appearance: textfield; -webkit-appearance: none; appearance: none;">
                         <span class="input-group-text px-2 bg-light text-muted fw-bold">%</span>
@@ -175,20 +125,20 @@ $(document).ready(function () {
                 <td>
                     <div class="input-group input-group-sm">
                         <span class="input-group-text">₹</span>
-                        <input type="number" step="0.01" min="0" 
-                            class="form-control form-control-sm item-tax-amt text-end bg-light" 
-                            name="items[${itemRowIndex}][tax_amount]" 
-                            value="${taxAmt}" 
+                        <input type="number" step="0.01" min="0"
+                            class="form-control form-control-sm item-tax-amt text-end bg-light"
+                            name="items[${itemRowIndex}][tax_amount]"
+                            value="${taxAmt}"
                             placeholder="0.00" readonly>
                     </div>
                 </td>
                 <td>
                     <div class="input-group input-group-sm">
                         <span class="input-group-text">₹</span>
-                        <input type="number" step="0.01" min="0" 
-                            class="form-control form-control-sm item-amount text-end fw-bold bg-light" 
-                            name="items[${itemRowIndex}][amount]" 
-                            value="${amount}" 
+                        <input type="number" step="0.01" min="0"
+                            class="form-control form-control-sm item-amount text-end fw-bold bg-light"
+                            name="items[${itemRowIndex}][amount]"
+                            value="${amount}"
                             placeholder="0.00" readonly required>
                     </div>
                 </td>
@@ -330,10 +280,14 @@ $(document).ready(function () {
             {
                 data: 'customer_name',
                 render: function (data, type, row) {
-                    if (type !== 'display') return `${data || ''} ${row.customer_mobile || ''}`;
+                    if (type !== 'display') return `${data || ''} ${row.customer_mobile || ''} ${row.customer_email || ''}`;
+                    const custType = (row.customer_type || 'user').toLowerCase();
+                    const typeBadge = `<span class="badge ${custType === 'reseller' ? 'bg-label-warning' : 'bg-label-info'} ms-1 text-capitalize" style="font-size: 10px;">${custType}</span>`;
+                    const emailRow = row.customer_email ? `<div class="text-muted fs-tiny"><i class="bx bx-envelope me-1"></i>${row.customer_email}</div>` : '';
                     return `
-                        <div class="fw-bold text-dark">${data || '-'}</div>
+                        <div class="fw-bold text-dark d-flex align-items-center">${data || '-'} ${typeBadge}</div>
                         <div class="text-muted small"><i class="bx bx-phone me-1"></i>${row.customer_mobile || '-'}</div>
+                        ${emailRow}
                     `;
                 }
             },
@@ -476,9 +430,9 @@ $(document).ready(function () {
             bottomStart: 'info',
             bottomEnd: 'paging'
         },
-        order: [[1, 'desc']],
-        pageLength: 10,
-        responsive: true
+        ordering: false,
+        //pageLength: 10,
+        //responsive: true
     });
 
     // -------------------------------------------------------------
@@ -535,13 +489,14 @@ $(document).ready(function () {
         $('#proposal_id').val('');
         $('#customer_id').val('');
         $('#customer_name').val('');
+        $('#customer_type').val('user');
         $('#customer_mobile').val('');
+        $('#customer_email').val('');
         $('#sales_manager_name').val('');
         $('#sales_manager_mobile').val('');
 
         // Reset Select2 Dropdowns
         if ($.fn.select2) {
-            $('#customer_select').val('').trigger('change');
             $('#sales_manager_id').val('').trigger('change');
         }
 
@@ -563,13 +518,10 @@ $(document).ready(function () {
         e.preventDefault();
 
         // Ensure customer name is filled
-        if (!$('#customer_name').val() && $('#customer_select').val()) {
-            $('#customer_name').val($('#customer_select').val());
-        }
-
-        if (!$('#customer_name').val()) {
-            alert('Please select or enter a Customer Name.');
-            $('#customer_select').focus();
+        const customerNameVal = $.trim($('#customer_name').val());
+        if (!customerNameVal) {
+            alert('Please enter a Customer Name.');
+            $('#customer_name').focus();
             return;
         }
 
@@ -640,30 +592,17 @@ $(document).ready(function () {
                 $('#proposal_id').val(p.proposal_id);
                 $('#customer_id').val(p.customer_id || '');
                 $('#customer_name').val(p.customer_name || '');
+                $('#customer_type').val(p.customer_type || 'user');
                 $('#customer_mobile').val(p.customer_mobile || '');
+                $('#customer_email').val(p.customer_email || p.email || '');
                 $('#lead_requirement_id').val(p.lead_requirement_id || '');
                 $('#sales_manager_id').val(p.sales_manager_id || '');
                 $('#sales_manager_name').val(p.sales_manager_name || '');
                 $('#sales_manager_mobile').val(p.sales_manager_mobile || '');
                 $('#notes').val(p.notes || '');
 
-                // Set Select2 values
+                // Set Sales Manager Select2 value
                 if ($.fn.select2) {
-                    if (p.customer_id && $(`#customer_select option[value="${p.customer_id}"]`).length > 0) {
-                        $('#customer_select').val(p.customer_id).trigger('change');
-                    } else if (p.customer_name) {
-                        // Custom customer name tag
-                        if ($(`#customer_select option[value="${p.customer_name}"]`).length === 0) {
-                            const newOption = new Option(p.customer_name + ' (Custom)', p.customer_name, true, true);
-                            $('#customer_select').append(newOption).trigger('change');
-                        } else {
-                            $('#customer_select').val(p.customer_name).trigger('change');
-                        }
-                    } else {
-                        $('#customer_select').val('').trigger('change');
-                    }
-
-                    // Resolve Sales Manager Selection
                     let targetSmId = p.sales_manager_id ? String(p.sales_manager_id) : '';
                     if (!targetSmId && p.sales_manager_name) {
                         $('#sales_manager_id option').each(function () {
@@ -756,7 +695,14 @@ $(document).ready(function () {
 
                 // Customer info
                 $('#view_customer_name').text(p.customer_name || '-');
+                $('#view_customer_type').text(p.customer_type || 'user');
                 $('#view_customer_mobile').text(p.customer_mobile || '-');
+                if (p.customer_email) {
+                    $('#view_customer_email').text(p.customer_email);
+                    $('#view_customer_email_wrapper').show();
+                } else {
+                    $('#view_customer_email_wrapper').hide();
+                }
                 $('#view_lead_requirement').text(p.lead_requirement_name || 'Not specified');
 
                 // Sales manager info

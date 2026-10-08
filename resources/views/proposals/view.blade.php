@@ -248,23 +248,30 @@
                         </h6>
                     </div>
 
-                    <!-- Customer Name Searchable Dropdown -->
+                    <!-- Customer Name Text Input -->
                     <div class="col-md-6">
-                        <label class="form-label fw-semibold" for="customer_select">
+                        <label class="form-label fw-semibold" for="customer_name">
                             Customer Name <span class="text-danger">*</span>
                         </label>
-                        <select id="customer_select" class="form-select" style="width: 100%;" required>
-                            <option value="">-- Search Customer by Name or Mobile --</option>
-                            @if(isset($customers))
-                                @foreach($customers as $c)
-                                    <option value="{{ $c->customer_id }}" data-id="{{ $c->customer_id }}" data-name="{{ $c->name }}" data-mobile="{{ $c->mobile }}">
-                                        {{ $c->name }} {{ !empty($c->mobile) ? '(' . $c->mobile . ')' : '' }}
-                                    </option>
-                                @endforeach
-                            @endif
-                        </select>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="bx bx-user"></i></span>
+                            <input type="text" class="form-control" id="customer_name" name="customer_name" placeholder="Enter customer name" required>
+                        </div>
                         <input type="hidden" name="customer_id" id="customer_id">
-                        <input type="hidden" name="customer_name" id="customer_name">
+                    </div>
+
+                    <!-- Customer Type Dropdown -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold" for="customer_type">
+                            Customer Type <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="bx bx-user-pin"></i></span>
+                            <select class="form-select" id="customer_type" name="customer_type" required>
+                                <option value="user" selected>User</option>
+                                <option value="reseller">Reseller</option>
+                            </select>
+                        </div>
                     </div>
 
                     <!-- Mobile Number -->
@@ -275,6 +282,17 @@
                         <div class="input-group">
                             <span class="input-group-text bg-light"><i class="bx bx-phone"></i></span>
                             <input type="text" class="form-control" id="customer_mobile" name="customer_mobile" placeholder="Enter 10-digit mobile number" required>
+                        </div>
+                    </div>
+
+                    <!-- Email Input -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold" for="customer_email">
+                            Email
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="bx bx-envelope"></i></span>
+                            <input type="email" class="form-control" id="customer_email" name="customer_email" placeholder="Enter customer email address">
                         </div>
                     </div>
 
@@ -436,9 +454,13 @@
                 <div class="row g-3 mb-4">
                     <div class="col-md-6">
                         <div class="p-3 border rounded bg-light">
-                            <span class="text-muted small text-uppercase fw-semibold d-block mb-1">Customer Information</span>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="text-muted small text-uppercase fw-semibold">Customer Information</span>
+                                <span class="badge bg-label-info text-capitalize" id="view_customer_type">-</span>
+                            </div>
                             <h6 class="fw-bold mb-1" id="view_customer_name">-</h6>
                             <div class="text-muted small mb-1"><i class="bx bx-phone me-1"></i><span id="view_customer_mobile">-</span></div>
+                            <div class="text-muted small mb-1" id="view_customer_email_wrapper"><i class="bx bx-envelope me-1"></i><span id="view_customer_email">-</span></div>
                             <div class="text-muted small"><i class="bx bx-tag-alt me-1"></i>Lead Requirement: <span class="badge bg-label-primary" id="view_lead_requirement">-</span></div>
                         </div>
                     </div>

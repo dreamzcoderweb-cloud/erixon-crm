@@ -66,7 +66,9 @@ class ProposalController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('proposal_number', 'like', "%{$search}%")
                   ->orWhere('customer_name', 'like', "%{$search}%")
+                  ->orWhere('customer_type', 'like', "%{$search}%")
                   ->orWhere('customer_mobile', 'like', "%{$search}%")
+                  ->orWhere('customer_email', 'like', "%{$search}%")
                   ->orWhere('sales_manager_name', 'like', "%{$search}%")
                   ->orWhere('lead_requirement_name', 'like', "%{$search}%")
                   ->orWhereHas('items', function ($iq) use ($search) {
@@ -133,7 +135,10 @@ class ProposalController extends Controller
     {
         $validated = $request->validate([
             'customer_name'          => ['required', 'string', 'max:255'],
+            'customer_type'          => ['nullable', 'string', 'max:50'],
             'customer_mobile'        => ['required', 'string', 'max:20'],
+            'customer_email'         => ['nullable', 'string', 'email', 'max:255'],
+            'email'                  => ['nullable', 'string', 'email', 'max:255'],
             'customer_id'            => ['nullable', 'exists:customers,customer_id'],
             'lead_requirement_id'    => ['nullable', 'exists:lead_requirements,lead_requirements_id'],
             'sales_manager_id'       => ['nullable', 'exists:users,id'],
@@ -201,11 +206,16 @@ class ProposalController extends Controller
             // Unique proposal number generation
             $proposalNumber = $this->generateProposalNumber();
 
+            $customerEmail = $validated['customer_email'] ?? $validated['email'] ?? null;
+            $customerType = !empty($validated['customer_type']) ? strtolower($validated['customer_type']) : 'user';
+
             $proposal = Proposal::create([
                 'proposal_number'        => $proposalNumber,
                 'customer_id'            => $validated['customer_id'] ?? null,
                 'customer_name'          => $validated['customer_name'],
+                'customer_type'          => $customerType,
                 'customer_mobile'        => $validated['customer_mobile'],
+                'customer_email'         => $customerEmail,
                 'lead_requirement_id'    => $validated['lead_requirement_id'] ?? null,
                 'lead_requirement_name'  => $leadRequirementName,
                 'sales_manager_id'       => $salesManagerId,
@@ -330,7 +340,10 @@ class ProposalController extends Controller
 
         $validated = $request->validate([
             'customer_name'          => ['required', 'string', 'max:255'],
+            'customer_type'          => ['nullable', 'string', 'max:50'],
             'customer_mobile'        => ['required', 'string', 'max:20'],
+            'customer_email'         => ['nullable', 'string', 'email', 'max:255'],
+            'email'                  => ['nullable', 'string', 'email', 'max:255'],
             'customer_id'            => ['nullable', 'exists:customers,customer_id'],
             'lead_requirement_id'    => ['nullable', 'exists:lead_requirements,lead_requirements_id'],
             'sales_manager_id'       => ['nullable', 'exists:users,id'],
@@ -393,10 +406,15 @@ class ProposalController extends Controller
                 $totalAmount += $lineAmt;
             }
 
+            $customerEmail = $validated['customer_email'] ?? $validated['email'] ?? $proposal->customer_email;
+            $customerType = !empty($validated['customer_type']) ? strtolower($validated['customer_type']) : ($proposal->customer_type ?: 'user');
+
             $proposal->update([
                 'customer_id'            => $validated['customer_id'] ?? null,
                 'customer_name'          => $validated['customer_name'],
+                'customer_type'          => $customerType,
                 'customer_mobile'        => $validated['customer_mobile'],
+                'customer_email'         => $customerEmail,
                 'lead_requirement_id'    => $validated['lead_requirement_id'] ?? null,
                 'lead_requirement_name'  => $leadRequirementName,
                 'sales_manager_id'       => $salesManagerId,

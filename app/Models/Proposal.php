@@ -19,7 +19,10 @@ class Proposal extends Model
         'proposal_number',
         'customer_id',
         'customer_name',
+        'customer_type',
         'customer_mobile',
+        'customer_email',
+        'email',
         'lead_requirement_id',
         'lead_requirement_name',
         'sales_manager_id',
@@ -32,6 +35,16 @@ class Proposal extends Model
         'status',
         'created_by',
     ];
+
+    public function setEmailAttribute($value)
+    {
+        $this->attributes['customer_email'] = $value;
+    }
+
+    public function getEmailAttribute()
+    {
+        return $this->attributes['customer_email'] ?? null;
+    }
 
     protected $casts = [
         'subtotal'     => 'decimal:2',

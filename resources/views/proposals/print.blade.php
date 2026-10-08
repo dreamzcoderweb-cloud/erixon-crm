@@ -90,8 +90,16 @@
             <div class="col-sm-6">
                 <div class="p-3 bg-light rounded border h-100">
                     <span class="text-muted text-uppercase small fw-bold d-block mb-2">Proposal Prepared For:</span>
-                    <h5 class="fw-bold text-dark mb-1">{{ $proposal->customer_name }}</h5>
+                    <h5 class="fw-bold text-dark mb-1 d-flex align-items-center">
+                        {{ $proposal->customer_name }}
+                        @if(!empty($proposal->customer_type))
+                            <span class="badge bg-label-primary text-capitalize font-weight-normal ms-2" style="font-size: 11px;">{{ ucfirst($proposal->customer_type) }}</span>
+                        @endif
+                    </h5>
                     <div class="text-muted mb-1"><i class="bx bx-phone me-1"></i> {{ $proposal->customer_mobile }}</div>
+                    @if(!empty($proposal->customer_email))
+                        <div class="text-muted mb-1"><i class="bx bx-envelope me-1"></i> {{ $proposal->customer_email }}</div>
+                    @endif
                     @if(!empty($proposal->lead_requirement_name))
                         <div class="text-muted small mt-2">
                             <span class="badge bg-label-info"><i class="bx bx-tag me-1"></i>Requirement: {{ $proposal->lead_requirement_name }}</span>
