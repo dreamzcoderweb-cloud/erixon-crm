@@ -96,13 +96,27 @@ class ProposalController extends Controller
         $filterType = $request->input('filter_type');
         $date       = $request->input('date');
         $month      = $request->input('month');
-        $startDate  = $request->input('start_date');
-        $endDate    = $request->input('end_date');
+        $startDate  = $request->input('from_date') ?? $request->input('start_date');
+        $endDate    = $request->input('to_date') ?? $request->input('end_date');
 
-        if ($filterType === 'daily' && !empty($date)) {
+        if (!empty($startDate) || !empty($endDate)) {
+            if (!empty($startDate) && !empty($endDate)) {
+                if ($startDate > $endDate) {
+                    [$startDate, $endDate] = [$endDate, $startDate];
+                }
+                $query->whereBetween('created_at', [
+                    $startDate . ' 00:00:00',
+                    $endDate . ' 23:59:59',
+                ]);
+            } elseif (!empty($startDate)) {
+                $query->where('created_at', '>=', $startDate . ' 00:00:00');
+            } elseif (!empty($endDate)) {
+                $query->where('created_at', '<=', $endDate . ' 23:59:59');
+            }
+        } elseif ($filterType === 'daily' && !empty($date)) {
             $query->whereDate('created_at', $date);
         } elseif ($filterType === 'weekly') {
-            $refDate = !empty($startDate) ? Carbon::parse($startDate) : Carbon::today();
+            $refDate = Carbon::today();
             $query->whereBetween('created_at', [
                 $refDate->copy()->startOfWeek()->toDateTimeString(),
                 $refDate->copy()->endOfWeek()->toDateTimeString(),
@@ -111,13 +125,6 @@ class ProposalController extends Controller
             [$year, $selectedMonth] = array_pad(explode('-', $month), 2, null);
             $query->whereYear('created_at', $year ?: date('Y'))
                 ->whereMonth('created_at', $selectedMonth ?: date('m'));
-        } elseif ($filterType === 'custom') {
-            if (!empty($startDate)) {
-                $query->whereDate('created_at', '>=', $startDate);
-            }
-            if (!empty($endDate)) {
-                $query->whereDate('created_at', '<=', $endDate);
-            }
         }
 
         $proposals = $query->orderBy('proposal_id', 'desc')->get();
@@ -486,20 +493,34 @@ class ProposalController extends Controller
         }
 
         $proposalNumber = $proposal->proposal_number;
-        $proposal->delete();
+        DB::beginTransaction();
+        try {
+            $proposal->items()->delete();
+            $proposal->delete();
 
-        AuditLogger::log(
-            event: 'delete',
-            module: 'Proposal',
-            description: "Proposal '{$proposalNumber}' deleted.",
-            auditable: $proposal,
-            userId: Auth::id()
-        );
+            AuditLogger::log(
+                event: 'delete',
+                module: 'Proposal',
+                description: "Proposal '{$proposalNumber}' deleted.",
+                auditable: $proposal,
+                userId: Auth::id()
+            );
 
-        return response()->json([
-            'status'  => true,
-            'message' => 'Proposal deleted successfully.',
-        ]);
+            DB::commit();
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'Proposal deleted successfully.',
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Failed to delete proposal: ' . $e->getMessage());
+
+            return response()->json([
+                'status'  => false,
+                'message' => 'Failed to delete proposal: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**

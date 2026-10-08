@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\SalaryApiController;
 use App\Http\Controllers\Api\PendingWorkApiController;
 use App\Http\Controllers\Api\DailyLearningApiController;
 use App\Http\Controllers\Api\CommitmentApiController;
+use App\Http\Controllers\Api\ProposalApiController;
 use App\Http\Controllers\NotificationController;
 
 use Illuminate\Support\Facades\Route;
@@ -56,6 +57,20 @@ Route::prefix('v1')->group(function () {
         Route::post('customers/update/{id}', [CustomerApiController::class, 'update']);
         Route::delete('customers/delete/{id}', [CustomerApiController::class, 'destroy']);
         Route::post('customers/change-status/{id}', [CustomerApiController::class, 'changeStatus']);
+
+        // Mobile App Proposal Management
+        Route::get('proposals/form-data', [ProposalApiController::class, 'getFormData']);
+        Route::get('proposals/search', [ProposalApiController::class, 'search']);
+        Route::get('proposals', [ProposalApiController::class, 'index']);
+        Route::post('proposals', [ProposalApiController::class, 'store']);
+        Route::get('proposals/edit/{id}', [ProposalApiController::class, 'edit']);
+        Route::get('proposals/{id}', [ProposalApiController::class, 'show']);
+        Route::post('proposals/update/{id}', [ProposalApiController::class, 'update']);
+        Route::delete('proposals/{id}', [ProposalApiController::class, 'destroy']);
+        Route::delete('proposals/delete/{id}', [ProposalApiController::class, 'destroy']);
+        Route::post('proposals/change-status/{id}', [ProposalApiController::class, 'changeStatus']);
+        Route::get('proposals/{id}/pdf', [ProposalApiController::class, 'exportPdf']);
+        Route::get('proposals/pdf/{id}', [ProposalApiController::class, 'exportPdf']);
 
         // Mobile App Lead Management & Additional Custom Fields
         Route::get('leads/form-data', [LeadApiController::class, 'getFormData']);
@@ -155,5 +170,6 @@ Route::prefix('v1')->group(function () {
 
     // Direct / Browser PDF download route with token parameter
     Route::get('call-report/download', [CallLogApiController::class, 'exportPdf']);
+    Route::get('proposals/download-pdf/{id}', [ProposalApiController::class, 'exportPdf']);
 });
 

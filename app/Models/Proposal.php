@@ -54,6 +54,21 @@ class Proposal extends Model
         'updated_at'   => 'datetime',
     ];
 
+    protected static function booted()
+    {
+        static::deleting(function ($proposal) {
+            if ($proposal->isForceDeleting()) {
+                $proposal->items()->forceDelete();
+            } else {
+                $proposal->items()->delete();
+            }
+        });
+
+        static::restoring(function ($proposal) {
+            $proposal->items()->restore();
+        });
+    }
+
     public function items()
     {
         return $this->hasMany(ProposalItem::class, 'proposal_id', 'proposal_id');
