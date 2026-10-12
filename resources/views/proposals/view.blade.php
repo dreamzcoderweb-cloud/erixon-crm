@@ -16,7 +16,7 @@
         -moz-appearance: textfield;
         appearance: textfield;
     }
-    #proposalItemsTable th, 
+    #proposalItemsTable th,
     #proposalItemsTable td {
         vertical-align: middle;
     }
@@ -328,14 +328,15 @@
                     </div>
 
                     <div class="table-responsive border rounded bg-white">
-                        <table class="table table-bordered align-middle mb-0" id="proposalItemsTable" style="min-width: 900px;">
+                        <table class="table table-bordered align-middle mb-0" id="proposalItemsTable" style="min-width: 950px;">
                             <thead class="table-light">
                                 <tr>
-                                    <th style="min-width: 240px;">Product Package <span class="text-danger">*</span></th>
-                                    <th style="width: 170px; min-width: 160px;">Paisa (Price ₹) <span class="text-danger">*</span></th>
-                                    <th style="width: 135px; min-width: 125px;" class="text-center">Tax (%)</th>
-                                    <th style="width: 160px; min-width: 150px;">Tax Amount (₹)</th>
-                                    <th style="width: 170px; min-width: 160px;">Amount (₹)</th>
+                                    <th style="min-width: 200px;">Package <span class="text-danger">*</span></th>
+                                    <th style="width: 160px; min-width: 150px;">Paisa (Price ₹) <span class="text-danger">*</span></th>
+                                    <th>Amount (₹)</th>
+                                    <th style="width: 125px; min-width: 115px;" class="text-center">Tax (%)</th>
+                                    <th style="width: 150px; min-width: 140px;">Tax Amount (₹)</th>
+                                    <th style="width: 160px; min-width: 150px;">Total Amount (₹)</th>
                                     <th style="width: 50px;" class="text-center"><i class="bx bx-trash"></i></th>
                                 </tr>
                             </thead>
@@ -344,26 +345,24 @@
                             </tbody>
                             <tfoot class="table-light">
                                 <tr>
-                                    <th class="text-end fw-bold">Subtotal (Paisa):</th>
+                                    <th class="text-end fw-bold" colspan="2">Subtotal:</th>
                                     <th colspan="4" class="fw-bold text-dark fs-6" id="summarySubtotal">₹0.00</th>
                                     <th></th>
                                 </tr>
                                 <tr>
-                                    <th class="text-end fw-bold">Total Tax:</th>
+                                    <th class="text-end fw-bold" colspan="2">Total Tax:</th>
                                     <th colspan="4" class="fw-bold text-muted fs-6" id="summaryTax">₹0.00</th>
                                     <th></th>
                                 </tr>
                                 <tr class="table-primary">
-                                    <th class="text-end fw-bolder fs-5 text-primary">Grand Total Amount:</th>
+                                    <th class="text-end fw-bolder fs-5 text-primary" colspan="2">Grand Total Amount:</th>
                                     <th colspan="4" class="fw-bolder fs-5 text-primary" id="summaryTotalAmount">₹0.00</th>
                                     <th></th>
                                 </tr>
                             </tfoot>
                         </table>
                     </div>
-                    <small class="text-muted d-block mt-2">
-                        <i class="bx bx-info-circle me-1"></i> Click <strong>Add Product</strong> to append multiple packages. Amount is auto-calculated as: <code>Paisa + Tax Amount</code>.
-                    </small>
+
                 </div>
 
                 <!-- SECTION 3: SALES MANAGER & NOTES -->
@@ -475,17 +474,18 @@
                 </div>
 
                 <!-- Products Table -->
-                <h6 class="fw-bold text-dark mb-2"><i class="bx bx-package me-1 text-primary"></i> Product Packages</h6>
+                <h6 class="fw-bold text-dark mb-2"><i class="bx bx-package me-1 text-primary"></i> Packages & Pricing</h6>
                 <div class="table-responsive border rounded mb-3">
                     <table class="table table-bordered table-striped align-middle mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th>#</th>
-                                <th>Product Package</th>
+                                <th style="width: 40px;" class="text-center">#</th>
+                                <th>Package</th>
                                 <th class="text-end">Paisa (Price ₹)</th>
+                                <th class="text-end">Amount (₹)</th>
                                 <th class="text-center">Tax (%)</th>
                                 <th class="text-end">Tax Amount (₹)</th>
-                                <th class="text-end">Amount (₹)</th>
+                                <th class="text-end">Total Amount (₹)</th>
                             </tr>
                         </thead>
                         <tbody id="view_items_tbody">
@@ -493,15 +493,15 @@
                         </tbody>
                         <tfoot class="table-light">
                             <tr>
-                                <th colspan="5" class="text-end fw-bold">Subtotal:</th>
+                                <th colspan="6" class="text-end fw-bold">Subtotal:</th>
                                 <th class="text-end fw-bold" id="view_subtotal">₹0.00</th>
                             </tr>
                             <tr>
-                                <th colspan="5" class="text-end fw-bold">Total Tax:</th>
+                                <th colspan="6" class="text-end fw-bold">Total Tax:</th>
                                 <th class="text-end fw-bold text-muted" id="view_total_tax">₹0.00</th>
                             </tr>
                             <tr class="table-primary">
-                                <th colspan="5" class="text-end fw-bolder fs-6 text-primary">Grand Total:</th>
+                                <th colspan="6" class="text-end fw-bolder fs-6 text-primary">Grand Total:</th>
                                 <th class="text-end fw-bolder fs-6 text-primary" id="view_total_amount">₹0.00</th>
                             </tr>
                         </tfoot>

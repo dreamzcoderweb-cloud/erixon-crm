@@ -236,42 +236,52 @@
         <thead>
             <tr>
                 <th style="width: 25px;" class="text-center">#</th>
-                <th>Product Package / Description</th>
-                <th style="width: 100px;" class="text-end">Price (₹)</th>
-                <th style="width: 60px;" class="text-center">Tax (%)</th>
-                <th style="width: 90px;" class="text-end">Tax Amt (₹)</th>
-                <th style="width: 105px;" class="text-end">Total (₹)</th>
+                <th>Package</th>
+                <th style="width: 80px;" class="text-end">Paisa (₹)</th>
+                <th style="width: 90px;" class="text-end">Amount (₹)</th>
+                <th style="width: 55px;" class="text-center">Tax (%)</th>
+                <th style="width: 85px;" class="text-end">Tax Amt (₹)</th>
+                <th style="width: 95px;" class="text-end">Total (₹)</th>
             </tr>
         </thead>
         <tbody>
             @forelse($proposal->items as $index => $item)
+                @php
+                    $pkgDisplay = (is_numeric($item->package) && $item->package > 0)
+                        ? number_format($item->package)
+                        : ($item->product_package ?: '-');
+                    $baseAmt = $item->subtotal > 0
+                        ? $item->subtotal
+                        : (($item->package > 0 && $item->price > 0) ? ($item->package * $item->price) : 0);
+                @endphp
                 <tr>
                     <td class="text-center">{{ $index + 1 }}</td>
-                    <td><strong>{{ $item->product_package }}</strong></td>
+                    <td><strong>{{ $pkgDisplay }}</strong></td>
                     <td class="text-end">₹{{ number_format($item->price, 2) }}</td>
+                    <td class="text-end fw-bold">₹{{ number_format($baseAmt, 2) }}</td>
                     <td class="text-center">{{ number_format($item->tax_percentage, 0) }}%</td>
                     <td class="text-end">₹{{ number_format($item->tax_amount, 2) }}</td>
                     <td class="text-end fw-bold">₹{{ number_format($item->amount, 2) }}</td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="6" class="text-center" style="padding: 12px; color: #94a3b8;">No product packages specified.</td>
+                    <td colspan="7" class="text-center" style="padding: 12px; color: #94a3b8;">No product packages specified.</td>
                 </tr>
             @endforelse
         </tbody>
         <tfoot>
             <tr>
-                <td colspan="4" style="border: none;"></td>
+                <td colspan="5" style="border: none;"></td>
                 <td class="text-end fw-bold" style="background-color: #f8fafc;">Subtotal:</td>
                 <td class="text-end fw-bold" style="background-color: #f8fafc;">₹{{ number_format($proposal->subtotal, 2) }}</td>
             </tr>
             <tr>
-                <td colspan="4" style="border: none;"></td>
+                <td colspan="5" style="border: none;"></td>
                 <td class="text-end fw-bold" style="background-color: #f8fafc;">Total Tax:</td>
                 <td class="text-end fw-bold" style="background-color: #f8fafc;">₹{{ number_format($proposal->total_tax, 2) }}</td>
             </tr>
             <tr class="grand-total-row">
-                <td colspan="4" style="border: none; background: transparent !important;"></td>
+                <td colspan="5" style="border: none; background: transparent !important;"></td>
                 <td class="text-end">Grand Total:</td>
                 <td class="text-end">₹{{ number_format($proposal->total_amount, 2) }}</td>
             </tr>

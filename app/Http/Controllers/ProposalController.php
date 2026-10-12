@@ -72,7 +72,8 @@ class ProposalController extends Controller
                   ->orWhere('sales_manager_name', 'like', "%{$search}%")
                   ->orWhere('lead_requirement_name', 'like', "%{$search}%")
                   ->orWhereHas('items', function ($iq) use ($search) {
-                      $iq->where('product_package', 'like', "%{$search}%");
+                      $iq->where('product_package', 'like', "%{$search}%")
+                        ->orWhere('package', 'like', "%{$search}%");
                   });
             });
         }
@@ -153,11 +154,13 @@ class ProposalController extends Controller
             'sales_manager_mobile'   => ['nullable', 'string', 'max:20'],
             'notes'                  => ['nullable', 'string'],
             'items'                  => ['required', 'array', 'min:1'],
-            'items.*.product_package'=> ['required', 'string', 'max:255'],
+            'items.*.package'        => ['nullable', 'numeric', 'min:0'],
+            'items.*.product_package'=> ['nullable'],
             'items.*.price'          => ['required', 'numeric', 'min:0'],
+            'items.*.subtotal'       => ['nullable', 'numeric', 'min:0'],
             'items.*.tax_percentage' => ['nullable', 'numeric', 'min:0'],
             'items.*.tax_amount'     => ['nullable', 'numeric', 'min:0'],
-            'items.*.amount'         => ['required', 'numeric', 'min:0'],
+            'items.*.amount'         => ['nullable', 'numeric', 'min:0'],
         ]);
 
         DB::beginTransaction();
@@ -190,22 +193,26 @@ class ProposalController extends Controller
                 }
             }
 
-            // Calculate Subtotal, Total Tax, and Total Amount
+            // Calculate Subtotal, Total Tax, and Total Amount based on Package * Paisa
             $subtotal = 0;
             $totalTax = 0;
             $totalAmount = 0;
 
             foreach ($validated['items'] as $item) {
+                $packageRaw = $item['package'] ?? $item['product_package'] ?? 0;
+                $packageQty = (float) str_replace(',', '', (string) $packageRaw);
                 $paisa = (float) ($item['price'] ?? 0);
-                $taxPct = (float) ($item['tax_percentage'] ?? 0);
-                $taxAmt = isset($item['tax_amount']) && $item['tax_amount'] !== '' 
-                    ? (float) $item['tax_amount'] 
-                    : round(($paisa * $taxPct) / 100, 2);
-                $lineAmt = isset($item['amount']) && $item['amount'] !== '' 
-                    ? (float) $item['amount'] 
-                    : round($paisa + $taxAmt, 2);
+                $itemSubtotal = round($packageQty * $paisa, 2);
 
-                $subtotal += $paisa;
+                $taxPct = (float) ($item['tax_percentage'] ?? 0);
+                $taxAmt = isset($item['tax_amount']) && $item['tax_amount'] !== '' && $item['tax_amount'] !== null
+                    ? (float) $item['tax_amount'] 
+                    : round(($itemSubtotal * $taxPct) / 100, 2);
+                $lineAmt = isset($item['amount']) && $item['amount'] !== '' && $item['amount'] !== null
+                    ? (float) $item['amount'] 
+                    : round($itemSubtotal + $taxAmt, 2);
+
+                $subtotal += $itemSubtotal;
                 $totalTax += $taxAmt;
                 $totalAmount += $lineAmt;
             }
@@ -238,19 +245,25 @@ class ProposalController extends Controller
 
             // Save individual items
             foreach ($validated['items'] as $item) {
+                $packageRaw = $item['package'] ?? $item['product_package'] ?? 0;
+                $packageQty = (float) str_replace(',', '', (string) $packageRaw);
                 $paisa = (float) ($item['price'] ?? 0);
+                $itemSubtotal = round($packageQty * $paisa, 2);
+
                 $taxPct = (float) ($item['tax_percentage'] ?? 0);
-                $taxAmt = isset($item['tax_amount']) && $item['tax_amount'] !== '' 
+                $taxAmt = isset($item['tax_amount']) && $item['tax_amount'] !== '' && $item['tax_amount'] !== null
                     ? (float) $item['tax_amount'] 
-                    : round(($paisa * $taxPct) / 100, 2);
-                $lineAmt = isset($item['amount']) && $item['amount'] !== '' 
+                    : round(($itemSubtotal * $taxPct) / 100, 2);
+                $lineAmt = isset($item['amount']) && $item['amount'] !== '' && $item['amount'] !== null
                     ? (float) $item['amount'] 
-                    : round($paisa + $taxAmt, 2);
+                    : round($itemSubtotal + $taxAmt, 2);
 
                 ProposalItem::create([
                     'proposal_id'     => $proposal->proposal_id,
-                    'product_package' => trim($item['product_package']),
+                    'package'         => $packageQty,
+                    'product_package' => (string) ($packageRaw ?: $packageQty),
                     'price'           => $paisa,
+                    'subtotal'        => $itemSubtotal,
                     'tax_percentage'  => $taxPct,
                     'tax_amount'      => $taxAmt,
                     'amount'          => $lineAmt,
@@ -359,11 +372,13 @@ class ProposalController extends Controller
             'notes'                  => ['nullable', 'string'],
             'status'                 => ['nullable', 'string', 'max:30'],
             'items'                  => ['required', 'array', 'min:1'],
-            'items.*.product_package'=> ['required', 'string', 'max:255'],
+            'items.*.package'        => ['nullable', 'numeric', 'min:0'],
+            'items.*.product_package'=> ['nullable'],
             'items.*.price'          => ['required', 'numeric', 'min:0'],
+            'items.*.subtotal'       => ['nullable', 'numeric', 'min:0'],
             'items.*.tax_percentage' => ['nullable', 'numeric', 'min:0'],
             'items.*.tax_amount'     => ['nullable', 'numeric', 'min:0'],
-            'items.*.amount'         => ['required', 'numeric', 'min:0'],
+            'items.*.amount'         => ['nullable', 'numeric', 'min:0'],
         ]);
 
         DB::beginTransaction();
@@ -399,16 +414,20 @@ class ProposalController extends Controller
             $totalAmount = 0;
 
             foreach ($validated['items'] as $item) {
+                $packageRaw = $item['package'] ?? $item['product_package'] ?? 0;
+                $packageQty = (float) str_replace(',', '', (string) $packageRaw);
                 $paisa = (float) ($item['price'] ?? 0);
-                $taxPct = (float) ($item['tax_percentage'] ?? 0);
-                $taxAmt = isset($item['tax_amount']) && $item['tax_amount'] !== '' 
-                    ? (float) $item['tax_amount'] 
-                    : round(($paisa * $taxPct) / 100, 2);
-                $lineAmt = isset($item['amount']) && $item['amount'] !== '' 
-                    ? (float) $item['amount'] 
-                    : round($paisa + $taxAmt, 2);
+                $itemSubtotal = round($packageQty * $paisa, 2);
 
-                $subtotal += $paisa;
+                $taxPct = (float) ($item['tax_percentage'] ?? 0);
+                $taxAmt = isset($item['tax_amount']) && $item['tax_amount'] !== '' && $item['tax_amount'] !== null
+                    ? (float) $item['tax_amount'] 
+                    : round(($itemSubtotal * $taxPct) / 100, 2);
+                $lineAmt = isset($item['amount']) && $item['amount'] !== '' && $item['amount'] !== null
+                    ? (float) $item['amount'] 
+                    : round($itemSubtotal + $taxAmt, 2);
+
+                $subtotal += $itemSubtotal;
                 $totalTax += $taxAmt;
                 $totalAmount += $lineAmt;
             }
@@ -437,19 +456,25 @@ class ProposalController extends Controller
             // Replace items
             $proposal->items()->delete();
             foreach ($validated['items'] as $item) {
+                $packageRaw = $item['package'] ?? $item['product_package'] ?? 0;
+                $packageQty = (float) str_replace(',', '', (string) $packageRaw);
                 $paisa = (float) ($item['price'] ?? 0);
+                $itemSubtotal = round($packageQty * $paisa, 2);
+
                 $taxPct = (float) ($item['tax_percentage'] ?? 0);
-                $taxAmt = isset($item['tax_amount']) && $item['tax_amount'] !== '' 
+                $taxAmt = isset($item['tax_amount']) && $item['tax_amount'] !== '' && $item['tax_amount'] !== null
                     ? (float) $item['tax_amount'] 
-                    : round(($paisa * $taxPct) / 100, 2);
-                $lineAmt = isset($item['amount']) && $item['amount'] !== '' 
+                    : round(($itemSubtotal * $taxPct) / 100, 2);
+                $lineAmt = isset($item['amount']) && $item['amount'] !== '' && $item['amount'] !== null
                     ? (float) $item['amount'] 
-                    : round($paisa + $taxAmt, 2);
+                    : round($itemSubtotal + $taxAmt, 2);
 
                 ProposalItem::create([
                     'proposal_id'     => $proposal->proposal_id,
-                    'product_package' => trim($item['product_package']),
+                    'package'         => $packageQty,
+                    'product_package' => (string) ($packageRaw ?: $packageQty),
                     'price'           => $paisa,
+                    'subtotal'        => $itemSubtotal,
                     'tax_percentage'  => $taxPct,
                     'tax_amount'      => $taxAmt,
                     'amount'          => $lineAmt,

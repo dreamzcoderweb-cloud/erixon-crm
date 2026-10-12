@@ -87,8 +87,9 @@ $(document).ready(function () {
     // 2. Product Package Row Management & Real-time Calculation
     // -------------------------------------------------------------
     function addProductRow(data = null) {
-        const pkg = data ? (data.product_package || '') : '';
-        const price = data ? (data.price !== undefined ? parseFloat(data.price).toFixed(2) : '') : '';
+        const pkgVal = data ? (data.package !== undefined && data.package !== null ? data.package : (data.product_package || '')) : '';
+        const price = data ? (data.price !== undefined ? parseFloat(data.price) : '') : '';
+        const subtotal = data ? (data.subtotal !== undefined ? parseFloat(data.subtotal).toFixed(2) : '') : '';
         const taxPct = data ? (data.tax_percentage !== undefined ? parseFloat(data.tax_percentage).toFixed(0) : '18') : '18';
         const taxAmt = data ? (data.tax_amount !== undefined ? parseFloat(data.tax_amount).toFixed(2) : '') : '';
         const amount = data ? (data.amount !== undefined ? parseFloat(data.amount).toFixed(2) : '') : '';
@@ -96,19 +97,30 @@ $(document).ready(function () {
         const rowHtml = `
             <tr class="item-row" data-row-idx="${itemRowIndex}">
                 <td>
-                    <input type="text" class="form-control form-control-sm item-pkg"
-                        name="items[${itemRowIndex}][product_package]"
-                        value="${pkg}"
-                        placeholder="e.g. ERP Software Package" required>
+                    <input type="number" step="any" min="0" class="form-control form-control-sm item-pkg"
+                        name="items[${itemRowIndex}][package]"
+                        value="${pkgVal}"
+                        placeholder="e.g. 200000" required>
+                    <input type="hidden" name="items[${itemRowIndex}][product_package]" class="item-product-pkg" value="${pkgVal}">
+                </td>
+                <td>
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text">₹</span>
+                        <input type="number" step="0.0001" min="0"
+                            class="form-control form-control-sm item-price text-end"
+                            name="items[${itemRowIndex}][price]"
+                            value="${price}"
+                            placeholder="0.14" required>
+                    </div>
                 </td>
                 <td>
                     <div class="input-group input-group-sm">
                         <span class="input-group-text">₹</span>
                         <input type="number" step="0.01" min="0"
-                            class="form-control form-control-sm item-price text-end"
-                            name="items[${itemRowIndex}][price]"
-                            value="${price}"
-                            placeholder="0.00" required>
+                            class="form-control form-control-sm item-subtotal text-end bg-light fw-semibold"
+                            name="items[${itemRowIndex}][subtotal]"
+                            value="${subtotal}"
+                            placeholder="0.00" readonly>
                     </div>
                 </td>
                 <td>
@@ -158,14 +170,22 @@ $(document).ready(function () {
     }
 
     function recalculateRow($row) {
+        const pkgVal = parseFloat($row.find('.item-pkg').val()) || 0;
         const priceVal = parseFloat($row.find('.item-price').val()) || 0;
         const taxPctVal = parseFloat($row.find('.item-tax-pct').val()) || 0;
 
-        const taxAmt = Math.round(((priceVal * taxPctVal) / 100) * 100) / 100;
-        const totalAmt = Math.round((priceVal + taxAmt) * 100) / 100;
+        $row.find('.item-product-pkg').val(pkgVal > 0 ? pkgVal : '');
 
-        $row.find('.item-tax-amt').val(taxAmt > 0 || priceVal > 0 ? taxAmt.toFixed(2) : '');
-        $row.find('.item-amount').val(totalAmt > 0 || priceVal > 0 ? totalAmt.toFixed(2) : '');
+        // Base Amount = Package * Paisa
+        const baseAmt = Math.round((pkgVal * priceVal) * 100) / 100;
+        // Tax Amount = (Base Amount * Tax %) / 100
+        const taxAmt = Math.round(((baseAmt * taxPctVal) / 100) * 100) / 100;
+        // Total Amount = Base Amount + Tax Amount
+        const totalAmt = Math.round((baseAmt + taxAmt) * 100) / 100;
+
+        $row.find('.item-subtotal').val(baseAmt > 0 || (pkgVal > 0 && priceVal > 0) ? baseAmt.toFixed(2) : '');
+        $row.find('.item-tax-amt').val(taxAmt > 0 || baseAmt > 0 ? taxAmt.toFixed(2) : '');
+        $row.find('.item-amount').val(totalAmt > 0 || baseAmt > 0 ? totalAmt.toFixed(2) : '');
     }
 
     function updateSummaryTotals() {
@@ -174,11 +194,11 @@ $(document).ready(function () {
         let grandTotal = 0;
 
         $('#proposalItemsTbody tr.item-row').each(function () {
-            const price = parseFloat($(this).find('.item-price').val()) || 0;
+            const baseAmt = parseFloat($(this).find('.item-subtotal').val()) || 0;
             const taxAmt = parseFloat($(this).find('.item-tax-amt').val()) || 0;
             const amt = parseFloat($(this).find('.item-amount').val()) || 0;
 
-            subtotal += price;
+            subtotal += baseAmt;
             totalTax += taxAmt;
             grandTotal += amt;
         });
@@ -203,8 +223,8 @@ $(document).ready(function () {
         updateSummaryTotals();
     });
 
-    // Real-time calculation on price / tax inputs
-    $(document).on('input change', '.item-price, .item-tax-pct', function () {
+    // Real-time calculation on package / price / tax inputs
+    $(document).on('input change', '.item-pkg, .item-price, .item-tax-pct', function () {
         const $row = $(this).closest('tr.item-row');
         recalculateRow($row);
         updateSummaryTotals();
@@ -301,12 +321,18 @@ $(document).ready(function () {
             {
                 data: 'items',
                 render: function (data, type, row) {
+                    function getPkgLabel(i) {
+                        if (i.package !== undefined && i.package !== null && !isNaN(i.package) && Number(i.package) > 0) {
+                            return Number(i.package).toLocaleString('en-IN');
+                        }
+                        return i.product_package || '-';
+                    }
                     if (!data || data.length === 0) return type !== 'display' ? '' : '<span class="text-muted">-</span>';
                     if (type !== 'display') {
-                        return data.map(i => i.product_package).join(', ');
+                        return data.map(i => getPkgLabel(i)).join(', ');
                     }
                     const count = data.length;
-                    const firstName = data[0].product_package;
+                    const firstName = getPkgLabel(data[0]);
                     return `
                         <div class="fw-semibold text-dark text-truncate" style="max-width: 220px;" title="${firstName}">
                             ${firstName}
@@ -714,23 +740,31 @@ $(document).ready(function () {
                 let itemsHtml = '';
                 if (p.items && p.items.length > 0) {
                     p.items.forEach((item, idx) => {
-                        const price = '₹' + parseFloat(item.price || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        const pkgDisplay = item.package !== undefined && item.package !== null && !isNaN(item.package) && Number(item.package) > 0
+                            ? Number(item.package).toLocaleString('en-IN')
+                            : (item.product_package || '-');
+                        const price = '₹' + parseFloat(item.price || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+                        const baseAmtVal = item.subtotal !== undefined && item.subtotal !== null && !isNaN(item.subtotal) && Number(item.subtotal) > 0
+                            ? parseFloat(item.subtotal)
+                            : (parseFloat(item.package || 0) * parseFloat(item.price || 0));
+                        const baseAmt = '₹' + baseAmtVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                         const taxAmt = '₹' + parseFloat(item.tax_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                         const lineAmt = '₹' + parseFloat(item.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
                         itemsHtml += `
                             <tr>
                                 <td class="text-center">${idx + 1}</td>
-                                <td><strong>${item.product_package}</strong></td>
+                                <td><strong>${pkgDisplay}</strong></td>
                                 <td class="text-end">${price}</td>
+                                <td class="text-end fw-semibold text-dark">${baseAmt}</td>
                                 <td class="text-center">${parseFloat(item.tax_percentage || 0)}%</td>
                                 <td class="text-end text-muted">${taxAmt}</td>
-                                <td class="text-end fw-bold text-dark">${lineAmt}</td>
+                                <td class="text-end fw-bold text-primary">${lineAmt}</td>
                             </tr>
                         `;
                     });
                 } else {
-                    itemsHtml = `<tr><td colspan="6" class="text-center text-muted py-2">No product items found.</td></tr>`;
+                    itemsHtml = `<tr><td colspan="7" class="text-center text-muted py-2">No packages found.</td></tr>`;
                 }
 
                 $('#view_items_tbody').html(itemsHtml);
