@@ -136,7 +136,7 @@
 
                     <div class="col-md-3 proposal-filter-date-group d-none" id="proposal_group_custom_start">
                         <label class="form-label fw-semibold small">From Date</label>
-                        <input type="date" name="start_date" id="proposal_filter_start_date" class="form-control form-control-sm" value="{{ date('Y-m-01') }}">
+                        <input type="date" name="start_date" id="proposal_filter_start_date" class="form-control form-control-sm" value="{{ date('Y-m-d') }}">
                     </div>
 
                     <div class="col-md-3 proposal-filter-date-group d-none" id="proposal_group_custom_end">

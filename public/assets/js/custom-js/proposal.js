@@ -258,26 +258,48 @@ $(document).ready(function () {
         processing: true,
         serverSide: false,
         ajax: {
-            url: appUrl('/admin/proposals/data'),
+        url: appUrl('/admin/proposals/data'),
             data: function (d) {
-                d.filter_type = $('#proposal_filter_period').val();
+            const period = $('#proposal_filter_period').val();
+
+            // Always send selected period
+            d.filter_type = period;
+
+            // Send only the date fields required for this period
+            if (period === 'daily') {
                 d.date = $('#proposal_filter_date').val();
+            } else if (period === 'monthly') {
                 d.month = $('#proposal_filter_month').val();
+            } else if (period === 'custom') {
                 d.start_date = $('#proposal_filter_start_date').val();
                 d.end_date = $('#proposal_filter_end_date').val();
-                d.lead_requirement_id = $('#proposal_filter_lead_requirement_id').val();
-                d.sales_manager_id = $('#proposal_filter_sales_manager_id').val();
-                d.search = $('#proposal_filter_search').val();
-            },
-            dataSrc: function (json) {
-                const proposals = json.data || [];
-                updateKpiMetrics(proposals);
-                return proposals;
-            },
-            error: function (xhr, error, thrown) {
-                console.error('Proposals DataTable AJAX error:', xhr, error, thrown);
             }
+
+            // Other filters
+            d.lead_requirement_id =
+                $('#proposal_filter_lead_requirement_id').val();
+
+            d.sales_manager_id =
+                $('#proposal_filter_sales_manager_id').val();
+
+            d.search = $('#proposal_filter_search').val();
         },
+
+        dataSrc: function (json) {
+            const proposals = json.data || [];
+            updateKpiMetrics(proposals);
+            return proposals;
+        },
+
+        error: function (xhr, error, thrown) {
+            console.error(
+                'Proposals DataTable AJAX error:',
+                xhr,
+                error,
+                thrown
+            );
+        }
+    },
         columns: [
             {
                 data: null,
