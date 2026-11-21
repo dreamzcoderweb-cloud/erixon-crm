@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\BranchController;
+use App\Http\Controllers\TeamController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\StaffController;
@@ -79,6 +81,54 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
     Route::match(['get', 'post'], 'edit_role/{id}', [RoleController::class, 'update'])->middleware('permission:roles.edit');
     Route::post('delete_role/{id}', [RoleController::class, 'delete'])->middleware('permission:roles.delete');
 
+    // Branch routes
+    Route::get('branches', [BranchController::class, 'index'])
+        ->middleware('permission:branches.view')
+        ->name('branches.index');
+    Route::get('branches/data', [BranchController::class, 'listData'])
+        ->middleware('permission:branches.view')
+        ->name('branches.data');
+    Route::post('branches/store', [BranchController::class, 'store'])
+        ->middleware('permission:branches.create')
+        ->name('branches.store');
+    Route::get('branches/edit/{id}', [BranchController::class, 'edit'])
+        ->middleware('permission:branches.edit')
+        ->name('branches.edit');
+    Route::post('branches/update/{id}', [BranchController::class, 'update'])
+        ->middleware('permission:branches.edit')
+        ->name('branches.update');
+    Route::delete('branches/delete/{id}', [BranchController::class, 'destroy'])
+        ->middleware('permission:branches.delete')
+        ->name('branches.delete');
+    Route::post('branches/change-status/{id}', [BranchController::class, 'changeStatus'])
+        ->middleware('permission:branches.edit')
+        ->name('branches.change-status');
+
+    // Team routes
+    Route::get('teams', [TeamController::class, 'index'])
+        ->middleware('permission:teams.view')
+        ->name('teams.index');
+    Route::get('teams/data', [TeamController::class, 'listData'])
+        ->middleware('permission:teams.view')
+        ->name('teams.data');
+    Route::get('teams/by-branch/{branchId}', [TeamController::class, 'getByBranch'])
+        ->name('teams.by-branch');
+    Route::post('teams/store', [TeamController::class, 'store'])
+        ->middleware('permission:teams.create')
+        ->name('teams.store');
+    Route::get('teams/edit/{id}', [TeamController::class, 'edit'])
+        ->middleware('permission:teams.edit')
+        ->name('teams.edit');
+    Route::post('teams/update/{id}', [TeamController::class, 'update'])
+        ->middleware('permission:teams.edit')
+        ->name('teams.update');
+    Route::delete('teams/delete/{id}', [TeamController::class, 'destroy'])
+        ->middleware('permission:teams.delete')
+        ->name('teams.delete');
+    Route::post('teams/change-status/{id}', [TeamController::class, 'changeStatus'])
+        ->middleware('permission:teams.edit')
+        ->name('teams.change-status');
+
     // Staff routes
     Route::get('staff', [StaffController::class, 'index'])
         ->middleware('permission:staff.view')
@@ -104,6 +154,9 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
         ->middleware('permission:customers.delete');
     Route::post('customers/change-status/{id}', [CustomerController::class, 'changeStatus'])
         ->middleware('permission:customers.edit');
+    Route::post('customers/transfer/{id}', [CustomerController::class, 'transfer'])
+        ->middleware('permission:customers.edit')
+        ->name('customers.transfer');
 
     // Lead Sources routes
     Route::get('lead-sources', [LeadSourceController::class, 'index'])

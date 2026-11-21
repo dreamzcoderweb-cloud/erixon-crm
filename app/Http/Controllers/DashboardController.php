@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Customer;
 use App\Models\User;
+use App\Models\Branch;
+use App\Models\Team;
 use App\Models\Lead;
 use App\Models\LeadSource;
 use App\Models\LeadStage;
@@ -57,6 +59,8 @@ class DashboardController extends Controller
 
         // 3. Roles Module
         $data['totalroles'] = Role::count();
+        $data['totalbranches'] = Branch::where('status', 1)->count();
+        $data['totalteams'] = Team::where('status', 1)->count();
 
         // 4. Leads Module
         $data['totalleads']    = Lead::forUser($user)->count();

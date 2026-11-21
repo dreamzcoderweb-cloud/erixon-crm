@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use App\Models\User;
+use App\Models\Branch;
+use App\Models\Team;
 use App\Models\CustomerCustomField;
 use App\Models\LeadSetting;
 use App\Models\LeadRequirement;
@@ -28,8 +30,18 @@ class CustomerController extends Controller
         $user = Auth::user();
         if ($user && $user->isSuperAdmin()) {
             $staffs = User::staffOnly()->orderBy('name')->get();
+            $branches = Branch::where('status', 1)->orderBy('name')->get();
+            $teams = Team::where('status', 1)->orderBy('name')->get();
+        } elseif ($user->isBranchManager()) {
+            $branchIds = $user->accessibleBranchIds() ?? [];
+            $staffs = User::staffOnly()->whereIn('branch_id', $branchIds)->orderBy('name')->get();
+            $branches = Branch::whereIn('id', $branchIds)->where('status', 1)->orderBy('name')->get();
+            $teams = Team::whereIn('branch_id', $branchIds)->where('status', 1)->orderBy('name')->get();
         } else {
             $staffs = User::where('id', Auth::id())->get();
+            $branches = !empty($user->branch_id) ? Branch::where('id', $user->branch_id)->get() : collect();
+            $teamIds = $user->accessibleTeamIds() ?? [];
+            $teams = Team::whereIn('id', $teamIds)->where('status', 1)->orderBy('name')->get();
         }
 
         $allUsers = User::orderBy('name')->get();
@@ -39,6 +51,8 @@ class CustomerController extends Controller
 
         $standardFields = [
             'customer_type'    => 'Type',
+            'branch'           => 'Branch',
+            'team'             => 'Team',
             'name'             => 'Name',
             'company_name'     => 'Company Name',
             'mobile'           => 'Mobile',
@@ -94,7 +108,7 @@ class CustomerController extends Controller
             }
         }
 
-        return view('customers.view', compact('staffs', 'allUsers', 'customFields', 'visibleColumns', 'leadRequirements', 'leadStages'));
+        return view('customers.view', compact('staffs', 'branches', 'teams', 'allUsers', 'customFields', 'visibleColumns', 'leadRequirements', 'leadStages'));
     }
 
     public function listData(Request $request = null)
@@ -102,6 +116,14 @@ class CustomerController extends Controller
         $request = $request ?? request();
 
         $query = Customer::forUser(Auth::user())->qualifiedForCustomerList();
+
+        if ($request->filled('branch_id')) {
+            $query->where('customers.branch_id', $request->input('branch_id'));
+        }
+
+        if ($request->filled('team_id')) {
+            $query->where('customers.team_id', $request->input('team_id'));
+        }
 
         if ($request->filled('customer_type')) {
             $query->where('customer_type', $request->input('customer_type'));
@@ -153,6 +175,8 @@ class CustomerController extends Controller
         }
 
         $customers = (clone $query)->with([
+            'branch:id,name,code',
+            'team:id,name,code',
             'creator:id,name',
             'owner:id,name',
             'assignedBy:id,name',
@@ -167,6 +191,14 @@ class CustomerController extends Controller
             ->get();
 
         $baseCountQuery = Customer::forUser(Auth::user())->qualifiedForCustomerList();
+
+        if ($request->filled('branch_id')) {
+            $baseCountQuery->where('customers.branch_id', $request->input('branch_id'));
+        }
+
+        if ($request->filled('team_id')) {
+            $baseCountQuery->where('customers.team_id', $request->input('team_id'));
+        }
 
         if ($request->filled('status') && $request->input('status') !== '') {
             $baseCountQuery->where('status', $request->input('status'));
@@ -237,6 +269,8 @@ class CustomerController extends Controller
 
         $baseRules = [
             'customer_type'    => ['required', 'in:user,reseller'],
+            'branch_id'        => ['nullable', 'exists:branches,id'],
+            'team_id'          => ['nullable', 'exists:teams,id'],
             'name'             => ['required', 'string', 'max:255'],
             'company_name'     => ['nullable', 'string', 'max:255'],
             'mobile'           => ['required', 'string', 'max:10', Rule::unique('customers', 'mobile')->withoutTrashed()],
@@ -257,7 +291,10 @@ class CustomerController extends Controller
         $rules = array_merge($baseRules, $customRules);
         $validated = $request->validate($rules, [], $customAttributes);
 
-        $validated['created_by']    = Auth::id();
+        $currentUser = Auth::user();
+        $validated['created_by']    = $currentUser->id;
+        $validated['branch_id']     = !empty($validated['branch_id']) ? $validated['branch_id'] : $currentUser->branch_id;
+        $validated['team_id']       = !empty($validated['team_id']) ? $validated['team_id'] : $currentUser->team_id;
         $validated['custom_fields'] = $this->processCustomFieldsPayload($validated['custom_fields'] ?? []);
 
         try {
@@ -295,6 +332,8 @@ class CustomerController extends Controller
         }
 
         $customer->loadMissing([
+            'branch:id,name,code',
+            'team:id,name,code',
             'leadRequirement:lead_requirements_id,name',
             'leadStage:lead_stage_id,name',
         ]);
@@ -333,6 +372,8 @@ class CustomerController extends Controller
 
         $baseRules = [
             'customer_type'       => ['required', 'in:user,reseller'],
+            'branch_id'           => ['nullable', 'exists:branches,id'],
+            'team_id'             => ['nullable', 'exists:teams,id'],
             'name'                => ['required', 'string', 'max:255'],
             'company_name'        => ['nullable', 'string', 'max:255'],
             'mobile'              => ['required', 'string', 'max:10', Rule::unique('customers', 'mobile')->ignore($customer->customer_id, 'customer_id')->withoutTrashed()],
@@ -376,6 +417,39 @@ class CustomerController extends Controller
             'status'  => true,
             'message' => 'Customer updated successfully.',
             'data'    => $customer
+        ]);
+    }
+
+    /**
+     * Transfer customer to another Branch, Team, and/or Owner
+     */
+    public function transfer(Request $request, $id)
+    {
+        $customer = Customer::forUser(Auth::user())->find($id);
+        if (!$customer) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Customer not found.'
+            ], 404);
+        }
+
+        $validated = $request->validate([
+            'branch_id' => ['required', 'exists:branches,id'],
+            'team_id'   => ['required', 'exists:teams,id'],
+            'owner_by'  => ['nullable', 'exists:users,id'],
+        ]);
+
+        $customer->update($validated);
+
+        // Also cascade branch & team to associated leads
+        $customer->leads()->update([
+            'branch_id' => $validated['branch_id'],
+            'team_id'   => $validated['team_id'],
+        ]);
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Customer and associated leads transferred successfully.'
         ]);
     }
 

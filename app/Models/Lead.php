@@ -16,6 +16,8 @@ class Lead extends Model
 
     protected $fillable = [
         'customer_id',
+        'branch_id',
+        'team_id',
         'customer_name',
         'customer_type',
         'mobile',
@@ -113,6 +115,16 @@ class Lead extends Model
         return $this->hasMany(CallLog::class, 'lead_id', 'lead_id');
     }
 
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class, 'branch_id');
+    }
+
+    public function team()
+    {
+        return $this->belongsTo(Team::class, 'team_id');
+    }
+
     /**
      * Scope leads accessible by a specific user (staff-wise data access).
      */
@@ -126,11 +138,28 @@ class Lead extends Model
             return $query;
         }
 
+        // Branch Manager scope: sees all leads in their branch(es)
+        if ($user->isBranchManager()) {
+            $branchIds = $user->accessibleBranchIds();
+            if (!empty($branchIds)) {
+                return $query->whereIn('leads.branch_id', $branchIds);
+            }
+        }
+
+        // Team Leader scope: sees all leads in their team(s)
+        if ($user->isTeamLeader()) {
+            $teamIds = $user->accessibleTeamIds();
+            if (!empty($teamIds)) {
+                return $query->whereIn('leads.team_id', $teamIds);
+            }
+        }
+
+        // Staff scope: own leads (assigned, created, or followups forwarded)
         $userId = $user->id;
 
         return $query->where(function ($q) use ($userId) {
-            $q->where('assigned_to', $userId)
-              ->orWhere('created_by', $userId)
+            $q->where('leads.assigned_to', $userId)
+              ->orWhere('leads.created_by', $userId)
               ->orWhereHas('followups', function ($fq) use ($userId) {
                   $fq->where('forward_to', $userId)
                     ->orWhere('created_by', $userId);

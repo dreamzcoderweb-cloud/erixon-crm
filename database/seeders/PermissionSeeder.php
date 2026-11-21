@@ -19,6 +19,16 @@ class PermissionSeeder extends Seeder
 
 
 
+            'branches.view',
+            'branches.create',
+            'branches.edit',
+            'branches.delete',
+
+            'teams.view',
+            'teams.create',
+            'teams.edit',
+            'teams.delete',
+
             'roles.view',
             'roles.create',
             'roles.edit',

@@ -25,9 +25,9 @@
             </a>
         </li>
 
-        @canany(['roles.view', 'staff.view', 'attendance.view', 'leaves.view','incentives.view'])
+        @canany(['roles.view', 'branches.view', 'teams.view', 'staff.view', 'attendance.view', 'leaves.view','incentives.view'])
             <li
-                class="menu-item {{ request()->is('admin/roles_with_filter') || request()->is('admin/add_role') || request()->is('admin/edit_role/*') || request()->is('admin/staff*') || request()->is('admin/add_staff') || request()->is('admin/edit_staff/*') || request()->is('admin/attendance*') || request()->is('admin/leaves*') || request()->is('admin/incentives*') ? 'active open' : '' }}">
+                class="menu-item {{ request()->is('admin/roles_with_filter') || request()->is('admin/add_role') || request()->is('admin/edit_role/*') || request()->is('admin/branches*') || request()->is('admin/teams*') || request()->is('admin/staff*') || request()->is('admin/add_staff') || request()->is('admin/edit_staff/*') || request()->is('admin/attendance*') || request()->is('admin/leaves*') || request()->is('admin/incentives*') ? 'active open' : '' }}">
                 <a href="javascript:void(0);" class="menu-link menu-toggle">
                     <i class="menu-icon tf-icons bx bx-lock-alt"></i>
                     <div class="text-truncate">Access Control</div>
@@ -39,6 +39,20 @@
                             class="menu-item {{ request()->is('admin/roles_with_filter') || request()->is('admin/add_role') || request()->is('admin/edit_role/*') ? 'active' : '' }}">
                             <a href="{{ route('admin.roles.index') }}" class="menu-link">
                                 <div class="text-truncate">Role Master</div>
+                            </a>
+                        </li>
+                    @endcan
+                    @can('branches.view')
+                        <li class="menu-item {{ request()->is('admin/branches*') ? 'active' : '' }}">
+                            <a href="{{ route('admin.branches.index') }}" class="menu-link">
+                                <div class="text-truncate">Branches</div>
+                            </a>
+                        </li>
+                    @endcan
+                    @can('teams.view')
+                        <li class="menu-item {{ request()->is('admin/teams*') ? 'active' : '' }}">
+                            <a href="{{ route('admin.teams.index') }}" class="menu-link">
+                                <div class="text-truncate">Teams</div>
                             </a>
                         </li>
                     @endcan

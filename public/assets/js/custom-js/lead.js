@@ -48,6 +48,26 @@ $(document).ready(function () {
                         return `<div><strong>${name || 'N/A'}</strong>${mobileDisplay}</div>`;
                     }
                 });
+            } else if (key === 'branch') {
+                leadTableColumns.push({
+                    data: 'branch',
+                    render: function (data, type, row) {
+                        let name = (row.branch && row.branch.name) ? row.branch.name : (row.branch_name || null);
+                        if (!name) return type !== 'display' ? '-' : '<span class="text-muted">-</span>';
+                        if (type !== 'display') return name;
+                        return `<span class="badge bg-label-primary"><i class="bx bx-buildings me-1"></i>${name}</span>`;
+                    }
+                });
+            } else if (key === 'team') {
+                leadTableColumns.push({
+                    data: 'team',
+                    render: function (data, type, row) {
+                        let name = (row.team && row.team.name) ? row.team.name : (row.team_name || null);
+                        if (!name) return type !== 'display' ? '-' : '<span class="text-muted">-</span>';
+                        if (type !== 'display') return name;
+                        return `<span class="badge bg-label-info"><i class="bx bx-group me-1"></i>${name}</span>`;
+                    }
+                });
             } else if (key === 'lead_source') {
                 leadTableColumns.push({
                     data: 'lead_source',

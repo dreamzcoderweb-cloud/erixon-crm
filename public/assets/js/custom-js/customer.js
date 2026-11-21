@@ -18,7 +18,27 @@ $(document).ready(function () {
     if (window.configuredCustomerColumns && window.configuredCustomerColumns.length > 0) {
         window.configuredCustomerColumns.forEach(function (col) {
             let key = col.key;
-            if (key === 'customer_type') {
+            if (key === 'branch') {
+                customerTableColumns.push({
+                    data: 'branch',
+                    render: function (data, type, row) {
+                        let name = (row.branch && row.branch.name) ? row.branch.name : (row.branch_name || null);
+                        if (!name) return type !== 'display' ? '-' : '<span class="text-muted">-</span>';
+                        if (type !== 'display') return name;
+                        return `<span class="badge bg-label-primary"><i class="bx bx-buildings me-1"></i>${name}</span>`;
+                    }
+                });
+            } else if (key === 'team') {
+                customerTableColumns.push({
+                    data: 'team',
+                    render: function (data, type, row) {
+                        let name = (row.team && row.team.name) ? row.team.name : (row.team_name || null);
+                        if (!name) return type !== 'display' ? '-' : '<span class="text-muted">-</span>';
+                        if (type !== 'display') return name;
+                        return `<span class="badge bg-label-info"><i class="bx bx-group me-1"></i>${name}</span>`;
+                    }
+                });
+            } else if (key === 'customer_type') {
                 customerTableColumns.push({
                     data: 'customer_type',
                     render: function (data, type) {
@@ -221,6 +241,9 @@ $(document).ready(function () {
                         <a class="dropdown-item btn-edit-customer" href="javascript:void(0);" data-id="${row.customer_id}">
                             <i class="bx bx-edit-alt me-1"></i> Edit
                         </a>
+                        <a class="dropdown-item btn-transfer-customer" href="javascript:void(0);" data-id="${row.customer_id}" data-name="${row.name}" data-branch="${row.branch_id || ''}" data-team="${row.team_id || ''}" data-owner="${row.owner_by || ''}">
+                            <i class="bx bx-transfer me-1 text-primary"></i> Transfer
+                        </a>
                         <a class="dropdown-item text-danger btn-delete-customer" href="javascript:void(0);" data-id="${row.customer_id}" data-name="${row.name}">
                             <i class="bx bx-trash me-1"></i> Delete
                         </a>
@@ -239,6 +262,8 @@ $(document).ready(function () {
                 d.month = $('#customer_filter_month').val();
                 d.start_date = $('#customer_filter_start_date').val();
                 d.end_date = $('#customer_filter_end_date').val();
+                d.branch_id = $('#customer_filter_branch').val();
+                d.team_id = $('#customer_filter_team').val();
                 d.created_by = $('#customer_filter_created_by').val();
                 d.customer_type = $('#customer_filter_type').val();
                 d.status = $('#customer_filter_status').val();
@@ -443,6 +468,12 @@ $(document).ready(function () {
                     $('#edit_assign_by').val(customer.assign_by || '');
                     $('#edit_lead_requirement_id').val(customer.lead_requirement_id || '');
                     $('#edit_lead_stage_id').val(customer.lead_stage_id || '');
+                    $('#edit_customer_branch_id').val(customer.branch_id || '');
+                    if (customer.branch_id) {
+                        loadTeamsForSelect(customer.branch_id, $('#edit_customer_team_id'), customer.team_id);
+                    } else {
+                        $('#edit_customer_team_id').val(customer.team_id || '');
+                    }
                     $('#edit_status').val(customer.status);
 
                     if (window.customCustomerFields && window.customCustomerFields.length > 0 && customer.custom_fields) {
@@ -631,9 +662,109 @@ $(document).ready(function () {
         $('#customer_filter_created_by').val('');
         $('#customer_filter_type').val('');
         $('#customer_filter_status').val('');
+        $('#customer_filter_branch').val('');
+        $('#customer_filter_team').val('');
         $('#customer_filter_lead_requirement').val('');
         $('.customer-filter-date-group').addClass('d-none');
         customerTable.ajax.reload();
+    });
+
+    // Helper to dynamically load teams for a branch select element
+    function loadTeamsForSelect(branchId, targetSelect, selectedTeamId = '') {
+        targetSelect.html('<option value="">Loading teams...</option>');
+        if (!branchId) {
+            targetSelect.html('<option value="">-- Select Team --</option>');
+            return;
+        }
+        $.get(APP_URL + '/admin/teams/by-branch/' + branchId, function(res) {
+            let options = '<option value="">-- Select Team --</option>';
+            if (res.status && res.data.length > 0) {
+                res.data.forEach(t => {
+                    let sel = String(t.id) === String(selectedTeamId) ? 'selected' : '';
+                    options += `<option value="${t.id}" ${sel}>${t.name} (${t.code})</option>`;
+                });
+            } else {
+                options = '<option value="">No active teams in this branch</option>';
+            }
+            targetSelect.html(options);
+        }).fail(function() {
+            targetSelect.html('<option value="">Failed to load teams</option>');
+        });
+    }
+
+    // Filter Branch Change
+    $('#customer_filter_branch').on('change', function() {
+        let branchId = $(this).val();
+        loadTeamsForSelect(branchId, $('#customer_filter_team'));
+    });
+
+    // Add Modal Branch Change
+    $('#add_customer_branch_id').on('change', function() {
+        loadTeamsForSelect($(this).val(), $('#add_customer_team_id'));
+    });
+
+    // Edit Modal Branch Change
+    $('#edit_customer_branch_id').on('change', function() {
+        loadTeamsForSelect($(this).val(), $('#edit_customer_team_id'));
+    });
+
+    // Transfer Modal Branch Change
+    $('#transfer_branch_id').on('change', function() {
+        loadTeamsForSelect($(this).val(), $('#transfer_team_id'));
+    });
+
+    // Open Transfer Modal
+    $(document).on('click', '.btn-transfer-customer', function() {
+        let id = $(this).data('id');
+        let name = $(this).data('name');
+        let branchId = $(this).data('branch');
+        let teamId = $(this).data('team');
+        let ownerId = $(this).data('owner');
+
+        $('#transfer_customer_id').val(id);
+        $('#transfer_customer_name').text(name);
+        $('#transfer_branch_id').val(branchId);
+        $('#transfer_owner_by').val(ownerId);
+
+        if (branchId) {
+            loadTeamsForSelect(branchId, $('#transfer_team_id'), teamId);
+        } else {
+            $('#transfer_team_id').html('<option value="">-- Select Team --</option>');
+        }
+
+        $('#transferCustomerModal').modal('show');
+    });
+
+    // Transfer Form Submit
+    $('#transferCustomerForm').on('submit', function(e) {
+        e.preventDefault();
+        let form = $(this);
+        let id = $('#transfer_customer_id').val();
+        let btn = $('#transferCustomerSubmitBtn');
+        btn.prop('disabled', true).find('.spinner-border').removeClass('d-none');
+        form.find('.is-invalid').removeClass('is-invalid');
+
+        $.ajax({
+            url: APP_URL + '/admin/customers/transfer/' + id,
+            type: 'POST',
+            data: form.serialize(),
+            success: function(res) {
+                btn.prop('disabled', false).find('.spinner-border').addClass('d-none');
+                if (res.status) {
+                    $('#transferCustomerModal').modal('hide');
+                    customerTable.ajax.reload(null, false);
+                    showAlert('success', res.message);
+                }
+            },
+            error: function(xhr) {
+                btn.prop('disabled', false).find('.spinner-border').addClass('d-none');
+                if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
+                    showValidationErrors(form, xhr.responseJSON.errors);
+                } else {
+                    showAlert('danger', 'Transfer failed. Please try again.');
+                }
+            }
+        });
     });
 
     // KPI Card Click Quick-Filters

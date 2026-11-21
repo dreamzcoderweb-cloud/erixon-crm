@@ -1,5 +1,49 @@
 @extends('layouts.master')
 @section('title', 'Add Staff - Super Admin')
+
+@push('css')
+<style>
+    .select2-container {
+        width: 100% !important;
+    }
+    .select2-container--default .select2-selection--multiple {
+        border: 1px solid #d9dee3 !important;
+        border-radius: 0.375rem !important;
+        min-height: 40px !important;
+        padding: 2px 6px !important;
+        background-color: #fff !important;
+    }
+    .select2-container--default.select2-container--focus .select2-selection--multiple {
+        border-color: #696cff !important;
+        box-shadow: 0 0 0 0.2rem rgba(105, 108, 255, 0.25) !important;
+    }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice {
+        background-color: #696cff !important;
+        border: none !important;
+        color: #ffffff !important;
+        border-radius: 0.25rem !important;
+        padding: 3px 8px !important;
+        font-size: 0.8125rem !important;
+        font-weight: 500 !important;
+        margin-top: 4px !important;
+        margin-right: 5px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+    }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+        color: #ffffff !important;
+        margin-right: 6px !important;
+        border: none !important;
+        background: transparent !important;
+        font-weight: bold !important;
+        cursor: pointer !important;
+    }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
+        color: #ffcccc !important;
+    }
+</style>
+@endpush
+
 @section('content')
     <div class="container-xxl flex-grow-1 container-p-y mx-auto" style="max-width: 85%;">
         <div class="row">
@@ -41,6 +85,31 @@
                                         @endforeach
                                     </select>
                                     <span class="text-danger small">{{ $errors->first('role_id') }}</span>
+                                </div>
+
+                                <!-- Branch & Team Row (Multi-Selection Enabled) -->
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label" for="staff_branch_ids">
+                                        <i class="bx bx-buildings me-1 text-primary"></i>Branch(es) <span class="text-danger">*</span>
+                                    </label>
+                                    <select class="form-select select2-multiple" id="staff_branch_ids" name="branch_ids[]" multiple required data-placeholder="Select one or more branches">
+                                        @foreach ($branches as $branch)
+                                            <option value="{{ $branch->id }}" {{ in_array($branch->id, (array) old('branch_ids', [])) ? 'selected' : '' }}>
+                                                {{ $branch->name }} ({{ $branch->code }})
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <div class="form-text text-muted small"><i class="bx bx-info-circle me-1"></i>Select multiple branches if needed. The first branch will serve as Primary.</div>
+                                    <span class="text-danger small">{{ $errors->first('branch_ids') }}</span>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label" for="staff_team_ids">
+                                        <i class="bx bx-group me-1 text-info"></i>Team(s) <span class="text-danger">*</span>
+                                    </label>
+                                    <select class="form-select select2-multiple" id="staff_team_ids" name="team_ids[]" multiple required data-placeholder="Select one or more teams">
+                                    </select>
+                                    <div class="form-text text-muted small"><i class="bx bx-info-circle me-1"></i>Teams from the selected branches appear here. You can select multiple teams.</div>
+                                    <span class="text-danger small">{{ $errors->first('team_ids') }}</span>
                                 </div>
 
                                 <!-- Row 3 -->
@@ -174,6 +243,19 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        // Initialize Select2 on multiple select dropdowns
+        $('#staff_branch_ids').select2({
+            placeholder: 'Select one or more branches',
+            allowClear: true,
+            width: '100%'
+        });
+
+        $('#staff_team_ids').select2({
+            placeholder: 'Select one or more teams',
+            allowClear: true,
+            width: '100%'
+        });
+
         const staffTypeSelect = document.getElementById('staff_type');
         const leaveWrapper = document.getElementById('available_leave_count_wrapper');
 
@@ -190,6 +272,39 @@
         if (staffTypeSelect) {
             staffTypeSelect.addEventListener('change', toggleLeaveCount);
             toggleLeaveCount();
+        }
+
+        // Dynamic Team loading based on Branch multi-selection
+        $('#staff_branch_ids').on('change', function () {
+            const selectedBranches = $(this).val() || [];
+            const currentlySelectedTeams = $('#staff_team_ids').val() || [];
+
+            if (selectedBranches.length === 0) {
+                $('#staff_team_ids').empty().trigger('change');
+                return;
+            }
+
+            const branchQuery = selectedBranches.join(',');
+            fetch('{{ url("admin/teams/by-branch") }}/' + branchQuery)
+                .then(response => response.json())
+                .then(res => {
+                    let optionsHtml = '';
+                    if (res.status && res.data.length > 0) {
+                        res.data.forEach(t => {
+                            const isSelected = currentlySelectedTeams.map(String).includes(String(t.id)) ? 'selected' : '';
+                            const branchLabel = t.branch ? ` - ${t.branch.name}` : '';
+                            optionsHtml += `<option value="${t.id}" data-branch="${t.branch_id}" ${isSelected}>${t.name} (${t.code})${branchLabel}</option>`;
+                        });
+                    }
+                    $('#staff_team_ids').html(optionsHtml).trigger('change');
+                })
+                .catch(err => {
+                    console.error('Failed to load teams:', err);
+                });
+        });
+
+        if ($('#staff_branch_ids').val() && $('#staff_branch_ids').val().length > 0) {
+            $('#staff_branch_ids').trigger('change');
         }
     });
 </script>

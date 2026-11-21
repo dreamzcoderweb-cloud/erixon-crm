@@ -83,6 +83,30 @@
                         </div>
 
                         <div class="col-md-3">
+                            <label class="form-label fw-semibold">Branch</label>
+                            <select name="branch_id" id="customer_filter_branch" class="form-select form-select-sm">
+                                <option value="">-- All Branches --</option>
+                                @if(isset($branches) && count($branches) > 0)
+                                    @foreach ($branches as $br)
+                                        <option value="{{ $br->id }}">{{ $br->name }}</option>
+                                    @endforeach
+                                @endif
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Team</label>
+                            <select name="team_id" id="customer_filter_team" class="form-select form-select-sm">
+                                <option value="">-- All Teams --</option>
+                                @if(isset($teams) && count($teams) > 0)
+                                    @foreach ($teams as $tm)
+                                        <option value="{{ $tm->id }}">{{ $tm->name }}</option>
+                                    @endforeach
+                                @endif
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
                             <label class="form-label fw-semibold">Created By</label>
                             <select name="created_by" id="customer_filter_created_by" class="form-select form-select-sm">
                                 <option value="">-- All Staff --</option>
@@ -249,6 +273,30 @@
                                     @if(isset($allUsers) && count($allUsers) > 0)
                                         @foreach ($allUsers as $usr)
                                             <option value="{{ $usr->id }}">{{ $usr->name }} ({{ $usr->email }})</option>
+                                        @endforeach
+                                    @endif
+                                </select>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Branch</label>
+                                <select name="branch_id" id="add_customer_branch_id" class="form-select">
+                                    <option value="">-- Auto (My Branch) --</option>
+                                    @if(isset($branches) && count($branches) > 0)
+                                        @foreach ($branches as $br)
+                                            <option value="{{ $br->id }}">{{ $br->name }} ({{ $br->code }})</option>
+                                        @endforeach
+                                    @endif
+                                </select>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Team</label>
+                                <select name="team_id" id="add_customer_team_id" class="form-select">
+                                    <option value="">-- Auto (My Team) --</option>
+                                    @if(isset($teams) && count($teams) > 0)
+                                        @foreach ($teams as $tm)
+                                            <option value="{{ $tm->id }}">{{ $tm->name }} ({{ $tm->code }})</option>
                                         @endforeach
                                     @endif
                                 </select>
@@ -444,6 +492,30 @@
                                 <div class="invalid-feedback"></div>
                             </div>
                             <div class="col-md-6">
+                                <label class="form-label">Branch</label>
+                                <select name="branch_id" id="edit_customer_branch_id" class="form-select">
+                                    <option value="">-- Select Branch --</option>
+                                    @if(isset($branches) && count($branches) > 0)
+                                        @foreach ($branches as $br)
+                                            <option value="{{ $br->id }}">{{ $br->name }} ({{ $br->code }})</option>
+                                        @endforeach
+                                    @endif
+                                </select>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Team</label>
+                                <select name="team_id" id="edit_customer_team_id" class="form-select">
+                                    <option value="">-- Select Team --</option>
+                                    @if(isset($teams) && count($teams) > 0)
+                                        @foreach ($teams as $tm)
+                                            <option value="{{ $tm->id }}">{{ $tm->name }} ({{ $tm->code }})</option>
+                                        @endforeach
+                                    @endif
+                                </select>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-md-6">
                                 <label class="form-label">Status <span class="text-danger">*</span></label>
                                 <select name="status" id="edit_status" class="form-select" required>
                                     <option value="1">Active</option>
@@ -552,6 +624,64 @@
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-danger" id="confirmDeleteCustomerBtn">Delete</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transfer Customer Modal -->
+    <div class="modal fade" id="transferCustomerModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <form id="transferCustomerForm" method="POST" novalidate>
+                    @csrf
+                    <input type="hidden" name="customer_id" id="transfer_customer_id">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bx bx-transfer me-1 text-primary"></i> Transfer Customer Branch & Team</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-info py-2 mb-3">
+                            Transferring <strong id="transfer_customer_name"></strong> will move the customer and all associated leads to the selected Branch & Team.
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">New Branch <span class="text-danger">*</span></label>
+                            <select name="branch_id" id="transfer_branch_id" class="form-select" required>
+                                <option value="">-- Select Branch --</option>
+                                @if(isset($branches) && count($branches) > 0)
+                                    @foreach ($branches as $br)
+                                        <option value="{{ $br->id }}">{{ $br->name }} ({{ $br->code }})</option>
+                                    @endforeach
+                                @endif
+                            </select>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">New Team <span class="text-danger">*</span></label>
+                            <select name="team_id" id="transfer_team_id" class="form-select" required>
+                                <option value="">-- Select Team --</option>
+                            </select>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Assign New Owner (Optional)</label>
+                            <select name="owner_by" id="transfer_owner_by" class="form-select">
+                                <option value="">-- Keep Current / None --</option>
+                                @if(isset($allUsers) && count($allUsers) > 0)
+                                    @foreach ($allUsers as $usr)
+                                        <option value="{{ $usr->id }}">{{ $usr->name }} ({{ $usr->email }})</option>
+                                    @endforeach
+                                @endif
+                            </select>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                    </div>
+                    <div class="modal-footer gap-2">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="transferCustomerSubmitBtn">
+                            <span class="spinner-border spinner-border-sm d-none me-1" role="status"></span> Transfer Customer
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

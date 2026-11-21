@@ -54,6 +54,22 @@
                                     <strong>{{ $staff->designation ?? 'N/A' }}</strong>
                                     <br><span class="badge bg-label-info me-1">{{ $staff->roles->first()?->name ?? '-' }}</span>
                                     <span class="badge {{ ($staff->staff_type ?? 'Permanent') === 'Temporary' ? 'bg-label-warning' : 'bg-label-success' }}">{{ $staff->staff_type ?? 'Permanent' }}</span>
+                                    @php
+                                        $allBranches = $staff->branches->isNotEmpty() ? $staff->branches : ($staff->branch ? collect([$staff->branch]) : collect());
+                                        $allTeams = $staff->teams->isNotEmpty() ? $staff->teams : ($staff->team ? collect([$staff->team]) : collect());
+                                    @endphp
+                                    @if($allBranches->isNotEmpty())
+                                        <br>
+                                        @foreach($allBranches as $b)
+                                            <span class="badge bg-label-primary me-1 mb-1"><i class="bx bx-buildings me-1"></i>{{ $b->name }}</span>
+                                        @endforeach
+                                    @endif
+                                    @if($allTeams->isNotEmpty())
+                                        <br>
+                                        @foreach($allTeams as $t)
+                                            <span class="badge bg-label-info me-1 mb-1"><i class="bx bx-group me-1"></i>{{ $t->name }}</span>
+                                        @endforeach
+                                    @endif
                                 </td>
                                 <td>
                                     @if($staff->check_in_time || $staff->check_out_time)

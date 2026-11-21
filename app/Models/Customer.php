@@ -33,6 +33,8 @@ class Customer extends Authenticatable
      */
     protected $fillable = [
         'customer_type',
+        'branch_id',
+        'team_id',
         'name',
         'company_name',
         'mobile',
@@ -69,6 +71,8 @@ class Customer extends Authenticatable
     ];
 
     protected $appends = [
+        'branch_name',
+        'team_name',
         'owner_by_name',
         'assign_by_name',
         'created_by_name',
@@ -79,6 +83,26 @@ class Customer extends Authenticatable
         'lead_requirement_name',
         'lead_stage_name',
     ];
+
+    public function getBranchNameAttribute()
+    {
+        return $this->branch?->name;
+    }
+
+    public function getTeamNameAttribute()
+    {
+        return $this->team?->name;
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class, 'branch_id');
+    }
+
+    public function team()
+    {
+        return $this->belongsTo(Team::class, 'team_id');
+    }
 
     public function getOwnerByNameAttribute()
     {
@@ -193,9 +217,30 @@ class Customer extends Authenticatable
             return $query;
         }
 
+        // Branch Manager scope: sees all customers in their branch(es)
+        if ($user->isBranchManager()) {
+            $branchIds = $user->accessibleBranchIds();
+            if (!empty($branchIds)) {
+                return $query->whereIn('customers.branch_id', $branchIds);
+            }
+        }
+
+        // Team Leader scope: sees all customers in their team(s)
+        if ($user->isTeamLeader()) {
+            $teamIds = $user->accessibleTeamIds();
+            if (!empty($teamIds)) {
+                return $query->whereIn('customers.team_id', $teamIds);
+            }
+        }
+
+        // Staff scope: own customers (created, owned, or assigned)
         $userId = $user->id;
 
-        return $query->where('created_by', $userId);
+        return $query->where(function ($q) use ($userId) {
+            $q->where('customers.created_by', $userId)
+              ->orWhere('customers.owner_by', $userId)
+              ->orWhere('customers.assign_by', $userId);
+        });
     }
 
     /**

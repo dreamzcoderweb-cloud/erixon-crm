@@ -57,6 +57,8 @@ class User extends Authenticatable
         'increment_date',
         'check_out_time',
         'status',
+        'branch_id',
+        'team_id',
         'fcmtoken',
     ];
 
@@ -140,6 +142,111 @@ class User extends Authenticatable
             'super-admin',
             'Super-Admin',
         ]);
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class, 'branch_id');
+    }
+
+    public function team()
+    {
+        return $this->belongsTo(Team::class, 'team_id');
+    }
+
+    public function branches()
+    {
+        return $this->belongsToMany(Branch::class, 'branch_user')->withPivot('is_primary')->withTimestamps();
+    }
+
+    public function teams()
+    {
+        return $this->belongsToMany(Team::class, 'team_user')->withPivot('role_in_team', 'is_primary')->withTimestamps();
+    }
+
+    /**
+     * Check if user is a Branch Manager
+     */
+    public function isBranchManager(): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        return Branch::where('manager_id', $this->id)->exists()
+            || $this->hasAnyRole(['Branch Manager', 'branch manager', 'Branch-Manager']);
+    }
+
+    /**
+     * Check if user is a Team Leader
+     */
+    public function isTeamLeader(): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        return Team::where('leader_id', $this->id)->exists()
+            || $this->hasAnyRole(['Team Leader', 'team leader', 'Team-Leader', 'Team Lead', 'team lead']);
+    }
+
+    /**
+     * Get accessible branch IDs for the user.
+     * Returns null if unrestricted (Super Admin / Admin).
+     *
+     * @return array<int>|null
+     */
+    public function accessibleBranchIds(): ?array
+    {
+        if ($this->isAdmin()) {
+            return null; // All branches
+        }
+
+        $ids = [];
+        if (!empty($this->branch_id)) {
+            $ids[] = (int) $this->branch_id;
+        }
+
+        $managedIds = Branch::where('manager_id', $this->id)->pluck('id')->all();
+        $ids = array_merge($ids, $managedIds);
+
+        $pivotIds = \Illuminate\Support\Facades\DB::table('branch_user')->where('user_id', $this->id)->pluck('branch_id')->all();
+        $ids = array_merge($ids, $pivotIds);
+
+        return array_values(array_unique(array_filter($ids)));
+    }
+
+    /**
+     * Get accessible team IDs for the user.
+     * Returns null if unrestricted (Super Admin / Admin).
+     *
+     * @return array<int>|null
+     */
+    public function accessibleTeamIds(): ?array
+    {
+        if ($this->isAdmin()) {
+            return null; // All teams
+        }
+
+        if ($this->isBranchManager()) {
+            $branchIds = $this->accessibleBranchIds();
+            if (!empty($branchIds)) {
+                return Team::whereIn('branch_id', $branchIds)->pluck('id')->all();
+            }
+        }
+
+        $ids = [];
+        if (!empty($this->team_id)) {
+            $ids[] = (int) $this->team_id;
+        }
+
+        $ledIds = Team::where('leader_id', $this->id)->pluck('id')->all();
+        $ids = array_merge($ids, $ledIds);
+
+        $pivotIds = \Illuminate\Support\Facades\DB::table('team_user')->where('user_id', $this->id)->pluck('team_id')->all();
+        $ids = array_merge($ids, $pivotIds);
+
+        return array_values(array_unique(array_filter($ids)));
     }
 
     /**

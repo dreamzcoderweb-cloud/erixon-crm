@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use App\Models\Lead;
+use App\Models\Branch;
+use App\Models\Team;
 use App\Models\LeadSource;
 use App\Models\LeadStage;
 use App\Models\LeadRequirement;
@@ -33,6 +35,8 @@ class LeadController extends Controller
         $standardFields = [
             'lead_title'         => 'Lead Title',
             'customer'           => 'Customer',
+            'branch'             => 'Branch',
+            'team'               => 'Team',
             'lead_source'        => 'Lead Source',
             'lead_stage'         => 'Lead Stages',
             'lead_requirement'   => 'Lead Requirements',
@@ -96,9 +100,20 @@ class LeadController extends Controller
         if ($user->isSuperAdmin()) {
             $data['allStaffs'] = User::staffOnly()->orderBy('name')->get();
             $data['staffs']    = User::staffOnly()->orderBy('name')->get();
+            $data['branches']  = Branch::where('status', 1)->orderBy('name')->get();
+            $data['teams']     = Team::where('status', 1)->orderBy('name')->get();
+        } elseif ($user->isBranchManager()) {
+            $branchIds = $user->accessibleBranchIds() ?? [];
+            $data['allStaffs'] = User::staffOnly()->whereIn('branch_id', $branchIds)->orderBy('name')->get();
+            $data['staffs']    = $data['allStaffs'];
+            $data['branches']  = Branch::whereIn('id', $branchIds)->where('status', 1)->orderBy('name')->get();
+            $data['teams']     = Team::whereIn('branch_id', $branchIds)->where('status', 1)->orderBy('name')->get();
         } else {
             $data['allStaffs'] = User::where('id', $user->id)->get();
             $data['staffs']    = User::where('id', $user->id)->get();
+            $data['branches']  = !empty($user->branch_id) ? Branch::where('id', $user->branch_id)->get() : collect();
+            $teamIds = $user->accessibleTeamIds() ?? [];
+            $data['teams']     = Team::whereIn('id', $teamIds)->where('status', 1)->orderBy('name')->get();
         }
 
         return view('leads.view', $data);
@@ -110,6 +125,14 @@ class LeadController extends Controller
         $user    = Auth::user();
 
         $query = Lead::forUser($user);
+
+        if ($request->filled('branch_id')) {
+            $query->where('leads.branch_id', $request->input('branch_id'));
+        }
+
+        if ($request->filled('team_id')) {
+            $query->where('leads.team_id', $request->input('team_id'));
+        }
 
         if ($request->filled('lead_requirement_id')) {
             $query->where('lead_requirement_id', $request->input('lead_requirement_id'));
@@ -167,6 +190,8 @@ class LeadController extends Controller
         }
 
         $leads = (clone $query)->with([
+            'branch:id,name,code',
+            'team:id,name,code',
             'customer:customer_id,customer_type,name,mobile,email',
             'leadSource:lead_sources_id,name',
             'leadStage:lead_stage_id,name',
@@ -177,6 +202,14 @@ class LeadController extends Controller
         ])->orderBy('lead_id', 'DESC')->get();
 
         $baseCountQuery = Lead::forUser($user);
+
+        if ($request->filled('branch_id')) {
+            $baseCountQuery->where('leads.branch_id', $request->input('branch_id'));
+        }
+
+        if ($request->filled('team_id')) {
+            $baseCountQuery->where('leads.team_id', $request->input('team_id'));
+        }
 
         if ($request->filled('lead_requirement_id')) {
             $baseCountQuery->where('lead_requirement_id', $request->input('lead_requirement_id'));
@@ -242,6 +275,8 @@ class LeadController extends Controller
         $baseRules = [
             'customer_name'       => ['required', 'string', 'max:255'],
             'customer_type'       => ['required', 'in:user,reseller'],
+            'branch_id'           => ['nullable', 'exists:branches,id'],
+            'team_id'             => ['nullable', 'exists:teams,id'],
             'mobile'              => ['required', 'string', 'max:20'],
             'email'               => ['nullable', 'email', 'max:255'],
             'customer_id'         => ['nullable', 'exists:customers,customer_id'],
@@ -282,6 +317,12 @@ class LeadController extends Controller
             }
         }
 
+        $branchId = !empty($validated['branch_id']) ? $validated['branch_id'] : $user->branch_id;
+        $teamId   = !empty($validated['team_id']) ? $validated['team_id'] : $user->team_id;
+
+        $validated['branch_id'] = $branchId;
+        $validated['team_id']   = $teamId;
+
         // Logic: Customer details are stored directly on the lead.
         // Customer is ONLY added to customer table/menu when lead stage is "Sale closed".
         $mobile = trim((string) $validated['mobile']);
@@ -301,6 +342,8 @@ class LeadController extends Controller
                     'name'          => $custName,
                     'customer_type' => $custType,
                     'email'         => $custEmail,
+                    'branch_id'     => $existingCustomer->branch_id ?? $branchId,
+                    'team_id'       => $existingCustomer->team_id ?? $teamId,
                 ]);
                 $customer = $existingCustomer;
             } else {
@@ -309,6 +352,8 @@ class LeadController extends Controller
                     'customer_type' => $custType,
                     'mobile'        => $mobile,
                     'email'         => $custEmail,
+                    'branch_id'     => $branchId,
+                    'team_id'       => $teamId,
                     'status'        => 1,
                     'created_by'    => $user->id,
                 ]);
@@ -375,6 +420,8 @@ class LeadController extends Controller
 
         $baseRules = [
             'customer_id'         => ['nullable', 'exists:customers,customer_id'],
+            'branch_id'           => ['nullable', 'exists:branches,id'],
+            'team_id'             => ['nullable', 'exists:teams,id'],
             'customer_name'       => ['sometimes', 'required', 'string', 'max:255'],
             'customer_type'       => ['sometimes', 'required', 'in:user,reseller'],
             'mobile'              => ['sometimes', 'required', 'string', 'max:20'],

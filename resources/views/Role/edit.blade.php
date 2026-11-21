@@ -130,6 +130,8 @@
         @php
             // Define module icons and pretty titles
             $moduleMeta = [
+                'branches' => ['title' => 'Branch Management', 'icon' => 'bx-buildings', 'badge' => 'bg-label-primary'],
+                'teams' => ['title' => 'Team Management', 'icon' => 'bx-group', 'badge' => 'bg-label-info'],
                 'customers' => ['title' => 'Customers Management', 'icon' => 'bx-user', 'badge' => 'bg-label-primary'],
                 'leads' => ['title' => 'Leads Management', 'icon' => 'bx-target-lock', 'badge' => 'bg-label-success'],
                 'lead-sources' => ['title' => 'Lead Sources', 'icon' => 'bx-git-repo-forked', 'badge' => 'bg-label-purple'],
