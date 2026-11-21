@@ -702,10 +702,52 @@
                                 <i class="bx bx-download me-1"></i> Download Sample Excel
                             </a>
                         </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" for="import_customer_branch_id">
+                                    <i class="bx bx-buildings me-1 text-primary"></i>Assign Branch <span class="text-danger">*</span>
+                                </label>
+                                <select name="branch_id" id="import_customer_branch_id" class="form-select" required>
+                                    <option value="">-- Select Branch --</option>
+                                    @foreach ($branches as $branch)
+                                        <option value="{{ $branch->id }}" {{ (string) auth()->user()->branch_id === (string) $branch->id ? 'selected' : '' }}>
+                                            {{ $branch->name }} ({{ $branch->code }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" for="import_customer_team_id">
+                                    <i class="bx bx-group me-1 text-info"></i>Assign Team <span class="text-danger">*</span>
+                                </label>
+                                <select name="team_id" id="import_customer_team_id" class="form-select" required>
+                                    <option value="">-- Select Team --</option>
+                                    @if(isset($teams))
+                                        @foreach ($teams as $team)
+                                            <option value="{{ $team->id }}" data-branch="{{ $team->branch_id }}" {{ (string) auth()->user()->team_id === (string) $team->id ? 'selected' : '' }}>
+                                                {{ $team->name }} ({{ $team->code }})
+                                            </option>
+                                        @endforeach
+                                    @endif
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="import_customer_owner_by">
+                                <i class="bx bx-user me-1 text-success"></i>Assign Staff / Owner (Optional)
+                            </label>
+                            <select name="owner_by" id="import_customer_owner_by" class="form-select">
+                                <option value="">-- Unassigned (or as specified in Excel) --</option>
+                                @foreach ($staffs as $staff)
+                                    <option value="{{ $staff->id }}">{{ $staff->name }} ({{ $staff->email }})</option>
+                                @endforeach
+                            </select>
+                            <div class="form-text text-muted small">Imported customers will be owned by this sales staff for follow-ups.</div>
+                        </div>
                         <div class="mb-3">
                             <label class="form-label">Select Excel / CSV File <span class="text-danger">*</span></label>
                             <input type="file" name="excel_file" class="form-control" accept=".xlsx,.xls,.csv" required>
-                            <small class="text-muted">Upload an Excel (.xlsx/.xls) or CSV file with headers: Customer Type, Name, Company Name, Mobile, Email, Alternate Mobile, Address, City, State, Country, Pincode, Lead Stage.</small>
+                            <small class="text-muted">Upload an Excel (.xlsx/.xls) or CSV file with headers: Customer Type, Name, Company Name, Mobile, Email, Alternate Mobile, Address, City, State, Country, Pincode, Lead Stage, Branch Code, Team Code, Staff Email.</small>
                         </div>
                         <div id="import-results" class="d-none mt-2 alert alert-info"></div>
                     </div>
@@ -721,6 +763,33 @@
     @push('scripts')
     <script>
         $(document).ready(function() {
+            // Dynamic Team loading on Import Modal Branch change
+            $('#import_customer_branch_id').on('change', function() {
+                let branchId = $(this).val();
+                let $teamSelect = $('#import_customer_team_id');
+                $teamSelect.html('<option value="">Loading teams...</option>');
+                if (!branchId) {
+                    $teamSelect.html('<option value="">-- Select Team --</option>');
+                    return;
+                }
+                fetch('{{ url("admin/teams/by-branch") }}/' + branchId)
+                    .then(res => res.json())
+                    .then(res => {
+                        let options = '<option value="">-- Select Team --</option>';
+                        if (res.status && res.data.length > 0) {
+                            res.data.forEach(t => {
+                                options += `<option value="${t.id}">${t.name} (${t.code})</option>`;
+                            });
+                        } else {
+                            options = '<option value="">No active teams in this branch</option>';
+                        }
+                        $teamSelect.html(options);
+                    })
+                    .catch(() => {
+                        $teamSelect.html('<option value="">Failed to load teams</option>');
+                    });
+            });
+
             $('#importCustomerForm').on('submit', function(e) {
                 e.preventDefault();
                 let formData = new FormData(this);

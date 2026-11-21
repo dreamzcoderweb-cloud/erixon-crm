@@ -643,19 +643,20 @@ class CustomerController extends Controller
 
         $headers = [
             'Customer Type', 'Name', 'Company Name', 'Mobile', 'Email',
-            'Alternate Mobile', 'Address', 'City', 'State', 'Country', 'Pincode', 'Lead Stage'
+            'Alternate Mobile', 'Address', 'City', 'State', 'Country', 'Pincode', 'Lead Stage',
+            'Branch Code', 'Team Code', 'Staff Email'
         ];
 
         $sheet->fromArray($headers, null, 'A1');
 
         $sampleData = [
-            ['user', 'John Doe', 'ABC Enterprises', '9876543210', 'john@example.com', '9876543211', '123 Main St', 'Chennai', 'Tamil Nadu', 'India', '600001', 'Sale closed'],
-            ['reseller', 'Jane Smith', 'XYZ Solutions', '9123456780', 'jane@example.com', '', '456 Cross Rd', 'Madurai', 'Tamil Nadu', 'India', '625001', 'Sale closed'],
+            ['user', 'John Doe', 'ABC Enterprises', '9876543210', 'john@example.com', '9876543211', '123 Main St', 'Chennai', 'Tamil Nadu', 'India', '600001', 'Sale closed', 'BR-MAIN', 'TM-MAIN', 'admin@gmail.com'],
+            ['reseller', 'Jane Smith', 'XYZ Solutions', '9123456780', 'jane@example.com', '', '456 Cross Rd', 'Madurai', 'Tamil Nadu', 'India', '625001', 'Sale closed', 'BR-MAIN', 'TM-MAIN', ''],
         ];
 
         $sheet->fromArray($sampleData, null, 'A2');
 
-        foreach (range('A', 'L') as $col) {
+        foreach (range('A', 'O') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
@@ -677,6 +678,9 @@ class CustomerController extends Controller
     {
         $request->validate([
             'excel_file' => 'required|file|mimes:xlsx,xls,csv,txt|max:10240',
+            'branch_id'  => 'nullable|exists:branches,id',
+            'team_id'    => 'nullable|exists:teams,id',
+            'owner_by'   => 'nullable|exists:users,id',
         ]);
 
         $file = $request->file('excel_file');
@@ -698,6 +702,12 @@ class CustomerController extends Controller
                 'message' => 'The uploaded file is empty or missing data rows.'
             ], 422);
         }
+
+        // Defaults from request or logged in user
+        $auth = Auth::user();
+        $defaultBranchId = $request->input('branch_id') ?: ($auth?->branch_id ?: Branch::where('code', 'BR-MAIN')->value('id'));
+        $defaultTeamId   = $request->input('team_id')   ?: ($auth?->team_id ?: Team::where('code', 'TM-MAIN')->value('id'));
+        $defaultOwnerBy  = $request->input('owner_by')  ?: null;
 
         // Normalize header row
         $headerRow = array_map(function ($h) {
@@ -732,6 +742,21 @@ class CustomerController extends Controller
             'stage'           => 'lead_stage',
             'stageid'         => 'lead_stage',
             'stagename'       => 'lead_stage',
+            'branch'          => 'branch',
+            'branchcode'      => 'branch',
+            'branchname'      => 'branch',
+            'branchid'        => 'branch',
+            'team'            => 'team',
+            'teamcode'        => 'team',
+            'teamname'        => 'team',
+            'teamid'          => 'team',
+            'owner'           => 'owner_by',
+            'ownerby'         => 'owner_by',
+            'staff'           => 'owner_by',
+            'staffemail'      => 'owner_by',
+            'staffname'       => 'owner_by',
+            'staffid'         => 'owner_by',
+            'assignedto'      => 'owner_by',
         ];
 
         $headerIndexes = [];
@@ -754,6 +779,40 @@ class CustomerController extends Controller
             $leadStageMap[(string)$ls->lead_stage_id] = $ls->lead_stage_id;
             $cleanName = strtolower(trim(preg_replace('/[^a-zA-Z0-9]/', '', (string)$ls->name)));
             $leadStageMap[$cleanName] = $ls->lead_stage_id;
+        }
+
+        // Branch lookup map (by id, code, and clean name)
+        $branches = Branch::all();
+        $branchMap = [];
+        foreach ($branches as $b) {
+            $branchMap[(string)$b->id] = $b->id;
+            $cleanCode = strtolower(trim(preg_replace('/[^a-zA-Z0-9]/', '', (string)$b->code)));
+            $branchMap[$cleanCode] = $b->id;
+            $cleanName = strtolower(trim(preg_replace('/[^a-zA-Z0-9]/', '', (string)$b->name)));
+            $branchMap[$cleanName] = $b->id;
+        }
+
+        // Team lookup map (by id, code, and clean name)
+        $teams = Team::all();
+        $teamMap = [];
+        foreach ($teams as $t) {
+            $teamMap[(string)$t->id] = $t->id;
+            $cleanCode = strtolower(trim(preg_replace('/[^a-zA-Z0-9]/', '', (string)$t->code)));
+            $teamMap[$cleanCode] = $t->id;
+            $cleanName = strtolower(trim(preg_replace('/[^a-zA-Z0-9]/', '', (string)$t->name)));
+            $teamMap[$cleanName] = $t->id;
+        }
+
+        // Staff / User lookup map (by id, email, and clean name)
+        $allStaff = User::all();
+        $staffMap = [];
+        foreach ($allStaff as $st) {
+            $staffMap[(string)$st->id] = $st->id;
+            if ($st->email) {
+                $staffMap[strtolower(trim($st->email))] = $st->id;
+            }
+            $cleanName = strtolower(trim(preg_replace('/[^a-zA-Z0-9]/', '', (string)$st->name)));
+            $staffMap[$cleanName] = $st->id;
         }
 
         $saleClosedStage = $leadStages->first(function ($s) {
@@ -811,6 +870,51 @@ class CustomerController extends Controller
             $country = isset($headerIndexes['country']) ? trim((string)($row[$headerIndexes['country']] ?? '')) : 'India';
             $pincode = isset($headerIndexes['pincode']) ? trim((string)($row[$headerIndexes['pincode']] ?? '')) : null;
 
+            // Resolve Branch
+            $rowBranchId = $defaultBranchId;
+            if (isset($headerIndexes['branch'])) {
+                $rawBranch = trim((string)($row[$headerIndexes['branch']] ?? ''));
+                if ($rawBranch !== '') {
+                    $cleanB = strtolower(trim(preg_replace('/[^a-zA-Z0-9]/', '', $rawBranch)));
+                    if (isset($branchMap[$cleanB])) {
+                        $rowBranchId = $branchMap[$cleanB];
+                    } elseif (isset($branchMap[$rawBranch])) {
+                        $rowBranchId = $branchMap[$rawBranch];
+                    }
+                }
+            }
+
+            // Resolve Team
+            $rowTeamId = $defaultTeamId;
+            if (isset($headerIndexes['team'])) {
+                $rawTeam = trim((string)($row[$headerIndexes['team']] ?? ''));
+                if ($rawTeam !== '') {
+                    $cleanT = strtolower(trim(preg_replace('/[^a-zA-Z0-9]/', '', $rawTeam)));
+                    if (isset($teamMap[$cleanT])) {
+                        $rowTeamId = $teamMap[$cleanT];
+                    } elseif (isset($teamMap[$rawTeam])) {
+                        $rowTeamId = $teamMap[$rawTeam];
+                    }
+                }
+            }
+
+            // Resolve Owner / Staff
+            $rowOwnerBy = $defaultOwnerBy;
+            if (isset($headerIndexes['owner_by'])) {
+                $rawOwner = trim((string)($row[$headerIndexes['owner_by']] ?? ''));
+                if ($rawOwner !== '') {
+                    $cleanO = strtolower(trim(preg_replace('/[^a-zA-Z0-9]/', '', $rawOwner)));
+                    $lowerEmail = strtolower($rawOwner);
+                    if (isset($staffMap[$lowerEmail])) {
+                        $rowOwnerBy = $staffMap[$lowerEmail];
+                    } elseif (isset($staffMap[$cleanO])) {
+                        $rowOwnerBy = $staffMap[$cleanO];
+                    } elseif (isset($staffMap[$rawOwner])) {
+                        $rowOwnerBy = $staffMap[$rawOwner];
+                    }
+                }
+            }
+
             // Resolve Lead Stage from master
             $leadStageId = null;
             if (isset($headerIndexes['lead_stage'])) {
@@ -858,6 +962,16 @@ class CustomerController extends Controller
                 if ($leadStageId !== null) {
                     $updateData['lead_stage_id'] = $leadStageId;
                 }
+                if ($rowBranchId !== null) {
+                    $updateData['branch_id'] = $rowBranchId;
+                }
+                if ($rowTeamId !== null) {
+                    $updateData['team_id'] = $rowTeamId;
+                }
+                if ($rowOwnerBy !== null) {
+                    $updateData['owner_by'] = $rowOwnerBy;
+                }
+
                 $customer->update(array_filter($updateData, fn($v) => $v !== null && $v !== ''));
                 $updated++;
             } else {
@@ -873,6 +987,9 @@ class CustomerController extends Controller
                     'state'            => $state,
                     'country'          => $country ?: 'India',
                     'pincode'          => $pincode,
+                    'branch_id'        => $rowBranchId,
+                    'team_id'          => $rowTeamId,
+                    'owner_by'         => $rowOwnerBy,
                     'status'           => 1,
                     'created_by'       => $userId,
                 ];
