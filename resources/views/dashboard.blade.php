@@ -168,6 +168,85 @@
         </div>
     
 
+    <!-- TOTAL CALLS SUMMARY SECTION WITH PERIOD FILTER -->
+    <div class="card dashboard-card border-0 mb-4 shadow-sm">
+        <div class="card-body p-3 p-md-4">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3 pb-2 border-bottom">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon-box bg-label-info">
+                        <i class="bx bx-phone-call fs-3"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0 fw-bold text-dark">Total Calls Analytics</h5>
+                        <div class="text-muted small" id="callsPeriodLabel">{{ $callsSummary['period_label'] ?? 'Today' }}</div>
+                    </div>
+                </div>
+                <div class="btn-group btn-group-sm p-1 bg-light rounded-pill" role="group" id="callsPeriodBtnGroup">
+                    <button type="button" class="btn btn-sm rounded-pill btn-calls-filter active btn-primary" data-period="day">Day</button>
+                    <button type="button" class="btn btn-sm rounded-pill btn-calls-filter btn-light text-muted" data-period="week">Week</button>
+                    <button type="button" class="btn btn-sm rounded-pill btn-calls-filter btn-light text-muted" data-period="month">Month</button>
+                    <button type="button" class="btn btn-sm rounded-pill btn-calls-filter btn-light text-muted" data-period="year">Year</button>
+                </div>
+            </div>
+
+            <div class="row g-3 text-center text-sm-start" id="callsStatsContainer">
+                <!-- Total Calls -->
+                <div class="col-6 col-md-4 col-xl-2">
+                    <div class="p-3 bg-light rounded-3 h-100 border">
+                        <div class="text-muted small fw-medium mb-1">Total Calls</div>
+                        <div class="h4 fw-bold mb-1 text-dark" id="stat_total_calls">{{ number_format($callsSummary['total_calls'] ?? 0) }}</div>
+                        <div class="small text-muted">
+                            <span id="stat_incoming_calls">{{ $callsSummary['incoming_calls'] ?? 0 }}</span> In / 
+                            <span id="stat_outgoing_calls">{{ $callsSummary['outgoing_calls'] ?? 0 }}</span> Out
+                        </div>
+                    </div>
+                </div>
+                <!-- Answered -->
+                <div class="col-6 col-md-4 col-xl-2">
+                    <div class="p-3 rounded-3 h-100 border" style="background-color: rgba(113, 221, 55, 0.08);">
+                        <div class="text-success small fw-medium mb-1">Answered</div>
+                        <div class="h4 fw-bold mb-1 text-success" id="stat_answered_calls">{{ number_format($callsSummary['answered_calls'] ?? 0) }}</div>
+                        <div class="small text-success fw-semibold">
+                            <span id="stat_answer_rate">{{ $callsSummary['answer_rate'] ?? 0 }}%</span> rate
+                        </div>
+                    </div>
+                </div>
+                <!-- Missed / No Answer -->
+                <div class="col-6 col-md-4 col-xl-2">
+                    <div class="p-3 rounded-3 h-100 border" style="background-color: rgba(255, 62, 29, 0.08);">
+                        <div class="text-danger small fw-medium mb-1">Missed / No Ans</div>
+                        <div class="h4 fw-bold mb-1 text-danger" id="stat_missed_calls">{{ number_format($callsSummary['missed_calls'] ?? 0) }}</div>
+                        <div class="small text-muted">Unanswered</div>
+                    </div>
+                </div>
+                <!-- Busy -->
+                <div class="col-6 col-md-4 col-xl-2">
+                    <div class="p-3 rounded-3 h-100 border" style="background-color: rgba(255, 171, 0, 0.08);">
+                        <div class="text-warning small fw-medium mb-1">Busy</div>
+                        <div class="h4 fw-bold mb-1 text-warning" id="stat_busy_calls">{{ number_format($callsSummary['busy_calls'] ?? 0) }}</div>
+                        <div class="small text-muted">Line busy</div>
+                    </div>
+                </div>
+                <!-- Total Talk Duration -->
+                <div class="col-6 col-md-4 col-xl-2">
+                    <div class="p-3 bg-light rounded-3 h-100 border">
+                        <div class="text-muted small fw-medium mb-1">Total Duration</div>
+                        <div class="h5 fw-bold mb-1 text-primary" id="stat_total_duration">{{ $callsSummary['total_duration_formatted'] ?? '00m 00s' }}</div>
+                        <div class="small text-muted">Cumulative</div>
+                    </div>
+                </div>
+                <!-- Avg Duration -->
+                <div class="col-6 col-md-4 col-xl-2">
+                    <div class="p-3 bg-light rounded-3 h-100 border">
+                        <div class="text-muted small fw-medium mb-1">Avg Duration</div>
+                        <div class="h5 fw-bold mb-1 text-dark" id="stat_avg_duration">{{ $callsSummary['avg_duration_formatted'] ?? '00m 00s' }}</div>
+                        <div class="small text-muted">Per call</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- CORE MODULES STAT CARDS (ROW 1) -->
     <div class="row g-3 g-md-4 mb-4">
         <!-- Module 1: Customers -->
@@ -419,6 +498,57 @@
     <div class="row g-4">
         <!-- Left Column: Recent Data Tables (~68% width) -->
         <div class="col-12 col-lg-8 d-flex flex-column gap-4">
+            <!-- Sale Closed Performance Dynamic Chart Card -->
+            <div class="card dashboard-card border-0">
+                <div class="card-header bg-transparent d-flex flex-wrap align-items-center justify-content-between gap-2 py-3 border-bottom">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="stat-icon-box bg-label-success" style="width: 40px; height: 40px; font-size: 1.25rem;">
+                            <i class="bx bx-check-shield"></i>
+                        </div>
+                        <div>
+                            <h5 class="card-title mb-0 fw-bold text-dark">Sale Closed Performance</h5>
+                            <div class="text-muted small" id="chartPeriodLabel">{{ $saleClosedChart['period_label'] ?? 'This Month' }}</div>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="btn-group btn-group-sm p-1 bg-light rounded-pill" role="group" id="chartPeriodBtnGroup">
+                            <button type="button" class="btn btn-sm rounded-pill btn-chart-filter btn-light text-muted" data-period="weekly">Weekly</button>
+                            <button type="button" class="btn btn-sm rounded-pill btn-chart-filter active btn-success" data-period="monthly">Monthly</button>
+                            <button type="button" class="btn btn-sm rounded-pill btn-chart-filter btn-light text-muted" data-period="yearly">Yearly</button>
+                        </div>
+                        @canany(['sale-closed.view', 'leads.view'])
+                            <a href="{{ route('admin.sale-closed.index') }}" class="btn btn-sm btn-outline-success rounded-pill px-3 fw-medium">View Report</a>
+                        @endcanany
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Top Summary Stats Row -->
+                    <div class="row g-3 mb-3 text-center">
+                        <div class="col-4">
+                            <div class="p-2 rounded bg-light border">
+                                <div class="text-muted small fw-medium">Closed Deals</div>
+                                <div class="h4 fw-bold mb-0 text-success" id="chart_closed_count">{{ number_format($saleClosedChart['total_closed_count'] ?? 0) }}</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 rounded bg-light border">
+                                <div class="text-muted small fw-medium">Closed Revenue</div>
+                                <div class="h4 fw-bold mb-0 text-primary" id="chart_closed_revenue">{{ $saleClosedChart['total_closed_revenue_formatted'] ?? '₹0.00' }}</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 rounded bg-light border">
+                                <div class="text-muted small fw-medium">Avg Deal Value</div>
+                                <div class="h4 fw-bold mb-0 text-dark" id="chart_avg_deal">{{ $saleClosedChart['avg_deal_value_formatted'] ?? '₹0.00' }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ApexChart Container -->
+                    <div id="saleClosedApexChart" style="min-height: 310px;"></div>
+                </div>
+            </div>
+
             <!-- Recent Customers Table Card -->
             <div class="card dashboard-card border-0">
                 <div class="card-header bg-transparent d-flex align-items-center justify-content-between py-3">
@@ -611,4 +741,218 @@
         });
     </script>
 @endif
+
+@push('scripts')
+<script>
+$(document).ready(function() {
+    // -------------------------------------------------------------
+    // 1. Total Calls Summary Dynamic Filter (day, week, month, year)
+    // -------------------------------------------------------------
+    $('.btn-calls-filter').on('click', function() {
+        let btn = $(this);
+        let period = btn.data('period');
+
+        $('#callsPeriodBtnGroup .btn-calls-filter')
+            .removeClass('active btn-primary')
+            .addClass('btn-light text-muted');
+        btn.addClass('active btn-primary').removeClass('btn-light text-muted');
+
+        $('#callsStatsContainer').css('opacity', '0.4');
+
+        $.ajax({
+            url: "{{ route('admin.dashboard.calls-summary') }}",
+            type: "GET",
+            data: { period: period },
+            dataType: "json",
+            success: function(res) {
+                $('#callsStatsContainer').css('opacity', '1');
+                if (res.status && res.data) {
+                    let d = res.data;
+                    $('#callsPeriodLabel').text(d.period_label || '');
+                    $('#stat_total_calls').text(Number(d.total_calls || 0).toLocaleString());
+                    $('#stat_incoming_calls').text(d.incoming_calls || 0);
+                    $('#stat_outgoing_calls').text(d.outgoing_calls || 0);
+                    $('#stat_answered_calls').text(Number(d.answered_calls || 0).toLocaleString());
+                    $('#stat_answer_rate').text((d.answer_rate || 0) + '%');
+                    $('#stat_missed_calls').text(Number(d.missed_calls || 0).toLocaleString());
+                    $('#stat_busy_calls').text(Number(d.busy_calls || 0).toLocaleString());
+                    $('#stat_total_duration').text(d.total_duration_formatted || '00m 00s');
+                    $('#stat_avg_duration').text(d.avg_duration_formatted || '00m 00s');
+                }
+            },
+            error: function() {
+                $('#callsStatsContainer').css('opacity', '1');
+            }
+        });
+    });
+
+    // -------------------------------------------------------------
+    // 2. Sale Closed Dynamic ApexChart (weekly, monthly, yearly)
+    // -------------------------------------------------------------
+    let initialChartData = @json($saleClosedChart ?? []);
+    let chartCategories = initialChartData.categories || [];
+    let chartCounts = initialChartData.counts || [];
+    let chartRevenues = initialChartData.revenues || [];
+
+    let chartEl = document.querySelector("#saleClosedApexChart");
+    let saleClosedChartInstance = null;
+
+    if (chartEl && typeof ApexCharts !== 'undefined') {
+        let chartOptions = {
+            chart: {
+                height: 320,
+                type: 'area',
+                toolbar: { show: false },
+                dropShadow: {
+                    enabled: true,
+                    top: 8,
+                    left: 0,
+                    blur: 3,
+                    color: '#71dd37',
+                    opacity: 0.12
+                }
+            },
+            colors: ['#71dd37', '#696cff'],
+            dataLabels: { enabled: false },
+            stroke: {
+                curve: 'smooth',
+                width: [2, 2]
+            },
+            series: [
+                {
+                    name: 'Closed Sales',
+                    type: 'area',
+                    data: chartCounts
+                },
+                {
+                    name: 'Revenue (₹)',
+                    type: 'area',
+                    data: chartRevenues
+                }
+            ],
+            xaxis: {
+                categories: chartCategories,
+                axisBorder: { show: false },
+                axisTicks: { show: false },
+                labels: {
+                    style: {
+                        colors: '#a1acb8',
+                        fontSize: '12px'
+                    }
+                }
+            },
+            yaxis: [
+                {
+                    title: {
+                        text: 'Closed Sales',
+                        style: { color: '#71dd37', fontWeight: 600 }
+                    },
+                    labels: {
+                        formatter: function(val) { return parseInt(val || 0); },
+                        style: { colors: '#71dd37' }
+                    },
+                    min: 0,
+                    forceNiceScale: true
+                },
+                {
+                    opposite: true,
+                    title: {
+                        text: 'Revenue (₹)',
+                        style: { color: '#696cff', fontWeight: 600 }
+                    },
+                    labels: {
+                        formatter: function(val) {
+                            if (val >= 100000) return '₹' + (val / 100000).toFixed(1) + 'L';
+                            if (val >= 1000) return '₹' + (val / 1000).toFixed(1) + 'k';
+                            return '₹' + (val || 0);
+                        },
+                        style: { colors: '#696cff' }
+                    },
+                    min: 0,
+                    forceNiceScale: true
+                }
+            ],
+            fill: {
+                type: 'gradient',
+                gradient: {
+                    shadeIntensity: 1,
+                    opacityFrom: 0.45,
+                    opacityTo: 0.05,
+                    stops: [0, 95, 100]
+                }
+            },
+            grid: {
+                borderColor: '#e7e7e7',
+                padding: { top: -20, bottom: -8, left: 10, right: 10 }
+            },
+            tooltip: {
+                shared: true,
+                intersect: false,
+                y: {
+                    formatter: function(y, { seriesIndex }) {
+                        if (typeof y !== "undefined") {
+                            return seriesIndex === 1 
+                                ? '₹' + Number(y || 0).toLocaleString('en-IN') 
+                                : (y || 0) + ' Deals';
+                        }
+                        return y;
+                    }
+                }
+            },
+            legend: {
+                position: 'top',
+                horizontalAlign: 'right',
+                markers: { radius: 12 }
+            }
+        };
+
+        saleClosedChartInstance = new ApexCharts(chartEl, chartOptions);
+        saleClosedChartInstance.render();
+    }
+
+    // Chart Filter Handlers (Weekly, Monthly, Yearly)
+    $('.btn-chart-filter').on('click', function() {
+        let btn = $(this);
+        let period = btn.data('period');
+
+        $('#chartPeriodBtnGroup .btn-chart-filter')
+            .removeClass('active btn-success')
+            .addClass('btn-light text-muted');
+        btn.addClass('active btn-success').removeClass('btn-light text-muted');
+
+        $('#saleClosedApexChart').css('opacity', '0.4');
+
+        $.ajax({
+            url: "{{ route('admin.dashboard.sale-closed-chart') }}",
+            type: "GET",
+            data: { period: period },
+            dataType: "json",
+            success: function(res) {
+                $('#saleClosedApexChart').css('opacity', '1');
+                if (res.status && res.data) {
+                    let d = res.data;
+                    $('#chartPeriodLabel').text(d.period_label || '');
+                    $('#chart_closed_count').text(Number(d.total_closed_count || 0).toLocaleString());
+                    $('#chart_closed_revenue').text(d.total_closed_revenue_formatted || '₹0.00');
+                    $('#chart_avg_deal').text(d.avg_deal_value_formatted || '₹0.00');
+
+                    if (saleClosedChartInstance) {
+                        saleClosedChartInstance.updateOptions({
+                            xaxis: { categories: d.categories || [] }
+                        });
+                        saleClosedChartInstance.updateSeries([
+                            { name: 'Closed Sales', data: d.counts || [] },
+                            { name: 'Revenue (₹)', data: d.revenues || [] }
+                        ]);
+                    }
+                }
+            },
+            error: function() {
+                $('#saleClosedApexChart').css('opacity', '1');
+            }
+        });
+    });
+});
+</script>
+@endpush
 @endsection

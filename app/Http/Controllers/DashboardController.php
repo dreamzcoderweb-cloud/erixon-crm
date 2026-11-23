@@ -14,6 +14,7 @@ use App\Models\LeadRequirement;
 use App\Models\LostReason;
 use App\Models\Followup;
 use App\Models\Attendance;
+use App\Models\CallLog;
 use Spatie\Permission\Models\Role;
 
 use Illuminate\Support\Facades\Auth;
@@ -102,6 +103,44 @@ class DashboardController extends Controller
         ->take(5)
         ->get();
 
+        // 10. Total Calls Summary (Default: Day / Today)
+        $data['callsSummary'] = CallLog::getSummaryForUser($user, 'day');
+
+        // 11. Dynamic Sale Closed Chart Data (Default: Monthly)
+        $data['saleClosedChart'] = Lead::getSaleClosedChartData($user, 'monthly');
+
         return view('dashboard', $data);
+    }
+
+    /**
+     * AJAX endpoint for filtered Total Calls Summary (day, week, month, year).
+     */
+    public function callsSummary(Request $request)
+    {
+        $user = Auth::user();
+        $period = $request->input('period', 'day');
+        $data = CallLog::getSummaryForUser($user, $period);
+
+        return response()->json([
+            'status' => true,
+            'period' => $period,
+            'data'   => $data,
+        ]);
+    }
+
+    /**
+     * AJAX endpoint for dynamic Sale Closed Chart Data (weekly, monthly, yearly).
+     */
+    public function saleClosedChart(Request $request)
+    {
+        $user = Auth::user();
+        $period = $request->input('period', 'monthly');
+        $data = Lead::getSaleClosedChartData($user, $period);
+
+        return response()->json([
+            'status' => true,
+            'period' => $period,
+            'data'   => $data,
+        ]);
     }
 }

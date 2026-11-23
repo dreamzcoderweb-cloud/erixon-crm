@@ -95,8 +95,10 @@ Route::prefix('v1')->group(function () {
         // Mobile App Sale Closed Report & Period Filters (Daily, Monthly, Yearly, Custom)
         Route::get('reports/sale-closed', [SaleClosedApiController::class, 'report']);
         Route::get('reports/sale-closed/filters', [SaleClosedApiController::class, 'getFilterOptions']);
+        Route::get('reports/sale-closed/chart', [SaleClosedApiController::class, 'chartData']);
         Route::get('sale-closed/report', [SaleClosedApiController::class, 'report']);
         Route::get('sale-closed/filters', [SaleClosedApiController::class, 'getFilterOptions']);
+        Route::get('dashboard/sale-closed-chart', [SaleClosedApiController::class, 'chartData']);
 
         // Mobile App Follow-up Management & Additional Custom Fields
         Route::get('followups/form-data', [FollowupApiController::class, 'getFormData']);
@@ -116,6 +118,8 @@ Route::prefix('v1')->group(function () {
         Route::get('attendance/history', [AttendanceApiController::class, 'history']);
 
         // Mobile App Call Log & Call Recording Management
+        Route::get('dashboard/total-calls', [CallLogApiController::class, 'totalCallsSummary']);
+        Route::get('calls/summary', [CallLogApiController::class, 'totalCallsSummary']);
         Route::get('call-report/pdf', [CallLogApiController::class, 'exportPdf']);
         Route::get('call-report', [CallLogApiController::class, 'report']);
         Route::get('call-logs', [CallLogApiController::class, 'index']);

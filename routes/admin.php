@@ -57,6 +57,12 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])
         ->middleware('permission:dashboard.view')
         ->name('dashboard');
+    Route::get('dashboard/calls-summary', [DashboardController::class, 'callsSummary'])
+        ->middleware('permission:dashboard.view')
+        ->name('dashboard.calls-summary');
+    Route::get('dashboard/sale-closed-chart', [DashboardController::class, 'saleClosedChart'])
+        ->middleware('permission:dashboard.view')
+        ->name('dashboard.sale-closed-chart');
 
     // Notification routes
     Route::get('notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');

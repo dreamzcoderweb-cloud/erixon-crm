@@ -1689,4 +1689,32 @@ class CallLogApiController extends Controller
 
         return $pdf->download($fileName);
     }
+
+    /**
+     * Retrieve Total Calls summary with period filter (day, week, month, year).
+     * GET /api/v1/dashboard/total-calls
+     * GET /api/v1/calls/summary
+     */
+    public function totalCallsSummary(Request $request): JsonResponse
+    {
+        $currentUser = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$currentUser) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+
+        $period = $request->input('period', 'day');
+        $validPeriods = ['day', 'today', 'daily', 'week', 'weekly', 'month', 'monthly', 'year', 'yearly'];
+        if (!in_array(strtolower($period), $validPeriods)) {
+            $period = 'day';
+        }
+
+        $data = CallLog::getSummaryForUser($currentUser, $period);
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Total calls summary retrieved successfully.',
+            'period'  => $data['period'],
+            'data'    => $data,
+        ]);
+    }
 }

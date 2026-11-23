@@ -12,6 +12,7 @@ use App\Models\Team;
 use App\Models\User;
 use App\Traits\HasApiPermissionCheck;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -370,6 +371,34 @@ class SaleClosedApiController extends Controller
                 'lead_sources'      => $leadSources,
                 'years'             => $years,
             ],
+        ]);
+    }
+
+    /**
+     * Retrieve dynamic chart data for Sale Closed leads filtered by period (weekly, monthly, yearly).
+     * GET /api/v1/dashboard/sale-closed-chart
+     * GET /api/v1/reports/sale-closed/chart
+     */
+    public function chartData(Request $request): JsonResponse
+    {
+        $user = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$user) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+
+        $period = $request->input('period', 'monthly');
+        $validPeriods = ['weekly', 'week', 'monthly', 'month', 'yearly', 'year'];
+        if (!in_array(strtolower($period), $validPeriods)) {
+            $period = 'monthly';
+        }
+
+        $data = Lead::getSaleClosedChartData($user, $period);
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Sale closed chart data retrieved successfully.',
+            'period'  => $data['period'],
+            'data'    => $data,
         ]);
     }
 }

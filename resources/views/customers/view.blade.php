@@ -700,24 +700,23 @@
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label" for="import_customer_branch_id">
-                                    <i class="bx bx-buildings me-1 text-primary"></i>Assign Branch <span class="text-danger">*</span>
+                                <label class="form-label" for="import_customer_branch_ids">
+                                    <i class="bx bx-buildings me-1 text-primary"></i>Assign Branch(es) <span class="text-danger">*</span>
                                 </label>
-                                <select name="branch_id" id="import_customer_branch_id" class="form-select" required>
-                                    <option value="">-- Select Branch --</option>
+                                <select name="branch_ids[]" id="import_customer_branch_ids" class="form-select select2-multiple" multiple data-placeholder="Select Branch(es)" required>
                                     @foreach ($branches as $branch)
                                         <option value="{{ $branch->id }}" {{ (string) auth()->user()->branch_id === (string) $branch->id ? 'selected' : '' }}>
                                             {{ $branch->name }} ({{ $branch->code }})
                                         </option>
                                     @endforeach
                                 </select>
+                                <div class="form-text text-muted small">Select one or more branches for imported customers.</div>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label" for="import_customer_team_id">
-                                    <i class="bx bx-group me-1 text-info"></i>Assign Team <span class="text-danger">*</span>
+                                <label class="form-label" for="import_customer_team_ids">
+                                    <i class="bx bx-group me-1 text-info"></i>Assign Team(s) <span class="text-danger">*</span>
                                 </label>
-                                <select name="team_id" id="import_customer_team_id" class="form-select" required>
-                                    <option value="">-- Select Team --</option>
+                                <select name="team_ids[]" id="import_customer_team_ids" class="form-select select2-multiple" multiple data-placeholder="Select Team(s)" required>
                                     @if(isset($teams))
                                         @foreach ($teams as $team)
                                             <option value="{{ $team->id }}" data-branch="{{ $team->branch_id }}" {{ (string) auth()->user()->team_id === (string) $team->id ? 'selected' : '' }}>
@@ -726,6 +725,7 @@
                                         @endforeach
                                     @endif
                                 </select>
+                                <div class="form-text text-muted small">Select one or more teams for imported customers.</div>
                             </div>
                         </div>
                         <div class="mb-3">
@@ -759,30 +759,49 @@
     @push('scripts')
     <script>
         $(document).ready(function() {
+            // Initialize Select2 on Import Modal
+            $('#importCustomerModal').on('shown.bs.modal', function() {
+                $('#import_customer_branch_ids').select2({
+                    dropdownParent: $('#importCustomerModal'),
+                    placeholder: 'Select Branch(es)',
+                    allowClear: true,
+                    width: '100%'
+                });
+                $('#import_customer_team_ids').select2({
+                    dropdownParent: $('#importCustomerModal'),
+                    placeholder: 'Select Team(s)',
+                    allowClear: true,
+                    width: '100%'
+                });
+            });
+
             // Dynamic Team loading on Import Modal Branch change
-            $('#import_customer_branch_id').on('change', function() {
-                let branchId = $(this).val();
-                let $teamSelect = $('#import_customer_team_id');
-                $teamSelect.html('<option value="">Loading teams...</option>');
-                if (!branchId) {
-                    $teamSelect.html('<option value="">-- Select Team --</option>');
+            $('#import_customer_branch_ids').on('change', function() {
+                let branchIds = $(this).val();
+                let $teamSelect = $('#import_customer_team_ids');
+                let prevSelected = $teamSelect.val() || [];
+
+                if (!branchIds || branchIds.length === 0) {
+                    $teamSelect.html('').trigger('change');
                     return;
                 }
-                fetch('{{ url("admin/teams/by-branch") }}/' + branchId)
+
+                let branchQuery = Array.isArray(branchIds) ? branchIds.join(',') : branchIds;
+                fetch('{{ url("admin/teams/by-branch") }}/' + branchQuery)
                     .then(res => res.json())
                     .then(res => {
-                        let options = '<option value="">-- Select Team --</option>';
+                        let options = '';
                         if (res.status && res.data.length > 0) {
                             res.data.forEach(t => {
-                                options += `<option value="${t.id}">${t.name} (${t.code})</option>`;
+                                let isSelected = prevSelected.includes(String(t.id)) ? 'selected' : '';
+                                let branchLabel = t.branch ? ` (${t.branch.name})` : '';
+                                options += `<option value="${t.id}" ${isSelected}>${t.name} [${t.code}]${branchLabel}</option>`;
                             });
-                        } else {
-                            options = '<option value="">No active teams in this branch</option>';
                         }
-                        $teamSelect.html(options);
+                        $teamSelect.html(options).trigger('change');
                     })
                     .catch(() => {
-                        $teamSelect.html('<option value="">Failed to load teams</option>');
+                        $teamSelect.html('').trigger('change');
                     });
             });
 

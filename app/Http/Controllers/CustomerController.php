@@ -776,10 +776,14 @@ class CustomerController extends Controller
     public function import(Request $request)
     {
         $request->validate([
-            'excel_file' => 'required|file|mimes:xlsx,xls,csv,txt|max:10240',
-            'branch_id'  => 'nullable|exists:branches,id',
-            'team_id'    => 'nullable|exists:teams,id',
-            'owner_by'   => 'nullable|exists:users,id',
+            'excel_file'   => 'required|file|mimes:xlsx,xls,csv,txt|max:10240',
+            'branch_id'    => 'nullable',
+            'branch_ids'   => 'nullable|array',
+            'branch_ids.*' => 'exists:branches,id',
+            'team_id'      => 'nullable',
+            'team_ids'     => 'nullable|array',
+            'team_ids.*'   => 'exists:teams,id',
+            'owner_by'     => 'nullable|exists:users,id',
         ]);
 
         $file = $request->file('excel_file');
@@ -804,8 +808,43 @@ class CustomerController extends Controller
 
         // Defaults from request or logged in user
         $auth = Auth::user();
-        $defaultBranchId = $request->input('branch_id') ?: ($auth?->branch_id ?: Branch::where('code', 'BR-MAIN')->value('id'));
-        $defaultTeamId   = $request->input('team_id')   ?: ($auth?->team_id ?: Team::where('code', 'TM-MAIN')->value('id'));
+
+        // Resolve branch IDs (array + single fallback)
+        $defaultBranchIds = $request->input('branch_ids', []);
+        if (empty($defaultBranchIds) && $request->filled('branch_id')) {
+            $defaultBranchIds = [$request->input('branch_id')];
+        }
+        $defaultBranchIds = array_values(array_filter(array_unique(array_map('intval', (array)$defaultBranchIds))));
+
+        if (empty($defaultBranchIds) && $auth?->branch_id) {
+            $defaultBranchIds = [$auth->branch_id];
+        }
+        if (empty($defaultBranchIds)) {
+            $mainB = Branch::where('code', 'BR-MAIN')->value('id');
+            if ($mainB) {
+                $defaultBranchIds = [$mainB];
+            }
+        }
+        $defaultBranchId = $defaultBranchIds[0] ?? null;
+
+        // Resolve team IDs (array + single fallback)
+        $defaultTeamIds = $request->input('team_ids', []);
+        if (empty($defaultTeamIds) && $request->filled('team_id')) {
+            $defaultTeamIds = [$request->input('team_id')];
+        }
+        $defaultTeamIds = array_values(array_filter(array_unique(array_map('intval', (array)$defaultTeamIds))));
+
+        if (empty($defaultTeamIds) && $auth?->team_id) {
+            $defaultTeamIds = [$auth->team_id];
+        }
+        if (empty($defaultTeamIds)) {
+            $mainT = Team::where('code', 'TM-MAIN')->value('id');
+            if ($mainT) {
+                $defaultTeamIds = [$mainT];
+            }
+        }
+        $defaultTeamId = $defaultTeamIds[0] ?? null;
+
         $defaultOwnerBy  = $request->input('owner_by')  ?: null;
 
         // Normalize header row
@@ -971,28 +1010,34 @@ class CustomerController extends Controller
 
             // Resolve Branch
             $rowBranchId = $defaultBranchId;
+            $rowBranchIds = $defaultBranchIds;
             if (isset($headerIndexes['branch'])) {
                 $rawBranch = trim((string)($row[$headerIndexes['branch']] ?? ''));
                 if ($rawBranch !== '') {
                     $cleanB = strtolower(trim(preg_replace('/[^a-zA-Z0-9]/', '', $rawBranch)));
                     if (isset($branchMap[$cleanB])) {
                         $rowBranchId = $branchMap[$cleanB];
+                        $rowBranchIds = [$rowBranchId];
                     } elseif (isset($branchMap[$rawBranch])) {
                         $rowBranchId = $branchMap[$rawBranch];
+                        $rowBranchIds = [$rowBranchId];
                     }
                 }
             }
 
             // Resolve Team
             $rowTeamId = $defaultTeamId;
+            $rowTeamIds = $defaultTeamIds;
             if (isset($headerIndexes['team'])) {
                 $rawTeam = trim((string)($row[$headerIndexes['team']] ?? ''));
                 if ($rawTeam !== '') {
                     $cleanT = strtolower(trim(preg_replace('/[^a-zA-Z0-9]/', '', $rawTeam)));
                     if (isset($teamMap[$cleanT])) {
                         $rowTeamId = $teamMap[$cleanT];
+                        $rowTeamIds = [$rowTeamId];
                     } elseif (isset($teamMap[$rawTeam])) {
                         $rowTeamId = $teamMap[$rawTeam];
+                        $rowTeamIds = [$rowTeamId];
                     }
                 }
             }
@@ -1072,6 +1117,23 @@ class CustomerController extends Controller
                 }
 
                 $customer->update(array_filter($updateData, fn($v) => $v !== null && $v !== ''));
+
+                // Sync pivot tables for branches and teams
+                if (!empty($rowBranchIds)) {
+                    $bSync = [];
+                    foreach ($rowBranchIds as $bId) {
+                        $bSync[$bId] = ['is_primary' => ($bId == $rowBranchId ? 1 : 0)];
+                    }
+                    $customer->branches()->syncWithoutDetaching($bSync);
+                }
+                if (!empty($rowTeamIds)) {
+                    $tSync = [];
+                    foreach ($rowTeamIds as $tId) {
+                        $tSync[$tId] = ['is_primary' => ($tId == $rowTeamId ? 1 : 0)];
+                    }
+                    $customer->teams()->syncWithoutDetaching($tSync);
+                }
+
                 $updated++;
             } else {
                 $createData = [
@@ -1095,7 +1157,24 @@ class CustomerController extends Controller
                 if ($leadStageId !== null) {
                     $createData['lead_stage_id'] = $leadStageId;
                 }
-                Customer::create($createData);
+                $newCustomer = Customer::create($createData);
+
+                // Sync pivot tables for branches and teams
+                if (!empty($rowBranchIds)) {
+                    $bSync = [];
+                    foreach ($rowBranchIds as $bId) {
+                        $bSync[$bId] = ['is_primary' => ($bId == $rowBranchId ? 1 : 0)];
+                    }
+                    $newCustomer->branches()->syncWithoutDetaching($bSync);
+                }
+                if (!empty($rowTeamIds)) {
+                    $tSync = [];
+                    foreach ($rowTeamIds as $tId) {
+                        $tSync[$tId] = ['is_primary' => ($tId == $rowTeamId ? 1 : 0)];
+                    }
+                    $newCustomer->teams()->syncWithoutDetaching($tSync);
+                }
+
                 $imported++;
             }
         }

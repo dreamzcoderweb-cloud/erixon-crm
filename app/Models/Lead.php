@@ -6,6 +6,7 @@ use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Carbon\Carbon;
 
 class Lead extends Model
 {
@@ -181,5 +182,126 @@ class Lead extends Model
                     ->orWhere('created_by', $userId);
               });
         });
+    }
+
+    /**
+     * Retrieve dynamic chart data for Sale Closed leads filtered by period ('weekly', 'monthly', 'yearly').
+     */
+    public static function getSaleClosedChartData($user, string $period = 'monthly'): array
+    {
+        $period = strtolower(trim($period));
+        $saleClosedStageId = LeadStage::where(function ($q) {
+            $q->whereRaw('LOWER(name) LIKE ?', ['%sale%close%'])
+              ->orWhere('lead_stage_id', 6);
+        })->value('lead_stage_id') ?? 6;
+
+        $now = Carbon::now();
+        $categories = [];
+        $counts = [];
+        $revenues = [];
+
+        if (in_array($period, ['week', 'weekly'])) {
+            $period = 'weekly';
+            $start = $now->copy()->startOfWeek();
+            $end = $now->copy()->endOfWeek();
+            $periodLabel = 'This Week (' . $start->format('d M') . ' - ' . $end->format('d M Y') . ')';
+
+            $leads = self::forUser($user)
+                ->where('lead_stage_id', $saleClosedStageId)
+                ->whereBetween('updated_at', [$start, $end])
+                ->get(['lead_id', 'expected_amount', 'updated_at', 'created_at']);
+
+            for ($i = 0; $i < 7; $i++) {
+                $day = $start->copy()->addDays($i);
+                $dayStr = $day->format('Y-m-d');
+                $categories[] = $day->format('D (d M)');
+
+                $dayLeads = $leads->filter(function ($l) use ($dayStr) {
+                    $dt = $l->updated_at ?? $l->created_at;
+                    return $dt && Carbon::parse($dt)->format('Y-m-d') === $dayStr;
+                });
+
+                $counts[] = $dayLeads->count();
+                $revenues[] = (float)round($dayLeads->sum('expected_amount'), 2);
+            }
+        } elseif (in_array($period, ['year', 'yearly'])) {
+            $period = 'yearly';
+            $start = $now->copy()->startOfYear();
+            $end = $now->copy()->endOfYear();
+            $periodLabel = 'This Year (' . $now->format('Y') . ')';
+
+            $leads = self::forUser($user)
+                ->where('lead_stage_id', $saleClosedStageId)
+                ->whereBetween('updated_at', [$start, $end])
+                ->get(['lead_id', 'expected_amount', 'updated_at', 'created_at']);
+
+            for ($m = 1; $m <= 12; $m++) {
+                $monthDate = Carbon::create($now->year, $m, 1);
+                $monthStr = $monthDate->format('Y-m');
+                $categories[] = $monthDate->format('M');
+
+                $monthLeads = $leads->filter(function ($l) use ($monthStr) {
+                    $dt = $l->updated_at ?? $l->created_at;
+                    return $dt && Carbon::parse($dt)->format('Y-m') === $monthStr;
+                });
+
+                $counts[] = $monthLeads->count();
+                $revenues[] = (float)round($monthLeads->sum('expected_amount'), 2);
+            }
+        } else {
+            // Default: monthly
+            $period = 'monthly';
+            $start = $now->copy()->startOfMonth();
+            $end = $now->copy()->endOfMonth();
+            $periodLabel = 'This Month (' . $now->format('F Y') . ')';
+
+            $leads = self::forUser($user)
+                ->where('lead_stage_id', $saleClosedStageId)
+                ->whereBetween('updated_at', [$start, $end])
+                ->get(['lead_id', 'expected_amount', 'updated_at', 'created_at']);
+
+            // 5 Week Buckets for the current month
+            $daysInMonth = $now->daysInMonth;
+            $buckets = [
+                ['name' => 'Week 1 (1-7)',   'start' => 1,  'end' => 7],
+                ['name' => 'Week 2 (8-14)',  'start' => 8,  'end' => 14],
+                ['name' => 'Week 3 (15-21)', 'start' => 15, 'end' => 21],
+                ['name' => 'Week 4 (22-28)', 'start' => 22, 'end' => 28],
+                ['name' => 'Week 5 (29-' . $daysInMonth . ')', 'start' => 29, 'end' => $daysInMonth],
+            ];
+
+            foreach ($buckets as $b) {
+                $categories[] = $b['name'];
+                $bLeads = $leads->filter(function ($l) use ($b, $now) {
+                    $dt = $l->updated_at ?? $l->created_at;
+                    if (!$dt) return false;
+                    $cDate = Carbon::parse($dt);
+                    if ($cDate->format('Y-m') !== $now->format('Y-m')) return false;
+                    $dayNum = (int)$cDate->format('j');
+                    return $dayNum >= $b['start'] && $dayNum <= $b['end'];
+                });
+
+                $counts[] = $bLeads->count();
+                $revenues[] = (float)round($bLeads->sum('expected_amount'), 2);
+            }
+        }
+
+        $totalClosedCount = array_sum($counts);
+        $totalClosedRevenue = round(array_sum($revenues), 2);
+        $avgDealValue = $totalClosedCount > 0 ? round($totalClosedRevenue / $totalClosedCount, 2) : 0;
+
+        return [
+            'period'                         => $period,
+            'period_label'                   => $periodLabel,
+            'categories'                     => $categories,
+            'counts'                         => $counts,
+            'revenues'                       => $revenues,
+            'total_closed_count'             => $totalClosedCount,
+            'total_closed_revenue'           => $totalClosedRevenue,
+            'total_closed_revenue_formatted' => '₹' . number_format($totalClosedRevenue, 2),
+            'avg_deal_value'                 => $avgDealValue,
+            'avg_deal_value_formatted'       => '₹' . number_format($avgDealValue, 2),
+            'currency'                       => '₹',
+        ];
     }
 }
