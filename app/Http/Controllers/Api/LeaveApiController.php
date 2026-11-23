@@ -10,6 +10,7 @@ use App\Notifications\LeaveQuotaCompleted;
 use App\Notifications\LeaveRequestApproved;
 use App\Notifications\LeaveRequestRejected;
 use App\Notifications\LeaveRequestSubmitted;
+use App\Services\LeaveApprovalService;
 use App\Traits\HasApiPermissionCheck;
 use App\Traits\SendsPushNotifications;
 use Carbon\Carbon;
@@ -118,38 +119,58 @@ class LeaveApiController extends Controller
         }
 
         $isSuperAdmin = $currentUser->isSuperAdmin();
-        $canManageStaffLeaves = $isSuperAdmin || $currentUser->isAdmin();
+        $isMd         = $currentUser->isMd();
+        $isHr         = $currentUser->isHr();
+        $canManageStaffLeaves = $isSuperAdmin || $currentUser->isAdmin() || $isMd || $isHr;
+        $accessibleTeamIds    = $currentUser->accessibleTeamIds();
 
-        $canApprove   = $currentUser->isAdmin() || $isSuperAdmin;
+        $canApprove   = $canManageStaffLeaves || !empty($accessibleTeamIds);
         $canDelete    = $currentUser->isAdmin() || $isSuperAdmin;
         $canCreate    = ($currentUser->staff_type !== 'Temporary') && ($this->hasPermission($currentUser, 'leaves.create'));
 
         $query = LeaveRequest::with([
-            'user:id,name,email,profile_image',
+            'user:id,name,email,profile_image,team_id,designation',
             'approver:id,name,email',
+            'tlApprover:id,name',
+            'hrApprover:id,name',
+            'mdApprover:id,name',
         ]);
 
-        // Base user scoping: Managers/Admins/Super Admins see all staff requests; normal staff see only their own
-        if (!$canManageStaffLeaves) {
-            $query->where('user_id', $currentUser->id);
-        } else {
+        // Scoping: Super Admin, MD, HR see all. Team Leader sees team members + self. Normal staff sees self.
+        if ($canManageStaffLeaves) {
             if ($request->filled('user_id')) {
                 $query->where('user_id', $request->input('user_id'));
             }
+        } elseif (!empty($accessibleTeamIds)) {
+            $query->where(function ($q) use ($currentUser, $accessibleTeamIds) {
+                $q->where('user_id', $currentUser->id)
+                  ->orWhereHas('user', function ($uq) use ($accessibleTeamIds) {
+                      $uq->whereIn('team_id', $accessibleTeamIds);
+                  });
+            });
+        } else {
+            $query->where('user_id', $currentUser->id);
         }
 
         // Compute KPI Summary statistics (Total, Pending, Approved, Rejected) based on user's scope
         $statsQuery = LeaveRequest::query();
-        if (!$canManageStaffLeaves) {
-            $statsQuery->where('user_id', $currentUser->id);
-        } else {
+        if ($canManageStaffLeaves) {
             if ($request->filled('user_id')) {
                 $statsQuery->where('user_id', $request->input('user_id'));
             }
+        } elseif (!empty($accessibleTeamIds)) {
+            $statsQuery->where(function ($q) use ($currentUser, $accessibleTeamIds) {
+                $q->where('user_id', $currentUser->id)
+                  ->orWhereHas('user', function ($uq) use ($accessibleTeamIds) {
+                      $uq->whereIn('team_id', $accessibleTeamIds);
+                  });
+            });
+        } else {
+            $statsQuery->where('user_id', $currentUser->id);
         }
 
         $totalRequests    = (clone $statsQuery)->count();
-        $pendingRequests  = (clone $statsQuery)->where('status', 'Pending')->count();
+        $pendingRequests  = (clone $statsQuery)->where('status', 'LIKE', '%Pending%')->count();
         $approvedRequests = (clone $statsQuery)->where('status', 'Approved')->count();
         $rejectedRequests = (clone $statsQuery)->where('status', 'Rejected')->count();
 
@@ -298,6 +319,9 @@ class LeaveApiController extends Controller
             ], 422);
         }
 
+        $approvalService = app(LeaveApprovalService::class);
+        $stageInfo = $approvalService->determineInitialStage($targetUser);
+
         $leave = LeaveRequest::create([
             'user_id'        => $targetUserId,
             'from_date'      => $validated['from_date'],
@@ -305,63 +329,20 @@ class LeaveApiController extends Controller
             'number_of_days' => $validated['number_of_days'],
             'leave_type'     => $validated['leave_type'],
             'reason'         => $validated['reason'] ?? null,
-            'status'         => 'Pending',
+            'approval_stage' => $stageInfo['approval_stage'],
+            'status'         => $stageInfo['status'],
         ]);
 
-        // Dispatch notifications to target staff and Super Admins
+        // Dispatch notifications according to workflow stage
+        $approvalService->notifyOnSubmit($leave, $targetUser);
+
+        // Leave quota check
         try {
-            $fromDate  = Carbon::parse($leave->from_date)->format('d-m-Y');
-            $toDate    = Carbon::parse($leave->to_date)->format('d-m-Y');
-            $monthName = Carbon::parse($leave->from_date)->format('F Y');
-            $days      = $leave->number_of_days;
-            $staffName = $targetUser->name ?? 'Staff';
-            $staffEmail = $targetUser->email ?? '';
-
-            // 1. Notify target staff member about submission
-            $targetUser->notify(new LeaveRequestSubmitted($leave));
-            $this->sendPushNotification(
-                $targetUser,
-                'Leave Request Submitted',
-                "Your leave request for {$fromDate} to {$toDate} ({$days} day(s)) [{$monthName}] has been submitted and is pending approval.",
-                [
-                    'leave_id' => (string) $leave->id,
-                    'id'       => (string) $leave->id,
-                    'status'   => (string) $leave->status,
-                    'type'     => 'leave_request',
-                ]
-            );
-
-            // 2. Notify Super Admins if request was submitted
-            $superAdmins = User::where(function ($q) {
-                $q->whereHas('roles', function ($rq) {
-                    $rq->whereRaw('LOWER(name) IN (?, ?, ?)', ['super admin', 'super-admin', 'admin']);
-                })->orWhere('id', 1);
-            })
-            ->where('id', '!=', $currentUser->id)
-            ->get();
-
-            foreach ($superAdmins as $admin) {
-                $admin->notify(new AdminLeaveRequestReceived($leave, $targetUser));
-                $this->sendPushNotification(
-                    $admin,
-                    'New Leave Request Pending Approval',
-                    "{$staffName} ({$staffEmail}) submitted a leave request for {$fromDate} to {$toDate} ({$days} day(s)) pending approval.",
-                    [
-                        'leave_id' => (string) $leave->id,
-                        'id'       => (string) $leave->id,
-                        'status'   => (string) $leave->status,
-                        'user_id'  => (string) $targetUser->id,
-                        'type'     => 'leave_request',
-                    ]
-                );
-            }
-
-            // 3. Leave Quota check and notification (matching admin panel logic)
             $allowedLeaveDays = (float) ($targetUser->available_leave_count ?? 0);
             if ($allowedLeaveDays > 0) {
                 $month = Carbon::parse($validated['from_date']);
                 $usedLeaveDays = (float) LeaveRequest::where('user_id', $targetUser->id)
-                    ->whereIn('status', ['Approved', 'Pending'])
+                    ->whereIn('status', ['Approved', 'Pending', 'Pending TL Approval', 'Pending HR Approval', 'Pending MD Approval'])
                     ->whereDate('from_date', '<=', $month->copy()->endOfMonth())
                     ->whereDate('to_date', '>=', $month->copy()->startOfMonth())
                     ->sum('number_of_days');
@@ -377,6 +358,15 @@ class LeaveApiController extends Controller
                         'Leave Quota Alert',
                         "You have used " . round($usedLeaveDays, 2) . " of {$allowedLeaveDays} allowed leave days for " . $month->format('F') . ".",
                         [
+                            'type'  => 'leave_quota',
+                            'month' => $month->format('F'),
+                        ]
+                    );
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::error('LeaveApiController: Error in quota check: ' . $e->getMessage());
+        }
                             'type'  => 'leave_quota',
                             'month' => $month->format('F'),
                         ]
@@ -439,7 +429,7 @@ class LeaveApiController extends Controller
     }
 
     /**
-     * Approve leave request (Admin action).
+     * Approve leave request (Stage-aware: TL -> HR -> MD).
      * Accessible via POST /api/v1/leave-requests/approve/{id} (or /api/v1/leaves/approve/{id})
      */
     public function approve(Request $request, $id): JsonResponse
@@ -449,74 +439,34 @@ class LeaveApiController extends Controller
             return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
         }
 
-        if (!$currentUser->can('leaves.approve') && !$currentUser->hasRole(['Super Admin', 'Admin']) && !$currentUser->isAdmin() && !$currentUser->isSuperAdmin()) {
-            return response()->json(['status' => false, 'message' => 'Unauthorized action. Permission leaves.approve required.'], 403);
-        }
-
         $leave = LeaveRequest::find($id);
         if (!$leave) {
             return response()->json(['status' => false, 'message' => 'Leave request not found.'], 404);
         }
 
-        $leave->status = 'Approved';
-        $leave->approved_by = $currentUser->id;
-        if ($request->has('admin_remarks')) {
-            $leave->admin_remarks = $request->input('admin_remarks');
-        }
-        $leave->save();
-
-        // Update staff is_on_leave status if approved leave includes today
-        $today = Carbon::today()->toDateString();
-        $staff = User::find($leave->user_id);
-        if ($leave->from_date && $leave->to_date) {
-            $fromDateStr = Carbon::parse($leave->from_date)->toDateString();
-            $toDateStr   = Carbon::parse($leave->to_date)->toDateString();
-            if ($fromDateStr <= $today && $toDateStr >= $today) {
-                if ($staff) {
-                    $staff->is_on_leave = true;
-                    $staff->save();
-                }
-            }
+        $approvalService = app(LeaveApprovalService::class);
+        if (!$approvalService->canUserApprove($currentUser, $leave)) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Unauthorized action. You are not authorized to approve at the current stage (' . strtoupper($leave->approval_stage ?? 'tl') . ').'
+            ], 403);
         }
 
-        // Notify staff member that leave was approved
-        try {
-            if ($staff) {
-                $fromDate  = Carbon::parse($leave->from_date)->format('d-m-Y');
-                $toDate    = Carbon::parse($leave->to_date)->format('d-m-Y');
-                $monthName = Carbon::parse($leave->from_date)->format('F Y');
-                $days      = $leave->number_of_days;
+        $result = $approvalService->approveStage($currentUser, $leave, $request->input('admin_remarks'));
 
-                $staff->notify(new LeaveRequestApproved($leave));
-                $this->sendPushNotification(
-                    $staff,
-                    'Leave Request Approved',
-                    "Your leave request for {$fromDate} to {$toDate} ({$days} day(s)) [{$monthName}] has been approved by admin.",
-                    [
-                        'leave_id' => (string) $leave->id,
-                        'id'       => (string) $leave->id,
-                        'status'   => 'Approved',
-                        'type'     => 'leave_request',
-                    ]
-                );
-            }
-        } catch (\Throwable $e) {
-            Log::error('LeaveApiController: Error in approve notifications: ' . $e->getMessage());
-        }
-
-        $leave->load(['user:id,name,email,profile_image', 'approver:id,name,email']);
-        $canApprove = true;
+        $leave->load(['user:id,name,email,profile_image,team_id,designation', 'approver:id,name,email']);
+        $canApprove = $approvalService->canUserApprove($currentUser, $leave);
         $canDelete  = $currentUser->can('leaves.delete') || $currentUser->isAdmin() || $currentUser->isSuperAdmin();
 
         return response()->json([
             'status'  => true,
-            'message' => 'Leave request approved successfully.',
+            'message' => $result['message'],
             'data'    => $this->formatLeaveRecord($leave, $currentUser, $canApprove, $canDelete),
         ]);
     }
 
     /**
-     * Reject leave request (Admin action).
+     * Reject leave request (Stage-aware: TL / HR / MD).
      * Accessible via POST /api/v1/leave-requests/reject/{id} (or /api/v1/leaves/reject/{id})
      */
     public function reject(Request $request, $id): JsonResponse
@@ -526,55 +476,28 @@ class LeaveApiController extends Controller
             return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
         }
 
-        if (!$currentUser->can('leaves.approve') && !$currentUser->hasRole(['Super Admin', 'Admin']) && !$currentUser->isAdmin() && !$currentUser->isSuperAdmin()) {
-            return response()->json(['status' => false, 'message' => 'Unauthorized action. Permission leaves.approve required.'], 403);
-        }
-
         $leave = LeaveRequest::find($id);
         if (!$leave) {
             return response()->json(['status' => false, 'message' => 'Leave request not found.'], 404);
         }
 
-        $leave->status = 'Rejected';
-        $leave->approved_by = $currentUser->id;
-        if ($request->has('admin_remarks')) {
-            $leave->admin_remarks = $request->input('admin_remarks');
-        }
-        $leave->save();
-
-        // Notify staff member that leave was rejected
-        try {
-            $staff = User::find($leave->user_id);
-            if ($staff) {
-                $fromDate  = Carbon::parse($leave->from_date)->format('d-m-Y');
-                $toDate    = Carbon::parse($leave->to_date)->format('d-m-Y');
-                $monthName = Carbon::parse($leave->from_date)->format('F Y');
-                $days      = $leave->number_of_days;
-
-                $staff->notify(new LeaveRequestRejected($leave));
-                $this->sendPushNotification(
-                    $staff,
-                    'Leave Request Rejected',
-                    "Your leave request for {$fromDate} to {$toDate} ({$days} day(s)) [{$monthName}] has been rejected by admin.",
-                    [
-                        'leave_id' => (string) $leave->id,
-                        'id'       => (string) $leave->id,
-                        'status'   => 'Rejected',
-                        'type'     => 'leave_request',
-                    ]
-                );
-            }
-        } catch (\Throwable $e) {
-            Log::error('LeaveApiController: Error in reject notifications: ' . $e->getMessage());
+        $approvalService = app(LeaveApprovalService::class);
+        if (!$approvalService->canUserApprove($currentUser, $leave)) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Unauthorized action. You are not authorized to reject at the current stage (' . strtoupper($leave->approval_stage ?? 'tl') . ').'
+            ], 403);
         }
 
-        $leave->load(['user:id,name,email,profile_image', 'approver:id,name,email']);
-        $canApprove = true;
+        $result = $approvalService->rejectStage($currentUser, $leave, $request->input('admin_remarks'));
+
+        $leave->load(['user:id,name,email,profile_image,team_id,designation', 'approver:id,name,email']);
+        $canApprove = false;
         $canDelete  = $currentUser->can('leaves.delete') || $currentUser->isAdmin() || $currentUser->isSuperAdmin();
 
         return response()->json([
             'status'  => true,
-            'message' => 'Leave request rejected.',
+            'message' => $result['message'],
             'data'    => $this->formatLeaveRecord($leave, $currentUser, $canApprove, $canDelete),
         ]);
     }
@@ -629,36 +552,50 @@ class LeaveApiController extends Controller
         $badgeColor = match (strtolower($leave->status)) {
             'approved' => 'success',
             'rejected' => 'danger',
-            default    => 'warning', // Pending
+            default    => 'warning',
         };
 
+        $approvalService = app(LeaveApprovalService::class);
+        $userCanApproveRow = $approvalService->canUserApprove($currentUser, $leave) && ($leave->user_id !== $currentUser->id);
+
         return [
-            'id'                 => (int) $leave->id,
-            'leave_id'           => (int) $leave->id,
-            'user_id'            => (int) $leave->user_id,
-            'staff_name'         => $staffName,
-            'staff_email'        => $staffEmail,
-            'staff_initial'      => $initial,
-            'staff_avatar'       => $leave->user?->profile_image_url ?? asset('assets/img/avatars/1.png'),
-            'leave_type'         => $leave->leave_type,
-            'from_date'          => $fromDateCarbon ? $fromDateCarbon->toDateString() : null,
-            'to_date'            => $toDateCarbon ? $toDateCarbon->toDateString() : null,
-            'from_date_formatted'=> $fromDateFormatted,
-            'to_date_formatted'  => $toDateFormatted,
-            'date_range'         => $dateRange,
-            'number_of_days'     => $days,
-            'days_text'          => $daysText,
-            'reason'             => $leave->reason ?? '',
-            'status'             => $leave->status,
-            'status_badge_color' => $badgeColor,
-            'approved_by'        => $leave->approved_by ? (int) $leave->approved_by : null,
-            'approver_name'      => $leave->approver?->name,
-            'admin_remarks'      => $leave->admin_remarks,
-            'created_at'         => $leave->created_at ? $leave->created_at->format('Y-m-d H:i:s') : null,
+            'id'                  => (int) $leave->id,
+            'leave_id'            => (int) $leave->id,
+            'user_id'             => (int) $leave->user_id,
+            'staff_name'          => $staffName,
+            'staff_email'         => $staffEmail,
+            'staff_initial'       => $initial,
+            'staff_avatar'        => $leave->user?->profile_image_url ?? asset('assets/img/avatars/1.png'),
+            'leave_type'          => $leave->leave_type,
+            'from_date'           => $fromDateCarbon ? $fromDateCarbon->toDateString() : null,
+            'to_date'             => $toDateCarbon ? $toDateCarbon->toDateString() : null,
+            'from_date_formatted' => $fromDateFormatted,
+            'to_date_formatted'   => $toDateFormatted,
+            'date_range'          => $dateRange,
+            'number_of_days'      => $days,
+            'days_text'           => $daysText,
+            'reason'              => $leave->reason ?? '',
+            'status'              => $leave->status,
+            'status_badge_color'  => $badgeColor,
+            'approval_stage'      => $leave->approval_stage ?? 'tl',
+            'stage_label'         => strtoupper($leave->approval_stage ?? 'tl'),
+            'approved_by'         => $leave->approved_by ? (int) $leave->approved_by : null,
+            'approver_name'       => $leave->approver?->name,
+            'admin_remarks'       => $leave->admin_remarks,
+            'tl_approved_by'      => $leave->tl_approved_by ? (int)$leave->tl_approved_by : null,
+            'tl_approved_at'      => $leave->tl_approved_at ? $leave->tl_approved_at->format('Y-m-d H:i:s') : null,
+            'tl_remarks'          => $leave->tl_remarks,
+            'hr_approved_by'      => $leave->hr_approved_by ? (int)$leave->hr_approved_by : null,
+            'hr_approved_at'      => $leave->hr_approved_at ? $leave->hr_approved_at->format('Y-m-d H:i:s') : null,
+            'hr_remarks'          => $leave->hr_remarks,
+            'md_approved_by'      => $leave->md_approved_by ? (int)$leave->md_approved_by : null,
+            'md_approved_at'      => $leave->md_approved_at ? $leave->md_approved_at->format('Y-m-d H:i:s') : null,
+            'md_remarks'          => $leave->md_remarks,
+            'created_at'          => $leave->created_at ? $leave->created_at->format('Y-m-d H:i:s') : null,
             'created_at_formatted'=> $leave->created_at ? $leave->created_at->format('d-m-Y h:i A') : null,
-            'actions'            => [
-                'can_approve' => $canApprove && ($leave->status === 'Pending') && ($leave->user_id !== $currentUser->id),
-                'can_reject'  => $canApprove && ($leave->status === 'Pending') && ($leave->user_id !== $currentUser->id),
+            'actions'             => [
+                'can_approve' => $userCanApproveRow,
+                'can_reject'  => $userCanApproveRow,
                 'can_delete'  => $canDelete,
             ],
         ];

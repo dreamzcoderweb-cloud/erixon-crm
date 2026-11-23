@@ -152,6 +152,32 @@ class User extends Authenticatable
         return $this->id != 1 && !$this->isSuperAdmin();
     }
 
+    /**
+     * Check if user has HR designation or role
+     */
+    public function isHr(): bool
+    {
+        $des = strtolower(trim((string)$this->designation));
+        if (str_contains($des, 'hr')) {
+            return true;
+        }
+
+        return $this->hasAnyRole(['HR', 'hr', 'Hr', 'HR Manager', 'hr manager', 'HR / Admin']);
+    }
+
+    /**
+     * Check if user has MD designation or is Super Admin
+     */
+    public function isMd(): bool
+    {
+        $des = strtolower(trim((string)$this->designation));
+        if (str_contains($des, 'md') || str_contains($des, 'managing director')) {
+            return true;
+        }
+
+        return $this->id === 1 || $this->isSuperAdmin();
+    }
+
     public function branch()
     {
         return $this->belongsTo(Branch::class, 'branch_id');

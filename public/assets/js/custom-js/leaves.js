@@ -126,11 +126,14 @@ $(document).ready(function () {
                 },
                 {
                     data: 'status',
-                    render: function (data, type) {
+                    render: function (data, type, row) {
                         if (type !== 'display') return data || 'Pending';
                         let badgeClass = 'bg-label-warning';
                         if (data === 'Approved') badgeClass = 'bg-label-success';
                         else if (data === 'Rejected') badgeClass = 'bg-label-danger';
+                        else if (data && data.includes('TL')) badgeClass = 'bg-label-info';
+                        else if (data && data.includes('HR')) badgeClass = 'bg-label-primary';
+                        else if (data && data.includes('MD')) badgeClass = 'bg-label-warning';
                         return `<span class="badge ${badgeClass}"><i class="bx ${data === 'Approved' ? 'bx-check-circle' : (data === 'Rejected' ? 'bx-x-circle' : 'bx-time')} me-1"></i>${data || 'Pending'}</span>`;
                     }
                 },
@@ -140,12 +143,13 @@ $(document).ready(function () {
                     render: function (data, type, row) {
                         let dropdownItemsHtml = '';
 
-                        // Admin Approve / Reject actions
-                        if (userCanApprove) {
-                            if (row.status === 'Pending') {
+                        // Stage-aware Approve / Reject actions
+                        if (row.can_approve || userCanApprove) {
+                            if (!['Approved', 'Rejected'].includes(row.status)) {
+                                let stageText = row.stage_label ? ` (${row.stage_label})` : '';
                                 dropdownItemsHtml += `
                                     <a class="dropdown-item text-success btn-action-leave" href="javascript:void(0);" data-id="${row.id}" data-action="approve">
-                                        <i class="bx bx-check me-1"></i> Approve
+                                        <i class="bx bx-check me-1"></i> Approve${stageText}
                                     </a>
                                     <a class="dropdown-item text-danger btn-action-leave" href="javascript:void(0);" data-id="${row.id}" data-action="reject">
                                         <i class="bx bx-x me-1"></i> Reject

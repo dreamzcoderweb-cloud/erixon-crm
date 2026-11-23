@@ -23,14 +23,27 @@ class LeaveRequest extends Model
         'leave_type',
         'reason',
         'status',
+        'approval_stage',
         'approved_by',
         'admin_remarks',
+        'tl_approved_by',
+        'tl_approved_at',
+        'tl_remarks',
+        'hr_approved_by',
+        'hr_approved_at',
+        'hr_remarks',
+        'md_approved_by',
+        'md_approved_at',
+        'md_remarks',
     ];
 
     protected $casts = [
-        'from_date' => 'date',
-        'to_date' => 'date',
-        'number_of_days' => 'float',
+        'from_date'       => 'date',
+        'to_date'         => 'date',
+        'number_of_days'  => 'float',
+        'tl_approved_at'  => 'datetime',
+        'hr_approved_at'  => 'datetime',
+        'md_approved_at'  => 'datetime',
     ];
 
     public function user()
@@ -41,5 +54,20 @@ class LeaveRequest extends Model
     public function approver()
     {
         return $this->belongsTo(User::class, 'approved_by', 'id');
+    }
+
+    public function tlApprover()
+    {
+        return $this->belongsTo(User::class, 'tl_approved_by', 'id');
+    }
+
+    public function hrApprover()
+    {
+        return $this->belongsTo(User::class, 'hr_approved_by', 'id');
+    }
+
+    public function mdApprover()
+    {
+        return $this->belongsTo(User::class, 'md_approved_by', 'id');
     }
 }

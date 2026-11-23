@@ -278,6 +278,20 @@ SELECT `lead_id`, `branch_id`, 1, NOW(), NOW() FROM `leads` WHERE `branch_id` IS
 INSERT IGNORE INTO `lead_team` (`lead_id`, `team_id`, `is_primary`, `created_at`, `updated_at`)
 SELECT `lead_id`, `team_id`, 1, NOW(), NOW() FROM `leads` WHERE `team_id` IS NOT NULL AND `team_id` > 0;
 
+-- 17. Multi-Stage Leave Approval Columns (TL -> HR -> MD)
+ALTER TABLE `leave_requests` 
+  MODIFY COLUMN `status` VARCHAR(50) NOT NULL DEFAULT 'Pending',
+  ADD COLUMN IF NOT EXISTS `approval_stage` VARCHAR(30) NULL DEFAULT 'tl' AFTER `status`,
+  ADD COLUMN IF NOT EXISTS `tl_approved_by` BIGINT UNSIGNED NULL AFTER `approved_by`,
+  ADD COLUMN IF NOT EXISTS `tl_approved_at` TIMESTAMP NULL AFTER `tl_approved_by`,
+  ADD COLUMN IF NOT EXISTS `tl_remarks` TEXT NULL AFTER `tl_approved_at`,
+  ADD COLUMN IF NOT EXISTS `hr_approved_by` BIGINT UNSIGNED NULL AFTER `tl_remarks`,
+  ADD COLUMN IF NOT EXISTS `hr_approved_at` TIMESTAMP NULL AFTER `hr_approved_by`,
+  ADD COLUMN IF NOT EXISTS `hr_remarks` TEXT NULL AFTER `hr_approved_at`,
+  ADD COLUMN IF NOT EXISTS `md_approved_by` BIGINT UNSIGNED NULL AFTER `hr_remarks`,
+  ADD COLUMN IF NOT EXISTS `md_approved_at` TIMESTAMP NULL AFTER `md_approved_by`,
+  ADD COLUMN IF NOT EXISTS `md_remarks` TEXT NULL AFTER `md_approved_at`;
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ==============================================================================

@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\ProposalApiController;
 use App\Http\Controllers\Api\BranchApiController;
 use App\Http\Controllers\Api\TeamApiController;
 use App\Http\Controllers\Api\SaleClosedApiController;
+use App\Http\Controllers\Api\CoordinationApiController;
 use App\Http\Controllers\NotificationController;
 
 use Illuminate\Support\Facades\Route;
@@ -186,6 +187,17 @@ Route::prefix('v1')->group(function () {
         Route::post('commitments/update/{id}', [CommitmentApiController::class, 'update']);
         Route::delete('commitments/{id}', [CommitmentApiController::class, 'destroy']);
         Route::delete('commitments/delete/{id}', [CommitmentApiController::class, 'destroy']);
+
+        // 4. Coordination Management
+        Route::get('coordinations/form-data', [CoordinationApiController::class, 'getFormData']);
+        Route::get('coordinations', [CoordinationApiController::class, 'index']);
+        Route::post('coordinations', [CoordinationApiController::class, 'store']);
+        Route::get('coordinations/{id}', [CoordinationApiController::class, 'show']);
+        Route::post('coordinations/update/{id}', [CoordinationApiController::class, 'update']);
+        Route::put('coordinations/{id}', [CoordinationApiController::class, 'update']);
+        Route::post('coordinations/toggle-join/{id}', [CoordinationApiController::class, 'toggleJoinStatus']);
+        Route::delete('coordinations/{id}', [CoordinationApiController::class, 'destroy']);
+        Route::delete('coordinations/delete/{id}', [CoordinationApiController::class, 'destroy']);
     });
 
     // Direct / Browser PDF download route with token parameter

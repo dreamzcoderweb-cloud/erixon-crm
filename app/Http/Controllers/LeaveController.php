@@ -11,6 +11,7 @@ use App\Notifications\LeaveRequestApproved;
 use App\Notifications\LeaveRequestRejected;
 use App\Notifications\LeaveRequestSubmitted;
 use App\Services\SalaryCalculationService;
+use App\Services\LeaveApprovalService;
 use App\Traits\SendsPushNotifications;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -27,8 +28,10 @@ class LeaveController extends Controller
         }
 
         $user = Auth::user();
-        if ($user->isSuperAdmin()) {
+        if ($user->isSuperAdmin() || $user->isMd() || $user->isHr()) {
             $data['staffs'] = User::staffOnly()->orderBy('name')->get();
+        } elseif ($user->accessibleTeamIds()) {
+            $data['staffs'] = User::staffOnly()->whereIn('team_id', $user->accessibleTeamIds())->orderBy('name')->get();
         } else {
             $data['staffs'] = User::where('id', $user->id)->get();
         }
@@ -39,20 +42,37 @@ class LeaveController extends Controller
     public function listData(Request $request)
     {
         $user = Auth::user();
-        $query = LeaveRequest::with(['user:id,name,email', 'approver:id,name']);
+        $approvalService = app(LeaveApprovalService::class);
+        $query = LeaveRequest::with([
+            'user:id,name,email,team_id,designation',
+            'approver:id,name',
+            'tlApprover:id,name',
+            'hrApprover:id,name',
+            'mdApprover:id,name',
+        ]);
 
         $isSuperAdmin = $user->isSuperAdmin();
-        $canApprove   = $user->can('leaves.approve') || $isSuperAdmin;
+        $isMd         = $user->isMd();
+        $isHr         = $user->isHr();
         $canDelete    = $user->can('leaves.delete') || $isSuperAdmin;
 
-        // Only Super Admin can view all staff list details.
-        // Non-Super Admin staff (e.g. Tharik) can only see their own leave requests.
-        if (!$isSuperAdmin) {
-            $query->where('user_id', $user->id);
-        } else {
+        // Scoping: Super Admin, MD, and HR see all staff leaves.
+        // Team Leader sees own team members' leaves + own leaves.
+        // Normal staff sees only own leaves.
+        if ($isSuperAdmin || $isMd || $isHr) {
             if ($request->filled('user_id')) {
                 $query->where('user_id', $request->input('user_id'));
             }
+        } elseif (!empty($user->accessibleTeamIds())) {
+            $teamIds = $user->accessibleTeamIds();
+            $query->where(function ($q) use ($user, $teamIds) {
+                $q->where('user_id', $user->id)
+                  ->orWhereHas('user', function ($uq) use ($teamIds) {
+                      $uq->whereIn('team_id', $teamIds);
+                  });
+            });
+        } else {
+            $query->where('user_id', $user->id);
         }
 
         if ($request->filled('status')) {
@@ -61,11 +81,18 @@ class LeaveController extends Controller
 
         $leaves = $query->orderBy('id', 'DESC')->get();
 
+        $data = $leaves->map(function ($l) use ($user, $approvalService) {
+            $item = $l->toArray();
+            $item['can_approve'] = $approvalService->canUserApprove($user, $l);
+            $item['stage_label'] = strtoupper($l->approval_stage ?? 'tl');
+            return $item;
+        });
+
         return response()->json([
             'status'      => true,
-            'can_approve' => $canApprove,
+            'can_approve' => $isSuperAdmin || $isMd || $isHr || !empty($user->accessibleTeamIds()),
             'can_delete'  => $canDelete,
-            'data'        => $leaves
+            'data'        => $data
         ]);
     }
 
@@ -85,6 +112,10 @@ class LeaveController extends Controller
             $targetUserId = $validated['user_id'];
         }
 
+        $targetUser = User::find($targetUserId);
+        $approvalService = app(LeaveApprovalService::class);
+        $stageInfo = $approvalService->determineInitialStage($targetUser);
+
         $leave = LeaveRequest::create([
             'user_id'        => $targetUserId,
             'from_date'      => $validated['from_date'],
@@ -92,64 +123,20 @@ class LeaveController extends Controller
             'number_of_days' => $validated['number_of_days'],
             'leave_type'     => $validated['leave_type'],
             'reason'         => $validated['reason'] ?? null,
-            'status'         => 'Pending',
+            'approval_stage' => $stageInfo['approval_stage'],
+            'status'         => $stageInfo['status'],
         ]);
 
-        $targetUser = User::find($targetUserId);
+        // Dispatch notifications according to workflow stage
+        $approvalService->notifyOnSubmit($leave, $targetUser);
 
-        // Dispatch notifications to target staff and Super Admins
+        // Leave quota check
         try {
-            $fromDate  = Carbon::parse($leave->from_date)->format('d-m-Y');
-            $toDate    = Carbon::parse($leave->to_date)->format('d-m-Y');
-            $monthName = Carbon::parse($leave->from_date)->format('F Y');
-            $days      = $leave->number_of_days;
-            $staffName = $targetUser?->name ?? 'Staff';
-            $staffEmail = $targetUser?->email ?? '';
-
-            if ($targetUser) {
-                $targetUser->notify(new LeaveRequestSubmitted($leave));
-                $this->sendPushNotification(
-                    $targetUser,
-                    'Leave Request Submitted',
-                    "Your leave request for {$fromDate} to {$toDate} ({$days} day(s)) [{$monthName}] has been submitted and is pending approval.",
-                    [
-                        'leave_id' => (string) $leave->id,
-                        'id'       => (string) $leave->id,
-                        'status'   => (string) $leave->status,
-                        'type'     => 'leave_request',
-                    ]
-                );
-            }
-
-            $superAdmins = User::where(function ($q) {
-                $q->whereHas('roles', function ($rq) {
-                    $rq->whereRaw('LOWER(name) IN (?, ?, ?)', ['super admin', 'super-admin', 'admin']);
-                })->orWhere('id', 1);
-            })
-            ->where('id', '!=', Auth::id())
-            ->get();
-
-            foreach ($superAdmins as $admin) {
-                $admin->notify(new AdminLeaveRequestReceived($leave, $targetUser ?? Auth::user()));
-                $this->sendPushNotification(
-                    $admin,
-                    'New Leave Request Pending Approval',
-                    "{$staffName} ({$staffEmail}) submitted a leave request for {$fromDate} to {$toDate} ({$days} day(s)) pending approval.",
-                    [
-                        'leave_id' => (string) $leave->id,
-                        'id'       => (string) $leave->id,
-                        'status'   => (string) $leave->status,
-                        'user_id'  => (string) ($targetUser?->id ?? Auth::id()),
-                        'type'     => 'leave_request',
-                    ]
-                );
-            }
-
             $allowedLeaveDays = (float) ($targetUser?->available_leave_count ?? 0);
             if ($targetUser && $allowedLeaveDays > 0) {
                 $month = Carbon::parse($validated['from_date']);
                 $usedLeaveDays = (float) LeaveRequest::where('user_id', $targetUser->id)
-                    ->whereIn('status', ['Approved', 'Pending'])
+                    ->whereIn('status', ['Approved', 'Pending', 'Pending TL Approval', 'Pending HR Approval', 'Pending MD Approval'])
                     ->whereDate('from_date', '<=', $month->copy()->endOfMonth())
                     ->whereDate('to_date', '>=', $month->copy()->startOfMonth())
                     ->sum('number_of_days');
@@ -172,12 +159,12 @@ class LeaveController extends Controller
                 }
             }
         } catch (\Throwable $e) {
-            Log::error('LeaveController: Error dispatching notifications: ' . $e->getMessage());
+            Log::error('LeaveController: Error checking quota: ' . $e->getMessage());
         }
 
         return response()->json([
             'status'  => true,
-            'message' => 'Leave request submitted successfully (Status: Pending).',
+            'message' => "Leave request submitted successfully (Status: {$stageInfo['status']}).",
             'data'    => $leave
         ]);
     }
@@ -185,109 +172,50 @@ class LeaveController extends Controller
     public function approve(Request $request, $id)
     {
         $user = Auth::user();
-        if (!$user->can('leaves.approve') && !$user->hasRole(['Super Admin', 'Admin'])) {
-            return response()->json(['status' => false, 'message' => 'Unauthorized action. Permission leaves.approve required.'], 403);
-        }
-
         $leave = LeaveRequest::find($id);
         if (!$leave) {
             return response()->json(['status' => false, 'message' => 'Leave request not found.'], 404);
         }
 
-        $leave->status = 'Approved';
-        $leave->approved_by = Auth::id();
-        $leave->admin_remarks = $request->input('admin_remarks');
-        $leave->save();
-
-        // Update user is_on_leave status if leave is active today
-        $today = Carbon::today()->toDateString();
-        $staff = User::find($leave->user_id);
-        if ($leave->from_date->toDateString() <= $today && $leave->to_date->toDateString() >= $today) {
-            if ($staff) {
-                $staff->is_on_leave = true;
-                $staff->save();
-            }
+        $approvalService = app(LeaveApprovalService::class);
+        if (!$approvalService->canUserApprove($user, $leave)) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Unauthorized action. You are not authorized to approve at the current stage (' . strtoupper($leave->approval_stage ?? 'tl') . ').'
+            ], 403);
         }
 
-        // Notify staff member that leave request was approved by admin
-        try {
-            if ($staff) {
-                $fromDate  = Carbon::parse($leave->from_date)->format('d-m-Y');
-                $toDate    = Carbon::parse($leave->to_date)->format('d-m-Y');
-                $monthName = Carbon::parse($leave->from_date)->format('F Y');
-                $days      = $leave->number_of_days;
-
-                $staff->notify(new LeaveRequestApproved($leave));
-                $this->sendPushNotification(
-                    $staff,
-                    'Leave Request Approved',
-                    "Your leave request for {$fromDate} to {$toDate} ({$days} day(s)) [{$monthName}] has been approved by admin.",
-                    [
-                        'leave_id' => (string) $leave->id,
-                        'id'       => (string) $leave->id,
-                        'status'   => 'Approved',
-                        'type'     => 'leave_request',
-                    ]
-                );
-            }
-        } catch (\Throwable $e) {
-            Log::error('LeaveController: Error in approve notifications: ' . $e->getMessage());
-        }
+        $result = $approvalService->approveStage($user, $leave, $request->input('admin_remarks'));
 
         return response()->json([
             'status'  => true,
-            'message' => 'Leave request approved successfully.',
-            'data'    => $leave
+            'message' => $result['message'],
+            'data'    => $leave->fresh(['user', 'approver', 'tlApprover', 'hrApprover', 'mdApprover'])
         ]);
     }
 
     public function reject(Request $request, $id)
     {
         $user = Auth::user();
-        if (!$user->can('leaves.approve') && !$user->hasRole(['Super Admin', 'Admin'])) {
-            return response()->json(['status' => false, 'message' => 'Unauthorized action. Permission leaves.approve required.'], 403);
-        }
-
         $leave = LeaveRequest::find($id);
         if (!$leave) {
             return response()->json(['status' => false, 'message' => 'Leave request not found.'], 404);
         }
 
-        $leave->status = 'Rejected';
-        $leave->approved_by = Auth::id();
-        $leave->admin_remarks = $request->input('admin_remarks');
-        $leave->save();
-
-        // Notify staff member that leave request was rejected by admin
-        try {
-            $staff = User::find($leave->user_id);
-            if ($staff) {
-                $fromDate  = Carbon::parse($leave->from_date)->format('d-m-Y');
-                $toDate    = Carbon::parse($leave->to_date)->format('d-m-Y');
-                $monthName = Carbon::parse($leave->from_date)->format('F Y');
-                $days      = $leave->number_of_days;
-
-                $staff->notify(new LeaveRequestRejected($leave));
-                $this->sendPushNotification(
-                    $staff,
-                    'Leave Request Rejected',
-                    "Your leave request for {$fromDate} to {$toDate} ({$days} day(s)) [{$monthName}] has been rejected by admin.",
-                    [
-                        'leave_id' => (string) $leave->id,
-                        'id'       => (string) $leave->id,
-                        'status'   => 'Rejected',
-                        'type'     => 'leave_request',
-                    ]
-                );
-            }
-        } catch (\Throwable $e) {
-            Log::error('LeaveController: Error in reject notifications: ' . $e->getMessage());
+        $approvalService = app(LeaveApprovalService::class);
+        if (!$approvalService->canUserApprove($user, $leave)) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Unauthorized action. You are not authorized to reject at the current stage (' . strtoupper($leave->approval_stage ?? 'tl') . ').'
+            ], 403);
         }
+
+        $result = $approvalService->rejectStage($user, $leave, $request->input('admin_remarks'));
 
         return response()->json([
             'status'  => true,
-            'message' => 'Leave request rejected.',
-            'data'    => $leave
+            'message' => $result['message'],
+            'data'    => $leave->fresh(['user', 'approver', 'tlApprover', 'hrApprover', 'mdApprover'])
         ]);
     }
 
