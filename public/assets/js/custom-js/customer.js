@@ -22,6 +22,10 @@ $(document).ready(function () {
                 customerTableColumns.push({
                     data: 'branch',
                     render: function (data, type, row) {
+                        if (row.branches && row.branches.length > 0) {
+                            if (type !== 'display') return row.branches.map(b => b.name).join(', ');
+                            return row.branches.map(b => `<span class="badge bg-label-primary mb-1 me-1"><i class="bx bx-buildings me-1"></i>${b.name}</span>`).join('');
+                        }
                         let name = (row.branch && row.branch.name) ? row.branch.name : (row.branch_name || null);
                         if (!name) return type !== 'display' ? '-' : '<span class="text-muted">-</span>';
                         if (type !== 'display') return name;
@@ -32,6 +36,10 @@ $(document).ready(function () {
                 customerTableColumns.push({
                     data: 'team',
                     render: function (data, type, row) {
+                        if (row.teams && row.teams.length > 0) {
+                            if (type !== 'display') return row.teams.map(t => t.name).join(', ');
+                            return row.teams.map(t => `<span class="badge bg-label-info mb-1 me-1"><i class="bx bx-group me-1"></i>${t.name}</span>`).join('');
+                        }
                         let name = (row.team && row.team.name) ? row.team.name : (row.team_name || null);
                         if (!name) return type !== 'display' ? '-' : '<span class="text-muted">-</span>';
                         if (type !== 'display') return name;
@@ -468,12 +476,10 @@ $(document).ready(function () {
                     $('#edit_assign_by').val(customer.assign_by || '');
                     $('#edit_lead_requirement_id').val(customer.lead_requirement_id || '');
                     $('#edit_lead_stage_id').val(customer.lead_stage_id || '');
-                    $('#edit_customer_branch_id').val(customer.branch_id || '');
-                    if (customer.branch_id) {
-                        loadTeamsForSelect(customer.branch_id, $('#edit_customer_team_id'), customer.team_id);
-                    } else {
-                        $('#edit_customer_team_id').val(customer.team_id || '');
-                    }
+                    let bIds = customer.branch_ids || (customer.branch_id ? [customer.branch_id] : []);
+                    let tIds = customer.team_ids || (customer.team_id ? [customer.team_id] : []);
+                    $('#edit_customer_branch_id').val(bIds).trigger('change.select2');
+                    loadTeamsForSelect(bIds, $('#edit_customer_team_id'), tIds);
                     $('#edit_status').val(customer.status);
 
                     if (window.customCustomerFields && window.customCustomerFields.length > 0 && customer.custom_fields) {
@@ -669,28 +675,86 @@ $(document).ready(function () {
         customerTable.ajax.reload();
     });
 
-    // Helper to dynamically load teams for a branch select element
-    function loadTeamsForSelect(branchId, targetSelect, selectedTeamId = '') {
-        targetSelect.html('<option value="">Loading teams...</option>');
-        if (!branchId) {
-            targetSelect.html('<option value="">-- Select Team --</option>');
+    // Helper to dynamically load teams for a branch select element (supports single ID or array of IDs)
+    function loadTeamsForSelect(branchId, targetSelect, selectedTeamIds = []) {
+        if (!Array.isArray(selectedTeamIds)) {
+            selectedTeamIds = selectedTeamIds ? [selectedTeamIds] : [];
+        }
+        let selectedTeamStrIds = selectedTeamIds.map(String);
+
+        let branchQuery = '';
+        if (Array.isArray(branchId)) {
+            branchQuery = branchId.filter(Boolean).join(',');
+        } else if (branchId) {
+            branchQuery = String(branchId);
+        }
+
+        let isMultiple = targetSelect.prop('multiple');
+
+        if (!branchQuery) {
+            if (isMultiple) {
+                targetSelect.empty().trigger('change');
+            } else {
+                targetSelect.html('<option value="">-- Select Team --</option>');
+            }
             return;
         }
-        $.get(APP_URL + '/admin/teams/by-branch/' + branchId, function(res) {
-            let options = '<option value="">-- Select Team --</option>';
+
+        if (!isMultiple) {
+            targetSelect.html('<option value="">Loading teams...</option>');
+        }
+
+        $.get(APP_URL + '/admin/teams/by-branch/' + branchQuery, function(res) {
+            let options = isMultiple ? '' : '<option value="">-- Select Team --</option>';
             if (res.status && res.data.length > 0) {
                 res.data.forEach(t => {
-                    let sel = String(t.id) === String(selectedTeamId) ? 'selected' : '';
-                    options += `<option value="${t.id}" ${sel}>${t.name} (${t.code})</option>`;
+                    let sel = selectedTeamStrIds.includes(String(t.id)) ? 'selected' : '';
+                    let branchLabel = t.branch ? ` (${t.branch.name})` : '';
+                    options += `<option value="${t.id}" data-branch="${t.branch_id}" ${sel}>${t.name} [${t.code}]${branchLabel}</option>`;
                 });
             } else {
-                options = '<option value="">No active teams in this branch</option>';
+                if (!isMultiple) {
+                    options = '<option value="">No active teams in selected branch(es)</option>';
+                }
             }
-            targetSelect.html(options);
+            targetSelect.html(options).trigger('change');
         }).fail(function() {
-            targetSelect.html('<option value="">Failed to load teams</option>');
+            if (!isMultiple) {
+                targetSelect.html('<option value="">Failed to load teams</option>');
+            }
         });
     }
+
+    // Initialize Select2 on modal open for add/edit customer multiple dropdowns
+    $('#addCustomerModal').on('shown.bs.modal', function () {
+        $('#add_customer_branch_id').select2({
+            dropdownParent: $('#addCustomerModal'),
+            placeholder: 'Select Branch(es)',
+            allowClear: true,
+            width: '100%'
+        });
+        $('#add_customer_team_id').select2({
+            dropdownParent: $('#addCustomerModal'),
+            placeholder: 'Select Team(s)',
+            allowClear: true,
+            width: '100%'
+        });
+    });
+
+    $('#editCustomerModal').on('shown.bs.modal', function () {
+        $('#edit_customer_branch_id').select2({
+            dropdownParent: $('#editCustomerModal'),
+            placeholder: 'Select Branch(es)',
+            allowClear: true,
+            width: '100%'
+        });
+        $('#edit_customer_team_id').select2({
+            dropdownParent: $('#editCustomerModal'),
+            placeholder: 'Select Team(s)',
+            allowClear: true,
+            width: '100%'
+        });
+    });
 
     // Filter Branch Change
     $('#customer_filter_branch').on('change', function() {
@@ -700,12 +764,14 @@ $(document).ready(function () {
 
     // Add Modal Branch Change
     $('#add_customer_branch_id').on('change', function() {
-        loadTeamsForSelect($(this).val(), $('#add_customer_team_id'));
+        let val = $(this).val();
+        loadTeamsForSelect(val, $('#add_customer_team_id'), $('#add_customer_team_id').val() || []);
     });
 
     // Edit Modal Branch Change
     $('#edit_customer_branch_id').on('change', function() {
-        loadTeamsForSelect($(this).val(), $('#edit_customer_team_id'));
+        let val = $(this).val();
+        loadTeamsForSelect(val, $('#edit_customer_team_id'), $('#edit_customer_team_id').val() || []);
     });
 
     // Transfer Modal Branch Change

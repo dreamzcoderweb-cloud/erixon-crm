@@ -104,6 +104,16 @@ class Customer extends Authenticatable
         return $this->belongsTo(Team::class, 'team_id');
     }
 
+    public function branches()
+    {
+        return $this->belongsToMany(Branch::class, 'branch_customer', 'customer_id', 'branch_id')->withPivot('is_primary')->withTimestamps();
+    }
+
+    public function teams()
+    {
+        return $this->belongsToMany(Team::class, 'customer_team', 'customer_id', 'team_id')->withPivot('is_primary')->withTimestamps();
+    }
+
     public function getOwnerByNameAttribute()
     {
         return $this->owner?->name;
@@ -221,7 +231,10 @@ class Customer extends Authenticatable
         if ($user->isBranchManager()) {
             $branchIds = $user->accessibleBranchIds();
             if (!empty($branchIds)) {
-                return $query->whereIn('customers.branch_id', $branchIds);
+                return $query->where(function ($q) use ($branchIds) {
+                    $q->whereIn('customers.branch_id', $branchIds)
+                      ->orWhereHas('branches', fn($bq) => $bq->whereIn('branches.id', $branchIds));
+                });
             }
         }
 
@@ -229,7 +242,10 @@ class Customer extends Authenticatable
         if ($user->isTeamLeader()) {
             $teamIds = $user->accessibleTeamIds();
             if (!empty($teamIds)) {
-                return $query->whereIn('customers.team_id', $teamIds);
+                return $query->where(function ($q) use ($teamIds) {
+                    $q->whereIn('customers.team_id', $teamIds)
+                      ->orWhereHas('teams', fn($tq) => $tq->whereIn('teams.id', $teamIds));
+                });
             }
         }
 

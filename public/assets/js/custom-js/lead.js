@@ -52,6 +52,10 @@ $(document).ready(function () {
                 leadTableColumns.push({
                     data: 'branch',
                     render: function (data, type, row) {
+                        if (row.branches && row.branches.length > 0) {
+                            if (type !== 'display') return row.branches.map(b => b.name).join(', ');
+                            return row.branches.map(b => `<span class="badge bg-label-primary mb-1 me-1"><i class="bx bx-buildings me-1"></i>${b.name}</span>`).join('');
+                        }
                         let name = (row.branch && row.branch.name) ? row.branch.name : (row.branch_name || null);
                         if (!name) return type !== 'display' ? '-' : '<span class="text-muted">-</span>';
                         if (type !== 'display') return name;
@@ -62,6 +66,10 @@ $(document).ready(function () {
                 leadTableColumns.push({
                     data: 'team',
                     render: function (data, type, row) {
+                        if (row.teams && row.teams.length > 0) {
+                            if (type !== 'display') return row.teams.map(t => t.name).join(', ');
+                            return row.teams.map(t => `<span class="badge bg-label-info mb-1 me-1"><i class="bx bx-group me-1"></i>${t.name}</span>`).join('');
+                        }
                         let name = (row.team && row.team.name) ? row.team.name : (row.team_name || null);
                         if (!name) return type !== 'display' ? '-' : '<span class="text-muted">-</span>';
                         if (type !== 'display') return name;
@@ -474,6 +482,11 @@ $(document).ready(function () {
                     $('#edit_lead_description').val(lead.description || '');
                     $('#edit_lead_status').val(lead.status);
 
+                    let bIds = lead.branch_ids || (lead.branch_id ? [lead.branch_id] : []);
+                    let tIds = lead.team_ids || (lead.team_id ? [lead.team_id] : []);
+                    $('#edit_lead_branch_id').val(bIds).trigger('change.select2');
+                    loadTeamsForLeadSelect(bIds, $('#edit_lead_team_id'), tIds);
+
                     // Trigger stage dynamic visibility in Edit modal
                     handleLeadStageChanges(
                         $('#edit_lead_stage_id'),
@@ -653,5 +666,92 @@ $(document).ready(function () {
     // KPI Card Click Handlers
     $('#kpi_card_total_leads').on('click', function () {
         $('#resetLeadFilterBtn').click();
+    });
+
+    // Helper to dynamically load teams for lead branch select element (supports single ID or array of IDs)
+    function loadTeamsForLeadSelect(branchId, targetSelect, selectedTeamIds = []) {
+        if (!Array.isArray(selectedTeamIds)) {
+            selectedTeamIds = selectedTeamIds ? [selectedTeamIds] : [];
+        }
+        let selectedTeamStrIds = selectedTeamIds.map(String);
+
+        let branchQuery = '';
+        if (Array.isArray(branchId)) {
+            branchQuery = branchId.filter(Boolean).join(',');
+        } else if (branchId) {
+            branchQuery = String(branchId);
+        }
+
+        let isMultiple = targetSelect.prop('multiple');
+
+        if (!branchQuery) {
+            if (isMultiple) {
+                targetSelect.empty().trigger('change');
+            } else {
+                targetSelect.html('<option value="">-- Select Team --</option>');
+            }
+            return;
+        }
+
+        if (!isMultiple) {
+            targetSelect.html('<option value="">Loading teams...</option>');
+        }
+
+        $.get(APP_URL + '/admin/teams/by-branch/' + branchQuery, function(res) {
+            let options = isMultiple ? '' : '<option value="">-- Select Team --</option>';
+            if (res.status && res.data.length > 0) {
+                res.data.forEach(t => {
+                    let sel = selectedTeamStrIds.includes(String(t.id)) ? 'selected' : '';
+                    let branchLabel = t.branch ? ` (${t.branch.name})` : '';
+                    options += `<option value="${t.id}" data-branch="${t.branch_id}" ${sel}>${t.name} [${t.code}]${branchLabel}</option>`;
+                });
+            } else {
+                if (!isMultiple) {
+                    options = '<option value="">No active teams in selected branch(es)</option>';
+                }
+            }
+            targetSelect.html(options).trigger('change');
+        });
+    }
+
+    // Initialize Select2 on modal open for add/edit lead multiple dropdowns
+    $('#addLeadModal').on('shown.bs.modal', function () {
+        $('#add_lead_branch_id').select2({
+            dropdownParent: $('#addLeadModal'),
+            placeholder: 'Select Branch(es)',
+            allowClear: true,
+            width: '100%'
+        });
+        $('#add_lead_team_id').select2({
+            dropdownParent: $('#addLeadModal'),
+            placeholder: 'Select Team(s)',
+            allowClear: true,
+            width: '100%'
+        });
+    });
+
+    $('#editLeadModal').on('shown.bs.modal', function () {
+        $('#edit_lead_branch_id').select2({
+            dropdownParent: $('#editLeadModal'),
+            placeholder: 'Select Branch(es)',
+            allowClear: true,
+            width: '100%'
+        });
+        $('#edit_lead_team_id').select2({
+            dropdownParent: $('#editLeadModal'),
+            placeholder: 'Select Team(s)',
+            allowClear: true,
+            width: '100%'
+        });
+    });
+
+    $('#add_lead_branch_id').on('change', function() {
+        let val = $(this).val();
+        loadTeamsForLeadSelect(val, $('#add_lead_team_id'), $('#add_lead_team_id').val() || []);
+    });
+
+    $('#edit_lead_branch_id').on('change', function() {
+        let val = $(this).val();
+        loadTeamsForLeadSelect(val, $('#edit_lead_team_id'), $('#edit_lead_team_id').val() || []);
     });
 });

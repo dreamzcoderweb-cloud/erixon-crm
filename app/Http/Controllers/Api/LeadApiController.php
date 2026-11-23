@@ -99,10 +99,29 @@ class LeadApiController extends Controller
                 ];
             });
 
+        $branches = \App\Models\Branch::where('status', 1)->orderBy('name')->get(['id', 'name', 'code'])->map(fn($b) => [
+            'id'    => $b->id,
+            'value' => $b->id,
+            'name'  => $b->name,
+            'code'  => $b->code,
+            'label' => "{$b->name} ({$b->code})",
+        ])->values();
+
+        $teams = \App\Models\Team::where('status', 1)->orderBy('name')->get(['id', 'branch_id', 'name', 'code'])->map(fn($t) => [
+            'id'        => $t->id,
+            'value'     => $t->id,
+            'branch_id' => $t->branch_id,
+            'name'      => $t->name,
+            'code'      => $t->code,
+            'label'     => "{$t->name} ({$t->code})",
+        ])->values();
+
         return response()->json([
             'status' => true,
             'message' => 'Lead form data retrieved successfully.',
             'data' => [
+                'branches' => $branches,
+                'teams' => $teams,
                 'customers' => $customerOptions,
                 'lead_sources' => $leadsources,
                 'lead_requirements' => $leadRequirements,
@@ -157,6 +176,10 @@ class LeadApiController extends Controller
             'lostReason:lost_reason_id,reason',
             'assignedUser:id,name,email',
             'creator:id,name,email',
+            'branch:id,name,code',
+            'team:id,name,code',
+            'branches:id,name,code',
+            'teams:id,name,code',
         ])->orderBy('lead_id', 'desc');
 
         if ($user) {
@@ -286,6 +309,36 @@ class LeadApiController extends Controller
 
         if ($request->filled('created_by')) {
             $query->where('created_by', $request->input('created_by'));
+        }
+
+        // Branch filter (supports primary column and pivot branches)
+        if ($request->filled('branch_id') || $request->filled('branch_ids')) {
+            $rawB = $request->input('branch_ids', $request->input('branch_id'));
+            $bList = is_array($rawB) ? $rawB : explode(',', (string)$rawB);
+            $bList = array_values(array_filter(array_map('intval', $bList)));
+            if (!empty($bList)) {
+                $query->where(function ($bq) use ($bList) {
+                    $bq->whereIn('branch_id', $bList)
+                       ->orWhereHas('branches', function ($pbq) use ($bList) {
+                           $pbq->whereIn('branches.id', $bList);
+                       });
+                });
+            }
+        }
+
+        // Team filter (supports primary column and pivot teams)
+        if ($request->filled('team_id') || $request->filled('team_ids')) {
+            $rawT = $request->input('team_ids', $request->input('team_id'));
+            $tList = is_array($rawT) ? $rawT : explode(',', (string)$rawT);
+            $tList = array_values(array_filter(array_map('intval', $tList)));
+            if (!empty($tList)) {
+                $query->where(function ($tq) use ($tList) {
+                    $tq->whereIn('team_id', $tList)
+                       ->orWhereHas('teams', function ($ptq) use ($tList) {
+                           $ptq->whereIn('teams.id', $tList);
+                       });
+                });
+            }
         }
 
         // Filter by Priority (supports case-insensitive e.g. 'High', 'Medium', 'Low', ignores 'All')
@@ -515,6 +568,18 @@ class LeadApiController extends Controller
             }
         }
 
+        // Process multiple branches and teams
+        $rawBranchIds = $request->input('branch_ids', $request->input('branch_id', []));
+        $branchIds = is_array($rawBranchIds) ? $rawBranchIds : explode(',', (string)$rawBranchIds);
+        $branchIds = array_values(array_filter(array_map('intval', $branchIds)));
+
+        $rawTeamIds = $request->input('team_ids', $request->input('team_id', []));
+        $teamIds = is_array($rawTeamIds) ? $rawTeamIds : explode(',', (string)$rawTeamIds);
+        $teamIds = array_values(array_filter(array_map('intval', $teamIds)));
+
+        $primaryBranchId = !empty($branchIds) ? $branchIds[0] : ($user?->branch_id ?: null);
+        $primaryTeamId   = !empty($teamIds) ? $teamIds[0] : ($user?->team_id ?: null);
+
         // Resolve or create Customer
         $customerId = null;
         $custName = trim((string) ($request->input('customer_name') ?? $request->input('name') ?? ''));
@@ -538,6 +603,8 @@ class LeadApiController extends Controller
                 if (!empty($custName)) $updateCust['name'] = $custName;
                 if (!empty($custType)) $updateCust['customer_type'] = $custType;
                 if ($custEmail !== null) $updateCust['email'] = $custEmail;
+                if (empty($customer->branch_id) && !empty($primaryBranchId)) $updateCust['branch_id'] = $primaryBranchId;
+                if (empty($customer->team_id) && !empty($primaryTeamId)) $updateCust['team_id'] = $primaryTeamId;
                 if (!empty($updateCust)) {
                     $customer->update($updateCust);
                 }
@@ -562,9 +629,28 @@ class LeadApiController extends Controller
                     'customer_type' => $custType,
                     'mobile'        => $custMobile,
                     'email'         => $custEmail,
+                    'branch_id'     => $primaryBranchId,
+                    'team_id'       => $primaryTeamId,
                     'status'        => 1,
                     'created_by'    => $user ? $user->id : null,
                 ]);
+            }
+
+            if ($customer) {
+                if (!empty($branchIds)) {
+                    $cBranchSync = [];
+                    foreach ($branchIds as $idx => $bId) {
+                        $cBranchSync[$bId] = ['is_primary' => ($idx === 0)];
+                    }
+                    $customer->branches()->syncWithoutDetaching($cBranchSync);
+                }
+                if (!empty($teamIds)) {
+                    $cTeamSync = [];
+                    foreach ($teamIds as $idx => $tId) {
+                        $cTeamSync[$tId] = ['is_primary' => ($idx === 0)];
+                    }
+                    $customer->teams()->syncWithoutDetaching($cTeamSync);
+                }
             }
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::warning('Error resolving customer in lead store: ' . $e->getMessage());
@@ -595,6 +681,8 @@ class LeadApiController extends Controller
             'customer_type'       => $custType,
             'mobile'              => !empty($custMobile) ? $custMobile : null,
             'email'               => $custEmail,
+            'branch_id'           => $primaryBranchId,
+            'team_id'             => $primaryTeamId,
             'lead_title'          => trim((string) $validated['lead_title']),
             'lead_source_id'      => !empty($validated['lead_source_id']) ? (int) $validated['lead_source_id'] : null,
             'lead_stage_id'       => !empty($validated['lead_stage_id']) ? (int) $validated['lead_stage_id'] : null,
@@ -609,6 +697,24 @@ class LeadApiController extends Controller
             'created_by'          => $createdBy,
             'custom_fields'       => !empty($processedCustomFields) ? $processedCustomFields : null,
         ]);
+
+        // Sync multiple branches in pivot table
+        if (!empty($branchIds)) {
+            $branchSync = [];
+            foreach ($branchIds as $idx => $bId) {
+                $branchSync[$bId] = ['is_primary' => ($idx === 0)];
+            }
+            $lead->branches()->sync($branchSync);
+        }
+
+        // Sync multiple teams in pivot table
+        if (!empty($teamIds)) {
+            $teamSync = [];
+            foreach ($teamIds as $idx => $tId) {
+                $teamSync[$tId] = ['is_primary' => ($idx === 0)];
+            }
+            $lead->teams()->sync($teamSync);
+        }
 
         // Requirement: sales closed credit request trigger
         $this->checkAndCreateSalesClosedCreditRequest($lead, $user ? $user->id : null);
@@ -661,11 +767,29 @@ class LeadApiController extends Controller
             'lostReason:lost_reason_id,reason',
             'assignedUser:id,name,email',
             'creator:id,name,email',
+            'branch:id,name,code',
+            'team:id,name,code',
+            'branches:id,name,code',
+            'teams:id,name,code',
         ]);
+
+        $assignedBranchIds = $lead->branches->pluck('id')->values()->all();
+        if (empty($assignedBranchIds) && !empty($lead->branch_id)) {
+            $assignedBranchIds = [(int)$lead->branch_id];
+        }
+
+        $assignedTeamIds = $lead->teams->pluck('id')->values()->all();
+        if (empty($assignedTeamIds) && !empty($lead->team_id)) {
+            $assignedTeamIds = [(int)$lead->team_id];
+        }
+
+        $leadData = $lead->toArray();
+        $leadData['branch_ids'] = $assignedBranchIds;
+        $leadData['team_ids']   = $assignedTeamIds;
 
         return response()->json([
             'status' => true,
-            'data'   => $lead,
+            'data'   => $leadData,
         ]);
     }
 
@@ -700,7 +824,25 @@ class LeadApiController extends Controller
             'lostReason:lost_reason_id,reason',
             'assignedUser:id,name,email',
             'creator:id,name,email',
+            'branch:id,name,code',
+            'team:id,name,code',
+            'branches:id,name,code',
+            'teams:id,name,code',
         ]);
+
+        $assignedBranchIds = $lead->branches->pluck('id')->values()->all();
+        if (empty($assignedBranchIds) && !empty($lead->branch_id)) {
+            $assignedBranchIds = [(int)$lead->branch_id];
+        }
+
+        $assignedTeamIds = $lead->teams->pluck('id')->values()->all();
+        if (empty($assignedTeamIds) && !empty($lead->team_id)) {
+            $assignedTeamIds = [(int)$lead->team_id];
+        }
+
+        $leadData = $lead->toArray();
+        $leadData['branch_ids'] = $assignedBranchIds;
+        $leadData['team_ids']   = $assignedTeamIds;
 
         $customFields = LeadCustomField::where('status', 1)
             ->orderBy('sort_order', 'asc')
@@ -757,10 +899,31 @@ class LeadApiController extends Controller
         $leadRequirements = LeadRequirement::where('status', 1)->orderBy('name')->get(['lead_requirements_id as value', 'name as label']);
         $lostreasons = LostReason::where('status', 1)->orderBy('reason')->get(['lost_reason_id as value', 'reason as label']);
 
+        $branchOptions = \App\Models\Branch::where('status', 1)->orderBy('name')->get(['id', 'name', 'code'])->map(fn($b) => [
+            'value' => $b->id,
+            'id'    => $b->id,
+            'name'  => $b->name,
+            'code'  => $b->code,
+            'label' => "{$b->name} ({$b->code})",
+        ])->values();
+
+        $teamOptions = \App\Models\Team::where('status', 1)->orderBy('name')->get(['id', 'branch_id', 'name', 'code'])->map(fn($t) => [
+            'value'     => $t->id,
+            'id'        => $t->id,
+            'branch_id' => $t->branch_id,
+            'name'      => $t->name,
+            'code'      => $t->code,
+            'label'     => "{$t->name} ({$t->code})",
+        ])->values();
+
         return response()->json([
             'status'                   => true,
             'message'                  => 'Lead details for edit retrieved successfully.',
-            'data'                     => $lead,
+            'data'                     => $leadData,
+            'branches'                 => $branchOptions,
+            'teams'                    => $teamOptions,
+            'branch_options'           => $branchOptions,
+            'team_options'             => $teamOptions,
             'custom_fields_definition' => $formattedFields,
             'customer_options'         => $customerOptions,
             'lead_source_options'      => $leadsources,
@@ -1023,8 +1186,51 @@ class LeadApiController extends Controller
             $updateData['customer_id'] = $customer->customer_id;
         }
 
+        // Process multiple branches and teams
+        $branchIds = null;
+        if ($request->has('branch_ids') || $request->has('branch_id')) {
+            $rawBranchIds = $request->input('branch_ids', $request->input('branch_id', []));
+            $branchIds = is_array($rawBranchIds) ? $rawBranchIds : explode(',', (string)$rawBranchIds);
+            $branchIds = array_values(array_filter(array_map('intval', $branchIds)));
+            $updateData['branch_id'] = !empty($branchIds) ? $branchIds[0] : null;
+        }
+
+        $teamIds = null;
+        if ($request->has('team_ids') || $request->has('team_id')) {
+            $rawTeamIds = $request->input('team_ids', $request->input('team_id', []));
+            $teamIds = is_array($rawTeamIds) ? $rawTeamIds : explode(',', (string)$rawTeamIds);
+            $teamIds = array_values(array_filter(array_map('intval', $teamIds)));
+            $updateData['team_id'] = !empty($teamIds) ? $teamIds[0] : null;
+        }
+
         try {
             $lead->update($updateData);
+
+            // Sync multiple branches in pivot table if provided
+            if ($branchIds !== null) {
+                if (!empty($branchIds)) {
+                    $branchSync = [];
+                    foreach ($branchIds as $idx => $bId) {
+                        $branchSync[$bId] = ['is_primary' => ($idx === 0)];
+                    }
+                    $lead->branches()->sync($branchSync);
+                } else {
+                    $lead->branches()->detach();
+                }
+            }
+
+            // Sync multiple teams in pivot table if provided
+            if ($teamIds !== null) {
+                if (!empty($teamIds)) {
+                    $teamSync = [];
+                    foreach ($teamIds as $idx => $tId) {
+                        $teamSync[$tId] = ['is_primary' => ($idx === 0)];
+                    }
+                    $lead->teams()->sync($teamSync);
+                } else {
+                    $lead->teams()->detach();
+                }
+            }
 
             // Requirement: sales closed credit request trigger
             $this->checkAndCreateSalesClosedCreditRequest($lead, $user ? $user->id : null);
@@ -1044,12 +1250,30 @@ class LeadApiController extends Controller
             'lostReason:lost_reason_id,reason',
             'assignedUser:id,name,email',
             'creator:id,name,email',
+            'branch:id,name,code',
+            'team:id,name,code',
+            'branches:id,name,code',
+            'teams:id,name,code',
         ]);
+
+        $assignedBranchIds = $lead->branches->pluck('id')->values()->all();
+        if (empty($assignedBranchIds) && !empty($lead->branch_id)) {
+            $assignedBranchIds = [(int)$lead->branch_id];
+        }
+
+        $assignedTeamIds = $lead->teams->pluck('id')->values()->all();
+        if (empty($assignedTeamIds) && !empty($lead->team_id)) {
+            $assignedTeamIds = [(int)$lead->team_id];
+        }
+
+        $leadData = $lead->toArray();
+        $leadData['branch_ids'] = $assignedBranchIds;
+        $leadData['team_ids']   = $assignedTeamIds;
 
         return response()->json([
             'status'  => true,
             'message' => 'Lead updated successfully.',
-            'data'    => $lead,
+            'data'    => $leadData,
         ]);
     }
 

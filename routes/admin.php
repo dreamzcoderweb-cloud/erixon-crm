@@ -28,6 +28,7 @@ use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\IncentiveController;
 use App\Http\Controllers\DemoProcessController;
 use App\Http\Controllers\DemoProcessSettingController;
+use App\Http\Controllers\SaleClosedController;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -297,6 +298,14 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
         ->middleware('permission:leads.delete');
     Route::post('leads/change-status/{id}', [LeadController::class, 'changeStatus'])
         ->middleware('permission:leads.edit');
+
+    // Sale Closed routes
+    Route::get('sale-closed', [SaleClosedController::class, 'index'])
+        ->middleware('permission:sale-closed.view|leads.view')
+        ->name('sale-closed.index');
+    Route::get('sale-closed/data', [SaleClosedController::class, 'listData'])
+        ->middleware('permission:sale-closed.view|leads.view')
+        ->name('sale-closed.data');
 
     // Settings routes
     Route::get('settings/general', [GeneralSettingController::class, 'index'])

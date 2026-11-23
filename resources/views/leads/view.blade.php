@@ -235,6 +235,28 @@
                                 </select>
                                 <div class="invalid-feedback"></div>
                             </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Branch <span class="text-muted small">(Multiple Select)</span></label>
+                                <select name="branch_ids[]" id="add_lead_branch_id" class="form-select select2-multiple" multiple data-placeholder="Select Branch(es)">
+                                    @if(isset($branches) && count($branches) > 0)
+                                        @foreach ($branches as $br)
+                                            <option value="{{ $br->id }}">{{ $br->name }} ({{ $br->code }})</option>
+                                        @endforeach
+                                    @endif
+                                </select>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Team <span class="text-muted small">(Multiple Select)</span></label>
+                                <select name="team_ids[]" id="add_lead_team_id" class="form-select select2-multiple" multiple data-placeholder="Select Team(s)">
+                                    @if(isset($teams) && count($teams) > 0)
+                                        @foreach ($teams as $tm)
+                                            <option value="{{ $tm->id }}" data-branch="{{ $tm->branch_id }}">{{ $tm->name }} ({{ $tm->code }})</option>
+                                        @endforeach
+                                    @endif
+                                </select>
+                                <div class="invalid-feedback"></div>
+                            </div>
                             <div class="col-md-4">
                                 <label class="form-label">Priority <span class="text-danger">*</span></label>
                                 <select name="priority" class="form-select" required>
@@ -423,6 +445,28 @@
                                     @foreach ($staffs as $staff)
                                         <option value="{{ $staff->id }}">{{ $staff->name }} ({{ $staff->email }})</option>
                                     @endforeach
+                                </select>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Branch <span class="text-muted small">(Multiple Select)</span></label>
+                                <select name="branch_ids[]" id="edit_lead_branch_id" class="form-select select2-multiple" multiple data-placeholder="Select Branch(es)">
+                                    @if(isset($branches) && count($branches) > 0)
+                                        @foreach ($branches as $br)
+                                            <option value="{{ $br->id }}">{{ $br->name }} ({{ $br->code }})</option>
+                                        @endforeach
+                                    @endif
+                                </select>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Team <span class="text-muted small">(Multiple Select)</span></label>
+                                <select name="team_ids[]" id="edit_lead_team_id" class="form-select select2-multiple" multiple data-placeholder="Select Team(s)">
+                                    @if(isset($teams) && count($teams) > 0)
+                                        @foreach ($teams as $tm)
+                                            <option value="{{ $tm->id }}" data-branch="{{ $tm->branch_id }}">{{ $tm->name }} ({{ $tm->code }})</option>
+                                        @endforeach
+                                    @endif
                                 </select>
                                 <div class="invalid-feedback"></div>
                             </div>

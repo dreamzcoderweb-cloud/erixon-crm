@@ -198,10 +198,29 @@ class CustomerApiController extends Controller
                 ];
             })->values();
 
+        $branches = \App\Models\Branch::where('status', 1)->orderBy('name')->get(['id', 'name', 'code'])->map(fn($b) => [
+            'id'    => $b->id,
+            'value' => $b->id,
+            'name'  => $b->name,
+            'code'  => $b->code,
+            'label' => "{$b->name} ({$b->code})",
+        ])->values();
+
+        $teams = \App\Models\Team::where('status', 1)->orderBy('name')->get(['id', 'branch_id', 'name', 'code'])->map(fn($t) => [
+            'id'        => $t->id,
+            'value'     => $t->id,
+            'branch_id' => $t->branch_id,
+            'name'      => $t->name,
+            'code'      => $t->code,
+            'label'     => "{$t->name} ({$t->code})",
+        ])->values();
+
         return response()->json([
             'status' => true,
             'message' => 'Customer form data retrieved successfully.',
             'data' => [
+                'branches' => $branches,
+                'teams' => $teams,
                 'owner_by_options' => $userOptions,
                 'assign_by_options' => $userOptions,
                 'lead_requirement_options' => $leadRequirements,
@@ -409,6 +428,18 @@ class CustomerApiController extends Controller
         $ownerId = $request->filled('owner_by') ? (int) $request->input('owner_by') :  null;
         $assignId = $request->filled('assign_by') ? (int) $request->input('assign_by') : null;
 
+        // Process multiple branches and teams
+        $rawBranchIds = $request->input('branch_ids', $request->input('branch_id', []));
+        $branchIds = is_array($rawBranchIds) ? $rawBranchIds : explode(',', (string)$rawBranchIds);
+        $branchIds = array_filter(array_map('intval', $branchIds));
+
+        $rawTeamIds = $request->input('team_ids', $request->input('team_id', []));
+        $teamIds = is_array($rawTeamIds) ? $rawTeamIds : explode(',', (string)$rawTeamIds);
+        $teamIds = array_filter(array_map('intval', $teamIds));
+
+        $primaryBranchId = !empty($branchIds) ? $branchIds[0] : ($user?->branch_id ?: null);
+        $primaryTeamId   = !empty($teamIds) ? $teamIds[0] : ($user?->team_id ?: null);
+
         try {
             $customer = Customer::create([
                 'customer_type' => $customerType,
@@ -422,6 +453,8 @@ class CustomerApiController extends Controller
                 'state' => $request->input('state'),
                 'country' => $request->input('country', 'India'),
                 'pincode' => $request->input('pincode'),
+                'branch_id' => $primaryBranchId,
+                'team_id' => $primaryTeamId,
                 'owner_by' => $ownerId,
                 'assign_by' => $assignId,
                 'created_by' => $creatorId,
@@ -430,6 +463,24 @@ class CustomerApiController extends Controller
                 'status' => $status,
                 'custom_fields' => !empty($customFieldsInput) ? $customFieldsInput : null,
             ]);
+
+            // Sync multiple branches in pivot table
+            if (!empty($branchIds)) {
+                $branchSync = [];
+                foreach ($branchIds as $idx => $bId) {
+                    $branchSync[$bId] = ['is_primary' => ($idx === 0)];
+                }
+                $customer->branches()->sync($branchSync);
+            }
+
+            // Sync multiple teams in pivot table
+            if (!empty($teamIds)) {
+                $teamSync = [];
+                foreach ($teamIds as $idx => $tId) {
+                    $teamSync[$tId] = ['is_primary' => ($idx === 0)];
+                }
+                $customer->teams()->sync($teamSync);
+            }
         } catch (QueryException $e) {
             // Handle duplicate entry gracefully (MySQL 1062)
             if ($e->errorInfo[1] == 1062 || str_contains($e->getMessage(), 'Duplicate entry')) {
@@ -451,12 +502,30 @@ class CustomerApiController extends Controller
         }
 
         $customer->loadMissing([
+            'branch:id,name,code',
+            'team:id,name,code',
+            'branches:id,name,code',
+            'teams:id,name,code',
             'creator:id,name,email',
             'owner:id,name,email',
             'assignedBy:id,name,email',
             'leadRequirement:lead_requirements_id,name',
             'leadStage:lead_stage_id,name',
         ]);
+
+        $assignedBranchIds = $customer->branches->pluck('id')->values()->all();
+        if (empty($assignedBranchIds) && !empty($customer->branch_id)) {
+            $assignedBranchIds = [$customer->branch_id];
+        }
+
+        $assignedTeamIds = $customer->teams->pluck('id')->values()->all();
+        if (empty($assignedTeamIds) && !empty($customer->team_id)) {
+            $assignedTeamIds = [$customer->team_id];
+        }
+
+        $customerData = $customer->toArray();
+        $customerData['branch_ids'] = $assignedBranchIds;
+        $customerData['team_ids']   = $assignedTeamIds;
 
         return response()->json([
             'status' => true,
@@ -484,6 +553,10 @@ class CustomerApiController extends Controller
             'assignedBy:id,name,email',
             'leadRequirement:lead_requirements_id,name',
             'leadStage:lead_stage_id,name',
+            'branch:id,name,code',
+            'team:id,name,code',
+            'branches:id,name,code',
+            'teams:id,name,code',
         ])->qualifiedForCustomerList()->orderBy('customer_id', 'desc');
 
         if ($user) {
@@ -523,6 +596,36 @@ class CustomerApiController extends Controller
                       $lq->where('lead_stage_id', $leadStageId);
                   });
             });
+        }
+
+        // Branch filter (supports primary column and pivot branches)
+        if ($request->filled('branch_id') || $request->filled('branch_ids')) {
+            $rawB = $request->input('branch_ids', $request->input('branch_id'));
+            $bList = is_array($rawB) ? $rawB : explode(',', (string)$rawB);
+            $bList = array_values(array_filter(array_map('intval', $bList)));
+            if (!empty($bList)) {
+                $query->where(function ($bq) use ($bList) {
+                    $bq->whereIn('branch_id', $bList)
+                       ->orWhereHas('branches', function ($pbq) use ($bList) {
+                           $pbq->whereIn('branches.id', $bList);
+                       });
+                });
+            }
+        }
+
+        // Team filter (supports primary column and pivot teams)
+        if ($request->filled('team_id') || $request->filled('team_ids')) {
+            $rawT = $request->input('team_ids', $request->input('team_id'));
+            $tList = is_array($rawT) ? $rawT : explode(',', (string)$rawT);
+            $tList = array_values(array_filter(array_map('intval', $tList)));
+            if (!empty($tList)) {
+                $query->where(function ($tq) use ($tList) {
+                    $tq->whereIn('team_id', $tList)
+                       ->orWhereHas('teams', function ($ptq) use ($tList) {
+                           $ptq->whereIn('teams.id', $tList);
+                       });
+                });
+            }
         }
 
         if ($request->has('status') && $request->input('status') !== '' && $request->input('status') !== null) {
@@ -614,6 +717,10 @@ class CustomerApiController extends Controller
         }
 
         $customer->loadMissing([
+            'branch:id,name,code',
+            'team:id,name,code',
+            'branches:id,name,code',
+            'teams:id,name,code',
             'creator:id,name,email',
             'owner:id,name,email',
             'assignedBy:id,name,email',
@@ -621,9 +728,23 @@ class CustomerApiController extends Controller
             'leadStage:lead_stage_id,name',
         ]);
 
+        $assignedBranchIds = $customer->branches->pluck('id')->values()->all();
+        if (empty($assignedBranchIds) && !empty($customer->branch_id)) {
+            $assignedBranchIds = [$customer->branch_id];
+        }
+
+        $assignedTeamIds = $customer->teams->pluck('id')->values()->all();
+        if (empty($assignedTeamIds) && !empty($customer->team_id)) {
+            $assignedTeamIds = [$customer->team_id];
+        }
+
+        $customerData = $customer->toArray();
+        $customerData['branch_ids'] = $assignedBranchIds;
+        $customerData['team_ids']   = $assignedTeamIds;
+
         return response()->json([
             'status' => true,
-            'data' => $customer,
+            'data' => $customerData,
         ]);
     }
 
@@ -650,12 +771,30 @@ class CustomerApiController extends Controller
         }
 
         $customer->loadMissing([
+            'branch:id,name,code',
+            'team:id,name,code',
+            'branches:id,name,code',
+            'teams:id,name,code',
             'creator:id,name,email',
             'owner:id,name,email',
             'assignedBy:id,name,email',
             'leadRequirement:lead_requirements_id,name',
             'leadStage:lead_stage_id,name',
         ]);
+
+        $assignedBranchIds = $customer->branches->pluck('id')->values()->all();
+        if (empty($assignedBranchIds) && !empty($customer->branch_id)) {
+            $assignedBranchIds = [$customer->branch_id];
+        }
+
+        $assignedTeamIds = $customer->teams->pluck('id')->values()->all();
+        if (empty($assignedTeamIds) && !empty($customer->team_id)) {
+            $assignedTeamIds = [$customer->team_id];
+        }
+
+        $customerData = $customer->toArray();
+        $customerData['branch_ids'] = $assignedBranchIds;
+        $customerData['team_ids']   = $assignedTeamIds;
 
         $customFields = CustomerCustomField::where('status', 1)
             ->orderBy('sort_order', 'asc')
@@ -714,10 +853,31 @@ class CustomerApiController extends Controller
                 ];
             })->values();
 
+        $branchOptions = \App\Models\Branch::where('status', 1)->orderBy('name')->get(['id', 'name', 'code'])->map(fn($b) => [
+            'value' => $b->id,
+            'id'    => $b->id,
+            'name'  => $b->name,
+            'code'  => $b->code,
+            'label' => "{$b->name} ({$b->code})",
+        ])->values();
+
+        $teamOptions = \App\Models\Team::where('status', 1)->orderBy('name')->get(['id', 'branch_id', 'name', 'code'])->map(fn($t) => [
+            'value'     => $t->id,
+            'id'        => $t->id,
+            'branch_id' => $t->branch_id,
+            'name'      => $t->name,
+            'code'      => $t->code,
+            'label'     => "{$t->name} ({$t->code})",
+        ])->values();
+
         return response()->json([
             'status' => true,
             'message' => 'Customer details for edit retrieved successfully.',
-            'data' => $customer,
+            'data' => $customerData,
+            'branches' => $branchOptions,
+            'teams' => $teamOptions,
+            'branch_options' => $branchOptions,
+            'team_options' => $teamOptions,
             'custom_fields_definition' => $formattedFields,
             'owner_by_options' => $userOptions,
             'created_by_options' => $userOptions,
@@ -964,6 +1124,40 @@ class CustomerApiController extends Controller
             $updateData['lead_stage_id'] = $request->filled('lead_stage_id') ? (int) $request->input('lead_stage_id') : null;
         }
 
+        if ($request->has('branch_ids') || $request->has('branch_id')) {
+            $rawBranchIds = $request->input('branch_ids', $request->input('branch_id', []));
+            $branchIds = is_array($rawBranchIds) ? $rawBranchIds : explode(',', (string)$rawBranchIds);
+            $branchIds = array_filter(array_map('intval', $branchIds));
+            $updateData['branch_id'] = !empty($branchIds) ? $branchIds[0] : null;
+
+            if (!empty($branchIds)) {
+                $branchSync = [];
+                foreach ($branchIds as $idx => $bId) {
+                    $branchSync[$bId] = ['is_primary' => ($idx === 0)];
+                }
+                $customer->branches()->sync($branchSync);
+            } else {
+                $customer->branches()->detach();
+            }
+        }
+
+        if ($request->has('team_ids') || $request->has('team_id')) {
+            $rawTeamIds = $request->input('team_ids', $request->input('team_id', []));
+            $teamIds = is_array($rawTeamIds) ? $rawTeamIds : explode(',', (string)$rawTeamIds);
+            $teamIds = array_filter(array_map('intval', $teamIds));
+            $updateData['team_id'] = !empty($teamIds) ? $teamIds[0] : null;
+
+            if (!empty($teamIds)) {
+                $teamSync = [];
+                foreach ($teamIds as $idx => $tId) {
+                    $teamSync[$tId] = ['is_primary' => ($idx === 0)];
+                }
+                $customer->teams()->sync($teamSync);
+            } else {
+                $customer->teams()->detach();
+            }
+        }
+
         try {
             $customer->update($updateData);
         } catch (QueryException $e) {
@@ -985,6 +1179,10 @@ class CustomerApiController extends Controller
         }
 
         $customer->loadMissing([
+            'branch:id,name,code',
+            'team:id,name,code',
+            'branches:id,name,code',
+            'teams:id,name,code',
             'creator:id,name,email',
             'owner:id,name,email',
             'assignedBy:id,name,email',
@@ -992,10 +1190,24 @@ class CustomerApiController extends Controller
             'leadStage:lead_stage_id,name',
         ]);
 
+        $assignedBranchIds = $customer->branches->pluck('id')->values()->all();
+        if (empty($assignedBranchIds) && !empty($customer->branch_id)) {
+            $assignedBranchIds = [$customer->branch_id];
+        }
+
+        $assignedTeamIds = $customer->teams->pluck('id')->values()->all();
+        if (empty($assignedTeamIds) && !empty($customer->team_id)) {
+            $assignedTeamIds = [$customer->team_id];
+        }
+
+        $customerData = $customer->toArray();
+        $customerData['branch_ids'] = $assignedBranchIds;
+        $customerData['team_ids']   = $assignedTeamIds;
+
         return response()->json([
             'status' => true,
             'message' => 'Customer updated successfully.',
-            'data' => $customer->fresh(),
+            'data' => $customerData,
         ]);
     }
 

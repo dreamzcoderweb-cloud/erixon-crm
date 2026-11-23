@@ -14,6 +14,9 @@ use App\Http\Controllers\Api\PendingWorkApiController;
 use App\Http\Controllers\Api\DailyLearningApiController;
 use App\Http\Controllers\Api\CommitmentApiController;
 use App\Http\Controllers\Api\ProposalApiController;
+use App\Http\Controllers\Api\BranchApiController;
+use App\Http\Controllers\Api\TeamApiController;
+use App\Http\Controllers\Api\SaleClosedApiController;
 use App\Http\Controllers\NotificationController;
 
 use Illuminate\Support\Facades\Route;
@@ -29,6 +32,13 @@ Route::prefix('v1')->group(function () {
         Route::get('staff/call-logout-status', [StaffAuthController::class, 'callLogoutStatus']);
         Route::post('update-fcm-token', [StaffAuthController::class, 'updateFcmToken']);
         Route::post('staff/fcm-token', [StaffAuthController::class, 'updateFcmToken']);
+
+        // Mobile App Branch & Team Management
+        Route::get('branches', [BranchApiController::class, 'index']);
+        Route::get('branches/{id}', [BranchApiController::class, 'show']);
+        Route::get('teams', [TeamApiController::class, 'index']);
+        Route::get('teams/by-branch/{branchId}', [TeamApiController::class, 'getByBranch']);
+        Route::get('teams/{id}', [TeamApiController::class, 'show']);
 
         Route::get('customers/search', [CustomerApiController::class, 'search']);
 
@@ -81,6 +91,12 @@ Route::prefix('v1')->group(function () {
         Route::post('leads/update/{id}', [LeadApiController::class, 'update']);
         Route::delete('leads/delete/{id}', [LeadApiController::class, 'destroy']);
         Route::post('leads/change-status/{id}', [LeadApiController::class, 'changeStatus']);
+
+        // Mobile App Sale Closed Report & Period Filters (Daily, Monthly, Yearly, Custom)
+        Route::get('reports/sale-closed', [SaleClosedApiController::class, 'report']);
+        Route::get('reports/sale-closed/filters', [SaleClosedApiController::class, 'getFilterOptions']);
+        Route::get('sale-closed/report', [SaleClosedApiController::class, 'report']);
+        Route::get('sale-closed/filters', [SaleClosedApiController::class, 'getFilterOptions']);
 
         // Mobile App Follow-up Management & Additional Custom Fields
         Route::get('followups/form-data', [FollowupApiController::class, 'getFormData']);

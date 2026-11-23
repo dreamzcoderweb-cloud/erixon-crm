@@ -134,6 +134,7 @@
                 'teams' => ['title' => 'Team Management', 'icon' => 'bx-group', 'badge' => 'bg-label-info'],
                 'customers' => ['title' => 'Customers Management', 'icon' => 'bx-user', 'badge' => 'bg-label-primary'],
                 'leads' => ['title' => 'Leads Management', 'icon' => 'bx-target-lock', 'badge' => 'bg-label-success'],
+                'sale-closed' => ['title' => 'Sale Closed Management', 'icon' => 'bx-check-double', 'badge' => 'bg-label-success'],
                 'lead-sources' => ['title' => 'Lead Sources', 'icon' => 'bx-git-repo-forked', 'badge' => 'bg-label-purple'],
                 'coordinations' => ['title' => 'Coordination', 'icon' => 'bx-link-external', 'badge' => 'bg-label-info'],
                 'lead-stages' => ['title' => 'Lead Stages', 'icon' => 'bx-bar-chart-alt-2', 'badge' => 'bg-label-pink'],

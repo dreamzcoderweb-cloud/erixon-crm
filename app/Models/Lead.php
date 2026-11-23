@@ -125,6 +125,16 @@ class Lead extends Model
         return $this->belongsTo(Team::class, 'team_id');
     }
 
+    public function branches()
+    {
+        return $this->belongsToMany(Branch::class, 'branch_lead', 'lead_id', 'branch_id')->withPivot('is_primary')->withTimestamps();
+    }
+
+    public function teams()
+    {
+        return $this->belongsToMany(Team::class, 'lead_team', 'lead_id', 'team_id')->withPivot('is_primary')->withTimestamps();
+    }
+
     /**
      * Scope leads accessible by a specific user (staff-wise data access).
      */
@@ -142,7 +152,10 @@ class Lead extends Model
         if ($user->isBranchManager()) {
             $branchIds = $user->accessibleBranchIds();
             if (!empty($branchIds)) {
-                return $query->whereIn('leads.branch_id', $branchIds);
+                return $query->where(function ($q) use ($branchIds) {
+                    $q->whereIn('leads.branch_id', $branchIds)
+                      ->orWhereHas('branches', fn($bq) => $bq->whereIn('branches.id', $branchIds));
+                });
             }
         }
 
@@ -150,7 +163,10 @@ class Lead extends Model
         if ($user->isTeamLeader()) {
             $teamIds = $user->accessibleTeamIds();
             if (!empty($teamIds)) {
-                return $query->whereIn('leads.team_id', $teamIds);
+                return $query->where(function ($q) use ($teamIds) {
+                    $q->whereIn('leads.team_id', $teamIds)
+                      ->orWhereHas('teams', fn($tq) => $tq->whereIn('teams.id', $teamIds));
+                });
             }
         }
 

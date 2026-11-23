@@ -144,6 +144,14 @@ class User extends Authenticatable
         ]);
     }
 
+    /**
+     * Check if user is a staff member
+     */
+    public function isStaff(): bool
+    {
+        return $this->id != 1 && !$this->isSuperAdmin();
+    }
+
     public function branch()
     {
         return $this->belongsTo(Branch::class, 'branch_id');

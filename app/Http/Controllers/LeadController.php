@@ -192,6 +192,8 @@ class LeadController extends Controller
         $leads = (clone $query)->with([
             'branch:id,name,code',
             'team:id,name,code',
+            'branches:id,name,code',
+            'teams:id,name,code',
             'customer:customer_id,customer_type,name,mobile,email',
             'leadSource:lead_sources_id,name',
             'leadStage:lead_stage_id,name',
@@ -275,6 +277,10 @@ class LeadController extends Controller
         $baseRules = [
             'customer_name'       => ['required', 'string', 'max:255'],
             'customer_type'       => ['required', 'in:user,reseller'],
+            'branch_ids'          => ['nullable', 'array'],
+            'branch_ids.*'        => ['integer', 'exists:branches,id'],
+            'team_ids'            => ['nullable', 'array'],
+            'team_ids.*'          => ['integer', 'exists:teams,id'],
             'branch_id'           => ['nullable', 'exists:branches,id'],
             'team_id'             => ['nullable', 'exists:teams,id'],
             'mobile'              => ['required', 'string', 'max:20'],
@@ -317,11 +323,24 @@ class LeadController extends Controller
             }
         }
 
-        $branchId = !empty($validated['branch_id']) ? $validated['branch_id'] : $user->branch_id;
-        $teamId   = !empty($validated['team_id']) ? $validated['team_id'] : $user->team_id;
+        // Process multiple branches
+        $branchIds = (array) $request->input('branch_ids', []);
+        if (empty($branchIds) && !empty($validated['branch_id'])) {
+            $branchIds = [$validated['branch_id']];
+        }
+        $validated['branch_id'] = !empty($branchIds) ? $branchIds[0] : $user->branch_id;
 
-        $validated['branch_id'] = $branchId;
-        $validated['team_id']   = $teamId;
+        $primaryBranchId = $validated['branch_id'];
+
+        // Process multiple teams
+        $teamIds = (array) $request->input('team_ids', []);
+        if (empty($teamIds) && !empty($validated['team_id'])) {
+            $teamIds = [$validated['team_id']];
+        }
+        $validated['team_id'] = !empty($teamIds) ? $teamIds[0] : $user->team_id;
+        $primaryTeamId = $validated['team_id'];
+
+        unset($validated['branch_ids'], $validated['team_ids']);
 
         // Logic: Customer details are stored directly on the lead.
         // Customer is ONLY added to customer table/menu when lead stage is "Sale closed".
@@ -342,8 +361,8 @@ class LeadController extends Controller
                     'name'          => $custName,
                     'customer_type' => $custType,
                     'email'         => $custEmail,
-                    'branch_id'     => $existingCustomer->branch_id ?? $branchId,
-                    'team_id'       => $existingCustomer->team_id ?? $teamId,
+                    'branch_id'     => $existingCustomer->branch_id ?? $primaryBranchId,
+                    'team_id'       => $existingCustomer->team_id ?? $primaryTeamId,
                 ]);
                 $customer = $existingCustomer;
             } else {
@@ -352,11 +371,28 @@ class LeadController extends Controller
                     'customer_type' => $custType,
                     'mobile'        => $mobile,
                     'email'         => $custEmail,
-                    'branch_id'     => $branchId,
-                    'team_id'       => $teamId,
+                    'branch_id'     => $primaryBranchId,
+                    'team_id'       => $primaryTeamId,
                     'status'        => 1,
                     'created_by'    => $user->id,
                 ]);
+            }
+
+            if ($customer) {
+                if (!empty($branchIds)) {
+                    $cBranchSync = [];
+                    foreach ($branchIds as $idx => $bId) {
+                        $cBranchSync[$bId] = ['is_primary' => ($idx === 0)];
+                    }
+                    $customer->branches()->syncWithoutDetaching($cBranchSync);
+                }
+                if (!empty($teamIds)) {
+                    $cTeamSync = [];
+                    foreach ($teamIds as $idx => $tId) {
+                        $cTeamSync[$tId] = ['is_primary' => ($idx === 0)];
+                    }
+                    $customer->teams()->syncWithoutDetaching($cTeamSync);
+                }
             }
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::warning('Error resolving customer in web lead store: ' . $e->getMessage());
@@ -380,6 +416,28 @@ class LeadController extends Controller
 
         $lead = Lead::create($validated);
 
+        // Sync multiple branches
+        if (!empty($branchIds)) {
+            $branchSync = [];
+            foreach ($branchIds as $idx => $bId) {
+                $branchSync[$bId] = ['is_primary' => ($idx === 0)];
+            }
+            $lead->branches()->sync($branchSync);
+        } else {
+            $lead->branches()->detach();
+        }
+
+        // Sync multiple teams
+        if (!empty($teamIds)) {
+            $teamSync = [];
+            foreach ($teamIds as $idx => $tId) {
+                $teamSync[$tId] = ['is_primary' => ($idx === 0)];
+            }
+            $lead->teams()->sync($teamSync);
+        } else {
+            $lead->teams()->detach();
+        }
+
         // Requirement 9: sales closed - credit request trigger
         $this->checkAndCreateSalesClosedCreditRequest($lead);
 
@@ -392,7 +450,17 @@ class LeadController extends Controller
 
     public function edit($id)
     {
-        $lead = Lead::forUser(Auth::user())->with(['customer', 'leadSource', 'leadStage', 'leadRequirement', 'lostReason', 'assignedUser'])->find($id);
+        $lead = Lead::forUser(Auth::user())->with([
+            'customer',
+            'leadSource',
+            'leadStage',
+            'leadRequirement',
+            'lostReason',
+            'assignedUser',
+            'branches:id,name,code',
+            'teams:id,name,code'
+        ])->find($id);
+
         if (!$lead) {
             return response()->json([
                 'status'  => false,
@@ -400,9 +468,23 @@ class LeadController extends Controller
             ], 404);
         }
 
+        $assignedBranchIds = $lead->branches->pluck('id')->values()->all();
+        if (empty($assignedBranchIds) && !empty($lead->branch_id)) {
+            $assignedBranchIds = [$lead->branch_id];
+        }
+
+        $assignedTeamIds = $lead->teams->pluck('id')->values()->all();
+        if (empty($assignedTeamIds) && !empty($lead->team_id)) {
+            $assignedTeamIds = [$lead->team_id];
+        }
+
+        $leadData = $lead->toArray();
+        $leadData['branch_ids'] = $assignedBranchIds;
+        $leadData['team_ids']   = $assignedTeamIds;
+
         return response()->json([
             'status' => true,
-            'data'   => $lead
+            'data'   => $leadData
         ]);
     }
 
@@ -420,6 +502,10 @@ class LeadController extends Controller
 
         $baseRules = [
             'customer_id'         => ['nullable', 'exists:customers,customer_id'],
+            'branch_ids'          => ['nullable', 'array'],
+            'branch_ids.*'        => ['integer', 'exists:branches,id'],
+            'team_ids'            => ['nullable', 'array'],
+            'team_ids.*'          => ['integer', 'exists:teams,id'],
             'branch_id'           => ['nullable', 'exists:branches,id'],
             'team_id'             => ['nullable', 'exists:teams,id'],
             'customer_name'       => ['sometimes', 'required', 'string', 'max:255'],
@@ -530,8 +616,53 @@ class LeadController extends Controller
         $validated['mobile']        = $custMobile;
         $validated['email']         = $custEmail;
 
+        // Process multiple branches
+        $branchIds = (array) $request->input('branch_ids', []);
+        if (empty($branchIds) && !empty($validated['branch_id'])) {
+            $branchIds = [$validated['branch_id']];
+        }
+        if ($request->has('branch_ids') || $request->has('branch_id')) {
+            $validated['branch_id'] = !empty($branchIds) ? $branchIds[0] : null;
+        }
+
+        // Process multiple teams
+        $teamIds = (array) $request->input('team_ids', []);
+        if (empty($teamIds) && !empty($validated['team_id'])) {
+            $teamIds = [$validated['team_id']];
+        }
+        if ($request->has('team_ids') || $request->has('team_id')) {
+            $validated['team_id'] = !empty($teamIds) ? $teamIds[0] : null;
+        }
+
+        unset($validated['branch_ids'], $validated['team_ids']);
 
         $lead->update($validated);
+
+        // Sync multiple branches
+        if ($request->has('branch_ids') || $request->has('branch_id')) {
+            if (!empty($branchIds)) {
+                $branchSync = [];
+                foreach ($branchIds as $idx => $bId) {
+                    $branchSync[$bId] = ['is_primary' => ($idx === 0)];
+                }
+                $lead->branches()->sync($branchSync);
+            } else {
+                $lead->branches()->detach();
+            }
+        }
+
+        // Sync multiple teams
+        if ($request->has('team_ids') || $request->has('team_id')) {
+            if (!empty($teamIds)) {
+                $teamSync = [];
+                foreach ($teamIds as $idx => $tId) {
+                    $teamSync[$tId] = ['is_primary' => ($idx === 0)];
+                }
+                $lead->teams()->sync($teamSync);
+            } else {
+                $lead->teams()->detach();
+            }
+        }
 
         // Requirement 9: sales closed - credit request trigger
         $this->checkAndCreateSalesClosedCreditRequest($lead);

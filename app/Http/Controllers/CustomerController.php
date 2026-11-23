@@ -177,6 +177,8 @@ class CustomerController extends Controller
         $customers = (clone $query)->with([
             'branch:id,name,code',
             'team:id,name,code',
+            'branches:id,name,code',
+            'teams:id,name,code',
             'creator:id,name',
             'owner:id,name',
             'assignedBy:id,name',
@@ -269,6 +271,10 @@ class CustomerController extends Controller
 
         $baseRules = [
             'customer_type'    => ['required', 'in:user,reseller'],
+            'branch_ids'       => ['nullable', 'array'],
+            'branch_ids.*'     => ['integer', 'exists:branches,id'],
+            'team_ids'         => ['nullable', 'array'],
+            'team_ids.*'       => ['integer', 'exists:teams,id'],
             'branch_id'        => ['nullable', 'exists:branches,id'],
             'team_id'          => ['nullable', 'exists:teams,id'],
             'name'             => ['required', 'string', 'max:255'],
@@ -292,9 +298,23 @@ class CustomerController extends Controller
         $validated = $request->validate($rules, [], $customAttributes);
 
         $currentUser = Auth::user();
-        $validated['created_by']    = $currentUser->id;
-        $validated['branch_id']     = !empty($validated['branch_id']) ? $validated['branch_id'] : $currentUser->branch_id;
-        $validated['team_id']       = !empty($validated['team_id']) ? $validated['team_id'] : $currentUser->team_id;
+        $validated['created_by'] = $currentUser->id;
+
+        // Process multiple branches
+        $branchIds = (array) $request->input('branch_ids', []);
+        if (empty($branchIds) && !empty($validated['branch_id'])) {
+            $branchIds = [$validated['branch_id']];
+        }
+        $validated['branch_id'] = !empty($branchIds) ? $branchIds[0] : $currentUser->branch_id;
+
+        // Process multiple teams
+        $teamIds = (array) $request->input('team_ids', []);
+        if (empty($teamIds) && !empty($validated['team_id'])) {
+            $teamIds = [$validated['team_id']];
+        }
+        $validated['team_id'] = !empty($teamIds) ? $teamIds[0] : $currentUser->team_id;
+
+        unset($validated['branch_ids'], $validated['team_ids']);
         $validated['custom_fields'] = $this->processCustomFieldsPayload($validated['custom_fields'] ?? []);
 
         try {
@@ -308,6 +328,28 @@ class CustomerController extends Controller
                 ], 422);
             }
             throw $e;
+        }
+
+        // Sync multiple branches
+        if (!empty($branchIds)) {
+            $branchSync = [];
+            foreach ($branchIds as $idx => $bId) {
+                $branchSync[$bId] = ['is_primary' => ($idx === 0)];
+            }
+            $customer->branches()->sync($branchSync);
+        } else {
+            $customer->branches()->detach();
+        }
+
+        // Sync multiple teams
+        if (!empty($teamIds)) {
+            $teamSync = [];
+            foreach ($teamIds as $idx => $tId) {
+                $teamSync[$tId] = ['is_primary' => ($idx === 0)];
+            }
+            $customer->teams()->sync($teamSync);
+        } else {
+            $customer->teams()->detach();
         }
 
         if (!empty($validated['custom_fields']['followup_date'])) {
@@ -334,13 +376,29 @@ class CustomerController extends Controller
         $customer->loadMissing([
             'branch:id,name,code',
             'team:id,name,code',
+            'branches:id,name,code',
+            'teams:id,name,code',
             'leadRequirement:lead_requirements_id,name',
             'leadStage:lead_stage_id,name',
         ]);
 
+        $assignedBranchIds = $customer->branches->pluck('id')->values()->all();
+        if (empty($assignedBranchIds) && !empty($customer->branch_id)) {
+            $assignedBranchIds = [$customer->branch_id];
+        }
+
+        $assignedTeamIds = $customer->teams->pluck('id')->values()->all();
+        if (empty($assignedTeamIds) && !empty($customer->team_id)) {
+            $assignedTeamIds = [$customer->team_id];
+        }
+
+        $customerData = $customer->toArray();
+        $customerData['branch_ids'] = $assignedBranchIds;
+        $customerData['team_ids']   = $assignedTeamIds;
+
         return response()->json([
             'status' => true,
-            'data'   => $customer
+            'data'   => $customerData
         ]);
     }
 
@@ -372,6 +430,10 @@ class CustomerController extends Controller
 
         $baseRules = [
             'customer_type'       => ['required', 'in:user,reseller'],
+            'branch_ids'          => ['nullable', 'array'],
+            'branch_ids.*'        => ['integer', 'exists:branches,id'],
+            'team_ids'            => ['nullable', 'array'],
+            'team_ids.*'          => ['integer', 'exists:teams,id'],
             'branch_id'           => ['nullable', 'exists:branches,id'],
             'team_id'             => ['nullable', 'exists:teams,id'],
             'name'                => ['required', 'string', 'max:255'],
@@ -394,6 +456,21 @@ class CustomerController extends Controller
         $rules = array_merge($baseRules, $customRules);
         $validated = $request->validate($rules, [], $customAttributes);
 
+        // Process multiple branches
+        $branchIds = (array) $request->input('branch_ids', []);
+        if (empty($branchIds) && !empty($validated['branch_id'])) {
+            $branchIds = [$validated['branch_id']];
+        }
+        $validated['branch_id'] = !empty($branchIds) ? $branchIds[0] : null;
+
+        // Process multiple teams
+        $teamIds = (array) $request->input('team_ids', []);
+        if (empty($teamIds) && !empty($validated['team_id'])) {
+            $teamIds = [$validated['team_id']];
+        }
+        $validated['team_id'] = !empty($teamIds) ? $teamIds[0] : null;
+
+        unset($validated['branch_ids'], $validated['team_ids']);
         $validated['custom_fields'] = $this->processCustomFieldsPayload($validated['custom_fields'] ?? []);
 
         try {
@@ -407,6 +484,28 @@ class CustomerController extends Controller
                 ], 422);
             }
             throw $e;
+        }
+
+        // Sync multiple branches
+        if (!empty($branchIds)) {
+            $branchSync = [];
+            foreach ($branchIds as $idx => $bId) {
+                $branchSync[$bId] = ['is_primary' => ($idx === 0)];
+            }
+            $customer->branches()->sync($branchSync);
+        } else {
+            $customer->branches()->detach();
+        }
+
+        // Sync multiple teams
+        if (!empty($teamIds)) {
+            $teamSync = [];
+            foreach ($teamIds as $idx => $tId) {
+                $teamSync[$tId] = ['is_primary' => ($idx === 0)];
+            }
+            $customer->teams()->sync($teamSync);
+        } else {
+            $customer->teams()->detach();
         }
 
         if (isset($validated['custom_fields']['followup_date'])) {

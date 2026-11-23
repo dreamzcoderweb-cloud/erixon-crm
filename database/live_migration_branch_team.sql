@@ -190,7 +190,9 @@ INSERT IGNORE INTO `permissions` (`name`, `guard_name`, `created_at`, `updated_a
 ('teams.view', 'web', NOW(), NOW()),
 ('teams.create', 'web', NOW(), NOW()),
 ('teams.edit', 'web', NOW(), NOW()),
-('teams.delete', 'web', NOW(), NOW());
+('teams.delete', 'web', NOW(), NOW()),
+('sale-closed.view', 'web', NOW(), NOW()),
+('sale-closed.export', 'web', NOW(), NOW());
 
 -- Attach new permissions to Super Admin & Admin roles
 INSERT IGNORE INTO `role_has_permissions` (`permission_id`, `role_id`)
@@ -199,8 +201,82 @@ FROM `permissions` p
 CROSS JOIN `roles` r
 WHERE p.name IN (
     'branches.view', 'branches.create', 'branches.edit', 'branches.delete',
-    'teams.view', 'teams.create', 'teams.edit', 'teams.delete'
-) AND r.name IN ('Super Admin', 'Admin', 'super admin', 'Super-Admin');
+    'teams.view', 'teams.create', 'teams.edit', 'teams.delete',
+    'sale-closed.view', 'sale-closed.export'
+) AND r.name IN ('Super Admin', 'Admin', 'super admin', 'Super-Admin', 'Sales Manager');
+
+-- 12. Create `branch_customer` pivot table (Multi-Branch Customer support)
+CREATE TABLE IF NOT EXISTS `branch_customer` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `customer_id` bigint(20) unsigned NOT NULL,
+  `branch_id` bigint(20) unsigned NOT NULL,
+  `is_primary` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `branch_customer_customer_id_branch_id_unique` (`customer_id`,`branch_id`),
+  KEY `branch_customer_branch_id_foreign` (`branch_id`),
+  CONSTRAINT `branch_customer_branch_id_foreign` FOREIGN KEY (`branch_id`) REFERENCES `branches` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `branch_customer_customer_id_foreign` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`customer_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 13. Create `customer_team` pivot table (Multi-Team Customer support)
+CREATE TABLE IF NOT EXISTS `customer_team` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `customer_id` bigint(20) unsigned NOT NULL,
+  `team_id` bigint(20) unsigned NOT NULL,
+  `is_primary` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `customer_team_customer_id_team_id_unique` (`customer_id`,`team_id`),
+  KEY `customer_team_team_id_foreign` (`team_id`),
+  CONSTRAINT `customer_team_team_id_foreign` FOREIGN KEY (`team_id`) REFERENCES `teams` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `customer_team_customer_id_foreign` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`customer_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 14. Create `branch_lead` pivot table (Multi-Branch Lead support)
+CREATE TABLE IF NOT EXISTS `branch_lead` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `lead_id` bigint(20) unsigned NOT NULL,
+  `branch_id` bigint(20) unsigned NOT NULL,
+  `is_primary` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `branch_lead_lead_id_branch_id_unique` (`lead_id`,`branch_id`),
+  KEY `branch_lead_branch_id_foreign` (`branch_id`),
+  CONSTRAINT `branch_lead_branch_id_foreign` FOREIGN KEY (`branch_id`) REFERENCES `branches` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `branch_lead_lead_id_foreign` FOREIGN KEY (`lead_id`) REFERENCES `leads` (`lead_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 15. Create `lead_team` pivot table (Multi-Team Lead support)
+CREATE TABLE IF NOT EXISTS `lead_team` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `lead_id` bigint(20) unsigned NOT NULL,
+  `team_id` bigint(20) unsigned NOT NULL,
+  `is_primary` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `lead_team_lead_id_team_id_unique` (`lead_id`,`team_id`),
+  KEY `lead_team_team_id_foreign` (`team_id`),
+  CONSTRAINT `lead_team_team_id_foreign` FOREIGN KEY (`team_id`) REFERENCES `teams` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `lead_team_lead_id_foreign` FOREIGN KEY (`lead_id`) REFERENCES `leads` (`lead_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 16. Backfill existing Customer & Lead single branch/team into pivot tables
+INSERT IGNORE INTO `branch_customer` (`customer_id`, `branch_id`, `is_primary`, `created_at`, `updated_at`)
+SELECT `customer_id`, `branch_id`, 1, NOW(), NOW() FROM `customers` WHERE `branch_id` IS NOT NULL AND `branch_id` > 0;
+
+INSERT IGNORE INTO `customer_team` (`customer_id`, `team_id`, `is_primary`, `created_at`, `updated_at`)
+SELECT `customer_id`, `team_id`, 1, NOW(), NOW() FROM `customers` WHERE `team_id` IS NOT NULL AND `team_id` > 0;
+
+INSERT IGNORE INTO `branch_lead` (`lead_id`, `branch_id`, `is_primary`, `created_at`, `updated_at`)
+SELECT `lead_id`, `branch_id`, 1, NOW(), NOW() FROM `leads` WHERE `branch_id` IS NOT NULL AND `branch_id` > 0;
+
+INSERT IGNORE INTO `lead_team` (`lead_id`, `team_id`, `is_primary`, `created_at`, `updated_at`)
+SELECT `lead_id`, `team_id`, 1, NOW(), NOW() FROM `leads` WHERE `team_id` IS NOT NULL AND `team_id` > 0;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
