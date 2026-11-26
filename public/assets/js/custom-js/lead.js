@@ -41,10 +41,14 @@ $(document).ready(function () {
                     render: function (data, type, row) {
                         let name = row.customer_name || (data ? data.name : null);
                         let mobile = row.mobile || (data ? data.mobile : null);
+                        let customerId = row.customer_id || (data ? data.customer_id : null);
                         if (!name && !mobile) return type !== 'display' ? 'N/A' : '<span class="text-muted">N/A</span>';
-                        let mobileDisplay = mobile ? `<br><small class="text-muted">${mobile}</small>` : '';
+                        let mobileDisplay = mobile ? `<br><small class="text-muted"><i class="bx bx-phone me-1"></i>${mobile}</small>` : '';
                         let textDisplay = mobile ? `${name} (${mobile})` : (name || 'N/A');
                         if (type !== 'display') return textDisplay;
+                        if (customerId) {
+                            return `<div><a href="javascript:void(0);" class="fw-bold text-primary view-customer-details-btn text-decoration-underline" data-customer-id="${customerId}" title="Click to view Customer Call & Sale Closed Details"><i class="bx bx-user me-1"></i>${name || 'Customer'}</a>${mobileDisplay}</div>`;
+                        }
                         return `<div><strong>${name || 'N/A'}</strong>${mobileDisplay}</div>`;
                     }
                 });
@@ -753,5 +757,334 @@ $(document).ready(function () {
     $('#edit_lead_branch_id').on('change', function() {
         let val = $(this).val();
         loadTeamsForLeadSelect(val, $('#edit_lead_team_id'), $('#edit_lead_team_id').val() || []);
+    });
+
+    // DataTable initialization helper for Customer Details Modal
+    function initCdmDataTable(selector) {
+        if ($.fn.DataTable.isDataTable(selector)) {
+            $(selector).DataTable().clear().destroy();
+        }
+        return $(selector).DataTable({
+            pageLength: 5,
+            lengthMenu: [[5, 10, 25, 50, -1], [5, 10, 25, 50, "All"]],
+            order: [],
+            responsive: true,
+            autoWidth: false,
+            language: {
+                search: "_INPUT_",
+                searchPlaceholder: "Search...",
+                lengthMenu: "_MENU_ entries",
+                info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                infoEmpty: "Showing 0 to 0 of 0 entries",
+                emptyTable: "No records found"
+            }
+        });
+    }
+
+    // Auto-adjust DataTable columns on modal tab switch & modal show
+    $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function () {
+        if ($.fn.dataTable) {
+            $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+        }
+    });
+
+    $('#customerDetailsModal').on('shown.bs.modal', function () {
+        if ($.fn.dataTable) {
+            $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+        }
+    });
+
+    // Customer Full Details Modal (Calls, Sale Closed, Demos, Proposals & Profile)
+    $(document).on('click', '.view-customer-details-btn', function (e) {
+        e.preventDefault();
+        let customerId = $(this).data('customer-id');
+        if (!customerId) return;
+
+        let $modal = $('#customerDetailsModal');
+        $modal.modal('show');
+        $('#cdm_loading').removeClass('d-none');
+        $('#cdm_content').addClass('d-none');
+        $('#cdm_sale_closed_banner').addClass('d-none');
+
+        // Reset tables and destroy previous DataTables
+        ['#cdm_calls_table', '#cdm_leads_table', '#cdm_demos_table', '#cdm_proposals_table', '#cdm_followups_table'].forEach(function(sel) {
+            if ($.fn.DataTable.isDataTable(sel)) {
+                $(sel).DataTable().clear().destroy();
+            }
+        });
+
+        // Reset fields
+        $('#cdm_name').text('Customer Details');
+        $('#cdm_type').text('User');
+        $('#cdm_sale_closed_badge').empty();
+        $('#cdm_calls_tbody').empty();
+        $('#cdm_leads_tbody').empty();
+        $('#cdm_demos_tbody').empty();
+        $('#cdm_proposals_tbody').empty();
+        $('#cdm_followups_tbody').empty();
+
+        $.ajax({
+            url: APP_URL + '/admin/customers/details/' + customerId,
+            type: 'GET',
+            dataType: 'json',
+            success: function (res) {
+                if (!res.status || !res.data) {
+                    if (typeof showToast === 'function') {
+                        showToast('error', res.message || 'Unable to load customer details.');
+                    }
+                    $modal.modal('hide');
+                    return;
+                }
+
+                let d = res.data;
+                let c = d.customer;
+                let sc = d.sale_closed;
+                let stats = d.stats || {};
+
+                // Header
+                $('#cdm_name').text(c.name || 'Customer');
+                $('#cdm_type').text(c.customer_type || 'User');
+                if (stats.is_sale_closed) {
+                    $('#cdm_sale_closed_badge').html('<span class="badge bg-success"><i class="bx bx-check me-1"></i>Sale Closed</span>');
+                } else {
+                    $('#cdm_sale_closed_badge').html('<span class="badge bg-label-secondary">Open Lead</span>');
+                }
+
+                // KPI Stats Top Row
+                $('#cdm_stat_calls').text(stats.total_calls || 0);
+                $('#cdm_stat_leads').text(stats.total_leads || 0);
+                $('#cdm_stat_closed').html(stats.is_sale_closed ? '<span class="text-success"><i class="bx bx-check me-1"></i>Yes</span>' : '<span class="text-muted">No</span>');
+                $('#cdm_stat_demos').text(stats.total_demo_processes || 0);
+                $('#cdm_stat_proposals').text(stats.total_proposals || 0);
+                $('#cdm_stat_followups').text(stats.total_followups || 0);
+
+                // Tab Badge Counts
+                $('#cdm_tab_count_calls').text(stats.total_calls || 0);
+                $('#cdm_tab_count_leads').text(stats.total_leads || 0);
+                $('#cdm_tab_count_demos').text(stats.total_demo_processes || 0);
+                $('#cdm_tab_count_proposals').text(stats.total_proposals || 0);
+                $('#cdm_tab_count_followups').text(stats.total_followups || 0);
+
+                // Sale Closed Banner
+                if (sc && sc.is_closed) {
+                    $('#cdm_sale_closed_banner').removeClass('d-none');
+                    $('#cdm_closed_date_badge').text(sc.closed_date);
+                    $('#cdm_sale_closed_text').html(`Closed by <strong>${sc.closed_by || 'Staff'}</strong> on <strong>${sc.closed_date}</strong> (${sc.closed_ago}).`);
+                    $('#cdm_sale_closed_subtext').html(`Lead: <strong>${sc.lead_title}</strong> | Requirement: <strong>${sc.requirement}</strong> ${sc.expected_amount ? '| Expected Amount: <strong class="text-success">' + sc.expected_amount + '</strong>' : ''}`);
+                } else {
+                    $('#cdm_sale_closed_banner').addClass('d-none');
+                }
+
+                // Customer Info (Profile Tab)
+                $('#cdm_p_name').text(c.name || '-');
+                $('#cdm_p_type').text(c.customer_type || '-');
+                $('#cdm_p_mobile').text(c.mobile || '-');
+                if (c.mobile) {
+                    $('#cdm_p_mobile_link').attr('href', 'tel:' + c.mobile);
+                } else {
+                    $('#cdm_p_mobile_link').removeAttr('href');
+                }
+                $('#cdm_p_email').text(c.email || '-');
+                if (c.email && c.email !== '-') {
+                    $('#cdm_p_email_link').attr('href', 'mailto:' + c.email);
+                } else {
+                    $('#cdm_p_email_link').removeAttr('href');
+                }
+                $('#cdm_p_company').text(c.company_name || '-');
+                $('#cdm_p_city').text(c.city || '-');
+                $('#cdm_p_address').text(c.address || '-');
+                $('#cdm_p_branch').text(c.branch_name || '-');
+                $('#cdm_p_team').text(c.team_name || '-');
+                $('#cdm_p_owner').text(c.owner_name || c.assigned_by_name || '-');
+                $('#cdm_p_creator').text(c.creator_name || '-');
+                $('#cdm_p_created_at').text(c.created_at || '-');
+
+                // 1. Call History Tab ("yatha staff yepo call paniruka")
+                let calls = d.call_logs || [];
+                let callsHtml = '';
+                calls.forEach(function (call, idx) {
+                    let statusBadge = '<span class="badge bg-label-secondary">' + (call.call_status || '-') + '</span>';
+                    let stLower = (call.call_status || '').toLowerCase();
+                    if (stLower.includes('answer')) {
+                        statusBadge = '<span class="badge bg-label-success">' + call.call_status + '</span>';
+                    } else if (stLower.includes('miss') || stLower.includes('no answer')) {
+                        statusBadge = '<span class="badge bg-label-danger">' + call.call_status + '</span>';
+                    } else if (stLower.includes('busy')) {
+                        statusBadge = '<span class="badge bg-label-warning">' + call.call_status + '</span>';
+                    }
+
+                    let typeBadge = '<span class="badge bg-label-primary"><i class="bx bx-phone-outgoing me-1"></i>' + (call.call_type || 'Out') + '</span>';
+                    if ((call.call_type || '').toLowerCase().includes('in')) {
+                        typeBadge = '<span class="badge bg-label-info"><i class="bx bx-phone-incoming me-1"></i>' + call.call_type + '</span>';
+                    }
+
+                    let recPlayer = '<span class="text-muted">-</span>';
+                    if (call.recording_url) {
+                        recPlayer = `
+                            <audio controls style="height: 30px; width: 170px;">
+                                <source src="${call.recording_url}" type="audio/mpeg">
+                                <source src="${call.recording_url}" type="audio/wav">
+                                <source src="${call.recording_url}" type="audio/mp3">
+                            </audio>
+                        `;
+                    }
+
+                    callsHtml += `
+                        <tr>
+                            <td class="text-center">${idx + 1}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar avatar-xs bg-label-primary rounded-circle me-2 d-flex align-items-center justify-content-center">
+                                        <i class="bx bx-user" style="font-size: 11px;"></i>
+                                    </div>
+                                    <div>
+                                        <strong class="text-dark">${call.staff_name || 'Staff'}</strong>
+                                        ${call.staff_email ? `<br><small class="text-muted">${call.staff_email}</small>` : ''}
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <strong>${call.call_date}</strong>
+                                <br><small class="text-muted">${call.time_ago}</small>
+                            </td>
+                            <td>${typeBadge}</td>
+                            <td>${statusBadge}</td>
+                            <td><span class="badge bg-light text-dark border"><i class="bx bx-time-five me-1"></i>${call.duration}</span></td>
+                            <td><small class="text-muted">${call.lead_title || '-'}</small></td>
+                            <td>${recPlayer}</td>
+                        </tr>
+                    `;
+                });
+                $('#cdm_calls_tbody').html(callsHtml);
+                initCdmDataTable('#cdm_calls_table');
+
+                // 2. Leads Tab ("yepo sale close aagiruch")
+                let leads = d.leads || [];
+                let leadsHtml = '';
+                leads.forEach(function (l, idx) {
+                    let stageBadge = `<span class="badge bg-label-warning">${l.stage_name}</span>`;
+                    let trClass = '';
+                    if (l.is_sale_closed) {
+                        stageBadge = `<span class="badge bg-success text-white"><i class="bx bx-check-circle me-1"></i>${l.stage_name}</span>`;
+                        trClass = 'table-success';
+                    }
+
+                    leadsHtml += `
+                        <tr class="${trClass}">
+                            <td class="text-center">${idx + 1}</td>
+                            <td>
+                                <strong class="text-dark">${l.lead_title || 'Lead #' + l.lead_id}</strong>
+                                ${l.is_sale_closed ? '<br><span class="badge bg-label-success" style="font-size: 10px;">Sale Closed</span>' : ''}
+                            </td>
+                            <td>${stageBadge}</td>
+                            <td><span class="badge bg-label-info">${l.requirement_name}</span></td>
+                            <td><small class="text-muted">${l.source_name}</small></td>
+                            <td><i class="bx bx-user me-1 text-muted"></i>${l.assigned_to}</td>
+                            <td><small class="text-muted">${l.created_at}</small></td>
+                            <td>
+                                <strong>${l.updated_at}</strong>
+                                ${l.is_sale_closed ? '<br><small class="text-success fw-bold">Closed</small>' : ''}
+                            </td>
+                        </tr>
+                    `;
+                });
+                $('#cdm_leads_tbody').html(leadsHtml);
+                initCdmDataTable('#cdm_leads_table');
+
+                // 3. Demo Process Tab
+                let demos = d.demo_processes || [];
+                let demosHtml = '';
+                demos.forEach(function (dp, idx) {
+                    let stBadge = '<span class="badge bg-label-secondary">' + dp.status + '</span>';
+                    let stLower = (dp.status || '').toLowerCase();
+                    if (stLower.includes('finish') || stLower.includes('complete')) {
+                        stBadge = '<span class="badge bg-label-success">' + dp.status + '</span>';
+                    } else if (stLower.includes('pend') || stLower.includes('sched')) {
+                        stBadge = '<span class="badge bg-label-warning">' + dp.status + '</span>';
+                    } else if (stLower.includes('cancel')) {
+                        stBadge = '<span class="badge bg-label-danger">' + dp.status + '</span>';
+                    }
+
+                    demosHtml += `
+                        <tr>
+                            <td class="text-center">${idx + 1}</td>
+                            <td>
+                                <strong class="text-dark"><i class="bx bx-calendar me-1 text-primary"></i>${dp.demo_date}</strong>
+                                ${dp.demo_time && dp.demo_time !== '-' ? `<br><small class="text-muted"><i class="bx bx-time-five me-1"></i>${dp.demo_time}</small>` : ''}
+                            </td>
+                            <td><span class="badge bg-label-info">${dp.requirement_name}</span></td>
+                            <td><small class="text-muted">${dp.source_name}</small></td>
+                            <td><i class="bx bx-user me-1 text-muted"></i>${dp.assigned_staff}</td>
+                            <td>${stBadge}</td>
+                            <td><small class="text-wrap">${dp.remarks}</small></td>
+                        </tr>
+                    `;
+                });
+                $('#cdm_demos_tbody').html(demosHtml);
+                initCdmDataTable('#cdm_demos_table');
+
+                // 4. Proposals Tab
+                let proposals = d.proposals || [];
+                let proposalsHtml = '';
+                proposals.forEach(function (pr, idx) {
+                    let stBadge = '<span class="badge bg-label-secondary">' + pr.status + '</span>';
+                    let stLower = (pr.status || '').toLowerCase();
+                    if (stLower.includes('accept') || stLower.includes('active')) {
+                        stBadge = '<span class="badge bg-label-success">' + pr.status + '</span>';
+                    } else if (stLower.includes('send') || stLower.includes('sent')) {
+                        stBadge = '<span class="badge bg-label-primary">' + pr.status + '</span>';
+                    } else if (stLower.includes('decline') || stLower.includes('reject')) {
+                        stBadge = '<span class="badge bg-label-danger">' + pr.status + '</span>';
+                    }
+
+                    proposalsHtml += `
+                        <tr>
+                            <td class="text-center">${idx + 1}</td>
+                            <td><strong class="text-primary">${pr.proposal_number}</strong></td>
+                            <td><small class="text-muted">${pr.proposal_date}</small></td>
+                            <td><span class="badge bg-label-info">${pr.requirement_name}</span></td>
+                            <td><i class="bx bx-user me-1 text-muted"></i>${pr.sales_manager}</td>
+                            <td><span class="badge bg-label-dark">${pr.items_count} item(s)</span></td>
+                            <td><strong class="text-success">${pr.total_amount}</strong></td>
+                            <td>${stBadge}</td>
+                        </tr>
+                    `;
+                });
+                $('#cdm_proposals_tbody').html(proposalsHtml);
+                initCdmDataTable('#cdm_proposals_table');
+
+                // 5. Followups Tab
+                let followups = d.followups || [];
+                let fuHtml = '';
+                followups.forEach(function (f, idx) {
+                    let stBadge = f.status === 'Completed' ? '<span class="badge bg-label-success">Completed</span>' : '<span class="badge bg-label-warning">' + f.status + '</span>';
+                    fuHtml += `
+                        <tr>
+                            <td class="text-center">${idx + 1}</td>
+                            <td><small class="fw-semibold">${f.lead_title}</small></td>
+                            <td><i class="bx bx-user me-1 text-muted"></i>${f.staff_name}</td>
+                            <td><strong class="text-primary">${f.next_followup_date}</strong></td>
+                            <td>${stBadge}</td>
+                            <td><small>${f.remarks}</small></td>
+                        </tr>
+                    `;
+                });
+                $('#cdm_followups_tbody').html(fuHtml);
+                initCdmDataTable('#cdm_followups_table');
+
+                $('#cdm_loading').addClass('d-none');
+                $('#cdm_content').removeClass('d-none');
+
+                // Adjust DataTable column widths now that content is visible
+                setTimeout(function () {
+                    if ($.fn.dataTable) {
+                        $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+                    }
+                }, 100);
+            },
+            error: function () {
+                $('#cdm_loading').html('<div class="alert alert-danger m-3 py-2"><i class="bx bx-error-circle me-1"></i>Failed to fetch customer details. Please try again.</div>');
+            }
+        });
     });
 });

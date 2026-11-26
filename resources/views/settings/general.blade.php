@@ -86,19 +86,19 @@
                             <div class="d-flex align-items-start align-items-sm-center gap-4">
                                     <div class="position-relative">
                                         @php
-                                            $logoPath = !empty($setting->logo)
-                                                ? 'public/' . ltrim(str_replace('public/', '', $setting->logo), '/')
-                                                : null;
+                                            $cleanLogo = !empty($setting->logo) ? ltrim(str_replace('public/', '', $setting->logo), '/') : null;
+                                            $logoExists = !empty($cleanLogo) && file_exists(public_path($cleanLogo));
+                                            $logoUrl = $logoExists ? get_media_url($cleanLogo) : null;
                                         @endphp
 
-                                        @if(!empty($logoPath) && file_exists(public_path(str_replace('public/', '', $logoPath))))
-                                            <img src="{{ asset($logoPath) }}" alt="company-logo"
+                                        @if($logoUrl)
+                                            <img src="{{ $logoUrl }}" alt="company-logo"
                                                 class="d-block rounded p-2 border" height="90" width="90"
                                                 id="uploadedLogo" style="object-fit: contain;" />
                                         @else
                                             <div class="d-flex align-items-center justify-content-center bg-label-primary rounded border"
                                                 style="width: 90px; height: 90px;">
-                                                <i class="bx bx-dumbbell display-6"></i>
+                                                <i class="bx bx-buildings display-6"></i>
                                             </div>
                                         @endif
                                     </div>
@@ -115,22 +115,22 @@
                             <div class="d-flex align-items-start align-items-sm-center gap-4">
                                 <div class="position-relative">
                                     @php
-                                            $faviconPath = !empty($setting->favicon)
-                                                ? 'public/' . ltrim(str_replace('public/', '', $setting->favicon), '/')
-                                                : null;
+                                        $cleanFavicon = !empty($setting->favicon) ? ltrim(str_replace('public/', '', $setting->favicon), '/') : null;
+                                        $faviconExists = !empty($cleanFavicon) && file_exists(public_path($cleanFavicon));
+                                        $faviconUrl = $faviconExists ? get_media_url($cleanFavicon) : null;
                                     @endphp
 
-                                        @if(!empty($faviconPath) && file_exists(public_path(str_replace('public/', '', $faviconPath))))
-                                            <img src="{{ asset($faviconPath) }}" alt="company-favicon"
-                                                class="d-block rounded p-2 border" height="90" width="90"
-                                                id="uploadedFavicon" style="object-fit: contain;" />
-                                        @else
-                                            <div class="d-flex align-items-center justify-content-center bg-label-secondary rounded border"
-                                                style="width: 90px; height: 90px;">
-                                                <img src="{{ asset('public/assets/img/fav_icon.png') }}" alt="default-favicon"
-                                                    style="width: 48px; height: 48px; object-fit: contain;" />
-                                            </div>
-                                        @endif
+                                    @if($faviconUrl)
+                                        <img src="{{ $faviconUrl }}" alt="company-favicon"
+                                            class="d-block rounded p-2 border" height="90" width="90"
+                                            id="uploadedFavicon" style="object-fit: contain;" />
+                                    @else
+                                        <div class="d-flex align-items-center justify-content-center bg-label-secondary rounded border"
+                                            style="width: 90px; height: 90px;">
+                                            <img src="{{ get_media_url('assets/img/fav_icon.png') }}" alt="default-favicon"
+                                                style="width: 48px; height: 48px; object-fit: contain;" />
+                                        </div>
+                                    @endif
                                 </div>
                                 <div class="button-wrapper">
                                     <h6 class="mb-1 fw-bold">Favicon</h6>
@@ -181,14 +181,14 @@
                                 <span class="badge bg-label-info ms-1" style="font-size:11px;">Used on printed proposals</span>
                             </label>
                             @php
-                                $proposalLogoPath = !empty($setting->proposal_logo)
-                                    ? 'public/' . ltrim(str_replace('public/', '', $setting->proposal_logo), '/')
-                                    : null;
+                                $cleanProposal = !empty($setting->proposal_logo) ? ltrim(str_replace('public/', '', $setting->proposal_logo), '/') : null;
+                                $proposalExists = !empty($cleanProposal) && file_exists(public_path($cleanProposal));
+                                $proposalLogoUrl = $proposalExists ? get_media_url($cleanProposal) : null;
                             @endphp
 
-                            @if(!empty($proposalLogoPath) && file_exists(public_path(str_replace('public/', '', $proposalLogoPath))))
+                            @if($proposalLogoUrl)
                                 <div class="mb-2">
-                                    <img src="{{ asset($proposalLogoPath) }}" alt="proposal-logo"
+                                    <img src="{{ $proposalLogoUrl }}" alt="proposal-logo"
                                         class="rounded border p-1" height="54" style="object-fit:contain;" />
                                     <small class="text-muted ms-2">Current proposal logo</small>
                                 </div>

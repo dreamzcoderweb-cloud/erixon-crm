@@ -20,10 +20,6 @@ if (!function_exists('general_setting')) {
 
     $value = $setting->{$key} ?? $default;
 
-    if (in_array($key, ['logo', 'favicon', 'proposal_logo']) && !empty($value)) {
-        $value = 'public/' . ltrim(str_replace('public/', '', $value), '/');
-    }
-
     return $value;
 }
 }
@@ -37,19 +33,18 @@ if (!function_exists('company_name')) {
 
 if (!function_exists('company_logo')) {
     function company_logo($default = null)
-{
-    $logo = general_setting('logo');
+    {
+        $logo = general_setting('logo');
 
-    if (!empty($logo)) {
-        $filePath = public_path(str_replace('public/', '', $logo));
-
-        if (file_exists($filePath)) {
-            return asset($logo);
+        if (!empty($logo)) {
+            $clean = ltrim(str_replace('public/', '', $logo), '/');
+            if (file_exists(public_path($clean))) {
+                return get_media_url($clean);
+            }
         }
-    }
 
-    return $default;
-}
+        return $default;
+    }
 }
 
 if (!function_exists('company_favicon')) {
@@ -58,30 +53,29 @@ if (!function_exists('company_favicon')) {
         $favicon = general_setting('favicon');
 
         if (!empty($favicon)) {
-            $filePath = public_path(str_replace('public/', '', $favicon));
-
-            if (file_exists($filePath)) {
-                return asset($favicon);
+            $clean = ltrim(str_replace('public/', '', $favicon), '/');
+            if (file_exists(public_path($clean))) {
+                return get_media_url($clean);
             }
         }
 
-        return $default ?: asset('public/assets/img/fav_icon.png');
+        return $default ?: get_media_url('assets/img/fav_icon.png');
     }
 }
+
 if (!function_exists('proposal_logo')) {
     function proposal_logo($default = null)
     {
         $logo = general_setting('proposal_logo');
 
         if (!empty($logo)) {
-            $filePath = public_path(str_replace('public/', '', $logo));
-
-            if (file_exists($filePath)) {
-                return asset($logo);
+            $clean = ltrim(str_replace('public/', '', $logo), '/');
+            if (file_exists(public_path($clean))) {
+                return get_media_url($clean);
             }
         }
 
-        return $default;
+        return company_logo($default);
     }
 }
 if (!function_exists('theme_color')) {
@@ -140,6 +134,11 @@ if (!function_exists('get_media_url')) {
         }
 
         $cleanPath = ltrim(str_replace('\\', '/', $filePath), '/');
+
+        // Always strip any existing leading public/ to get clean relative path
+        if (str_starts_with($cleanPath, 'public/')) {
+            $cleanPath = substr($cleanPath, 7);
+        }
 
         // Check if environment is live server or base URL has subfolder without /public
         $appUrl = (string) config('app.url', '');

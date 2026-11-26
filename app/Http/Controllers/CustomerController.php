@@ -10,7 +10,11 @@ use App\Models\CustomerCustomField;
 use App\Models\LeadSetting;
 use App\Models\LeadRequirement;
 use App\Models\LeadStage;
+use App\Models\Lead;
+use App\Models\CallLog;
 use App\Models\Followup;
+use App\Models\DemoProcess;
+use App\Models\Proposal;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -399,6 +403,269 @@ class CustomerController extends Controller
         return response()->json([
             'status' => true,
             'data'   => $customerData
+        ]);
+    }
+
+    /**
+     * Get full details of a customer including staff call history and sale closed status.
+     * GET /admin/customers/details/{id}
+     */
+    public function getDetails($id)
+    {
+        $user = request()->user() ?? Auth::user();
+        if (!$user) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+
+        if (!$user->isAdmin() && !$user->can('customers.view') && !$user->can('leads.view')) {
+            return response()->json(['status' => false, 'message' => 'Access denied.'], 403);
+        }
+
+        $customer = Customer::with([
+            'branch:id,name,code',
+            'team:id,name,code',
+            'branches:id,name,code',
+            'teams:id,name,code',
+            'creator:id,name,email',
+            'owner:id,name,email',
+            'assignedBy:id,name,email',
+            'leadRequirement:lead_requirements_id,name',
+            'leadStage:lead_stage_id,name',
+            'leads' => function ($q) {
+                $q->with([
+                    'leadStage:lead_stage_id,name',
+                    'leadRequirement:lead_requirements_id,name',
+                    'leadSource:lead_sources_id,name',
+                    'assignedUser:id,name,email',
+                    'creator:id,name,email',
+                    'branch:id,name,code',
+                    'team:id,name,code',
+                ])->orderBy('lead_id', 'desc');
+            },
+            'followups' => function ($q) {
+                $q->with([
+                    'forwardToUser:id,name,email',
+                    'creator:id,name,email',
+                    'lead:lead_id,lead_title',
+                ])->orderBy('followups_id', 'desc');
+            },
+        ])->find($id);
+
+        if (!$customer) {
+            return response()->json(['status' => false, 'message' => 'Customer not found.'], 404);
+        }
+
+        // 1. Resolve all Call Logs for this customer (direct customer_id, customer mobile, or customer lead IDs)
+        $leadIds = $customer->leads->pluck('lead_id')->toArray();
+        $callLogs = CallLog::where(function ($q) use ($customer, $leadIds) {
+            $q->where('customer_id', $customer->customer_id);
+            if (!empty($customer->mobile)) {
+                $q->orWhere('phone', $customer->mobile);
+            }
+            if (!empty($leadIds)) {
+                $q->orWhereIn('lead_id', $leadIds);
+            }
+        })
+        ->with([
+            'user:id,name,email',
+            'recording:call_id,recording_file,duration',
+            'lead:lead_id,lead_title',
+        ])
+        ->orderBy('call_start_time', 'desc')
+        ->orderBy('call_id', 'desc')
+        ->get();
+
+        $formattedCalls = $callLogs->map(function ($cl) {
+            $time = $cl->call_start_time ?? $cl->created_at;
+            return [
+                'call_id'          => $cl->call_id,
+                'staff_name'       => $cl->user?->name ?? 'Staff',
+                'staff_email'      => $cl->user?->email ?? '',
+                'phone'            => $cl->phone ?? '',
+                'call_type'        => ucfirst($cl->call_type ?? 'Out'),
+                'call_status'      => ucfirst($cl->call_status ?? 'Answered'),
+                'duration'         => $cl->duration ?: '00:00',
+                'lead_title'       => $cl->lead?->lead_title,
+                'call_date'        => $time ? Carbon::parse($time)->format('d-m-Y h:i A') : '-',
+                'time_ago'         => $time ? Carbon::parse($time)->diffForHumans() : '-',
+                'recording_url'    => $cl->recording_url,
+            ];
+        });
+
+        // 2. Resolve Sale Closed details
+        $saleClosedStage = LeadStage::where(function ($q) {
+            $q->whereRaw('LOWER(name) LIKE ?', ['%sale%close%'])
+              ->orWhere('lead_stage_id', 6);
+        })->first();
+        $saleClosedStageId = $saleClosedStage ? $saleClosedStage->lead_stage_id : 6;
+
+        $saleClosedLead = $customer->leads->first(function ($l) use ($saleClosedStageId) {
+            return $l->lead_stage_id == $saleClosedStageId ||
+                ($l->leadStage && str_contains(strtolower($l->leadStage->name), 'close'));
+        });
+
+        $isSaleClosed = !empty($saleClosedLead) ||
+            ($customer->lead_stage_id == $saleClosedStageId) ||
+            ($customer->leadStage && str_contains(strtolower($customer->leadStage->name), 'close'));
+
+        $saleClosedDetails = null;
+        if ($isSaleClosed) {
+            $closedTime = $saleClosedLead?->updated_at ?? $saleClosedLead?->created_at ?? $customer->updated_at;
+            $closedStaff = $saleClosedLead?->assignedUser?->name ?? $saleClosedLead?->creator?->name ?? $customer->owner?->name ?? $customer->creator?->name ?? 'Staff';
+            $saleClosedDetails = [
+                'is_closed'       => true,
+                'lead_id'         => $saleClosedLead?->lead_id,
+                'lead_title'      => $saleClosedLead?->lead_title ?? 'Direct Sale',
+                'closed_by'       => $closedStaff,
+                'closed_date'     => $closedTime ? Carbon::parse($closedTime)->format('d-m-Y h:i A') : '-',
+                'closed_date_raw' => $closedTime ? Carbon::parse($closedTime)->toIso8601String() : null,
+                'closed_ago'      => $closedTime ? Carbon::parse($closedTime)->diffForHumans() : '-',
+                'requirement'     => $saleClosedLead?->leadRequirement?->name ?? $customer->leadRequirement?->name ?? 'N/A',
+                'expected_amount' => $saleClosedLead?->expected_amount ? '₹' . number_format($saleClosedLead->expected_amount, 2) : null,
+            ];
+        }
+
+        // 3. Formatted Leads
+        $formattedLeads = $customer->leads->map(function ($l) use ($saleClosedStageId) {
+            $isClosed = $l->lead_stage_id == $saleClosedStageId ||
+                ($l->leadStage && str_contains(strtolower($l->leadStage->name), 'close'));
+            return [
+                'lead_id'          => $l->lead_id,
+                'lead_title'       => $l->lead_title,
+                'stage_name'       => $l->leadStage?->name ?? 'New',
+                'is_sale_closed'   => $isClosed,
+                'requirement_name' => $l->leadRequirement?->name ?? '-',
+                'source_name'      => $l->leadSource?->name ?? '-',
+                'assigned_to'      => $l->assignedUser?->name ?? 'Unassigned',
+                'created_at'       => $l->created_at ? Carbon::parse($l->created_at)->format('d-m-Y') : '-',
+                'updated_at'       => $l->updated_at ? Carbon::parse($l->updated_at)->format('d-m-Y h:i A') : '-',
+            ];
+        });
+
+        // 4. Formatted Followups
+        $formattedFollowups = $customer->followups->map(function ($f) {
+            return [
+                'followup_id'        => $f->followups_id,
+                'lead_title'         => $f->lead?->lead_title ?? 'General',
+                'staff_name'         => $f->forwardToUser?->name ?? $f->creator?->name ?? 'Staff',
+                'next_followup_date' => $f->next_followup_date ? Carbon::parse($f->next_followup_date)->format('d-m-Y') : '-',
+                'remarks'            => $f->remarks ?? '-',
+                'status'             => $f->followup_status ?? 'Pending',
+                'created_at'         => $f->created_at ? Carbon::parse($f->created_at)->format('d-m-Y') : '-',
+            ];
+        });
+
+        // 5. Formatted Demo Processes for this customer (matched by customer phone or name)
+        $demoProcesses = DemoProcess::where(function ($q) use ($customer) {
+            if (!empty($customer->mobile)) {
+                $q->where('customer_phone', $customer->mobile);
+            }
+            if (!empty($customer->name)) {
+                $q->orWhere('customer_name', $customer->name);
+            }
+        })
+        ->with([
+            'leadSource:lead_sources_id,name',
+            'leadRequirement:lead_requirements_id,name',
+            'creator:id,name',
+            'assignedUser:id,name',
+        ])
+        ->orderBy('demo_date', 'desc')
+        ->orderBy('demo_time', 'desc')
+        ->orderBy('demo_process_id', 'desc')
+        ->get();
+
+        $formattedDemos = $demoProcesses->map(function ($dp) {
+            $dateStr = $dp->demo_date ? Carbon::parse($dp->demo_date)->format('d-m-Y') : '-';
+            $timeStr = $dp->demo_time ? trim($dp->demo_time) : '';
+            $dateTime = $timeStr ? "{$dateStr} {$timeStr}" : $dateStr;
+            return [
+                'demo_process_id'  => $dp->demo_process_id,
+                'customer_name'    => $dp->customer_name ?? '-',
+                'customer_phone'   => $dp->customer_phone ?? '-',
+                'requirement_name' => $dp->leadRequirement?->name ?? '-',
+                'source_name'      => $dp->leadSource?->name ?? '-',
+                'assigned_staff'   => $dp->assignedUser?->name ?? $dp->creator?->name ?? 'Staff',
+                'demo_date'        => $dateStr,
+                'demo_time'        => $timeStr ?: '-',
+                'demo_datetime'    => $dateTime,
+                'status'           => ucfirst($dp->status ?? 'Pending'),
+                'remarks'          => $dp->remarks ?? '-',
+                'created_at'       => $dp->created_at ? Carbon::parse($dp->created_at)->format('d-m-Y') : '-',
+            ];
+        });
+
+        // 6. Formatted Proposals for this customer (matched by customer_id, mobile, or name)
+        $proposals = Proposal::where(function ($q) use ($customer) {
+            $q->where('customer_id', $customer->customer_id);
+            if (!empty($customer->mobile)) {
+                $q->orWhere('customer_mobile', $customer->mobile);
+            }
+            if (!empty($customer->name)) {
+                $q->orWhere('customer_name', $customer->name);
+            }
+        })
+        ->with([
+            'leadRequirement:lead_requirements_id,name',
+            'salesManager:id,name',
+            'creator:id,name',
+        ])
+        ->withCount('items')
+        ->orderBy('proposal_id', 'desc')
+        ->get();
+
+        $formattedProposals = $proposals->map(function ($pr) {
+            return [
+                'proposal_id'      => $pr->proposal_id,
+                'proposal_number'  => $pr->proposal_number ?: ('#' . $pr->proposal_id),
+                'proposal_date'    => $pr->created_at ? Carbon::parse($pr->created_at)->format('d-m-Y') : '-',
+                'requirement_name' => $pr->leadRequirement?->name ?? $pr->lead_requirement_name ?? '-',
+                'sales_manager'    => $pr->salesManager?->name ?? $pr->sales_manager_name ?? $pr->creator?->name ?? 'Staff',
+                'items_count'      => $pr->items_count ?? 0,
+                'subtotal'         => '₹' . number_format((float)($pr->subtotal ?? 0), 2),
+                'total_tax'        => '₹' . number_format((float)($pr->total_tax ?? 0), 2),
+                'total_amount'     => '₹' . number_format((float)($pr->total_amount ?? 0), 2),
+                'status'           => ucfirst($pr->status ?? 'Draft'),
+                'created_at'       => $pr->created_at ? Carbon::parse($pr->created_at)->format('d-m-Y') : '-',
+            ];
+        });
+
+        return response()->json([
+            'status' => true,
+            'data'   => [
+                'customer' => [
+                    'customer_id'      => $customer->customer_id,
+                    'name'             => $customer->name,
+                    'customer_type'    => ucfirst($customer->customer_type ?? 'User'),
+                    'mobile'           => $customer->mobile,
+                    'email'            => $customer->email ?: '-',
+                    'company_name'     => $customer->company_name ?: '-',
+                    'city'             => $customer->city ?: '-',
+                    'address'          => $customer->address ?: '-',
+                    'branch_name'      => $customer->branch?->name ?: ($customer->branches->pluck('name')->implode(', ') ?: '-'),
+                    'team_name'        => $customer->team?->name ?: ($customer->teams->pluck('name')->implode(', ') ?: '-'),
+                    'branches'         => $customer->branches->pluck('name'),
+                    'teams'            => $customer->teams->pluck('name'),
+                    'owner_name'       => $customer->owner?->name ?: '-',
+                    'creator_name'     => $customer->creator?->name ?: '-',
+                    'assigned_by_name' => $customer->assignedBy?->name ?: '-',
+                    'created_at'       => $customer->created_at ? Carbon::parse($customer->created_at)->format('d-m-Y h:i A') : '-',
+                ],
+                'sale_closed'    => $saleClosedDetails,
+                'call_logs'      => $formattedCalls,
+                'leads'          => $formattedLeads,
+                'demo_processes' => $formattedDemos,
+                'proposals'      => $formattedProposals,
+                'followups'      => $formattedFollowups,
+                'stats'          => [
+                    'total_calls'          => $formattedCalls->count(),
+                    'total_leads'          => $formattedLeads->count(),
+                    'is_sale_closed'       => $isSaleClosed,
+                    'total_demo_processes' => $formattedDemos->count(),
+                    'total_proposals'      => $formattedProposals->count(),
+                    'total_followups'      => $formattedFollowups->count(),
+                ],
+            ]
         ]);
     }
 

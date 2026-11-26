@@ -155,6 +155,8 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
         ->middleware('permission:customers.create');
     Route::get('customers/edit/{id}', [CustomerController::class, 'edit'])
         ->middleware('permission:customers.edit');
+    Route::get('customers/details/{id}', [CustomerController::class, 'getDetails'])
+        ->name('customers.details');
     Route::post('customers/update/{id}', [CustomerController::class, 'update'])
         ->middleware('permission:customers.edit');
     Route::delete('customers/delete/{id}', [CustomerController::class, 'destroy'])

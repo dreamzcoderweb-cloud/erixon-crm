@@ -664,6 +664,386 @@
     </div>
     @endcan
 
+    <!-- Customer Full Details Modal (Calls, Sale Closed & Profile) -->
+    <div class="modal fade" id="customerDetailsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-light border-bottom py-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="avatar avatar-md bg-primary text-white rounded p-2 d-flex align-items-center justify-content-center shadow-sm">
+                            <i class="bx bx-user fs-3"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title mb-0 fw-bold" id="cdm_name">Customer Details</h5>
+                            <div class="d-flex align-items-center gap-2 mt-1">
+                                <span class="badge bg-label-primary" id="cdm_type">User</span>
+                                <span id="cdm_sale_closed_badge"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body p-0">
+                    <!-- Loading State -->
+                    <div id="cdm_loading" class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <h6 class="text-muted mt-3 mb-0">Loading customer history & call details...</h6>
+                    </div>
+
+                    <!-- Content State -->
+                    <div id="cdm_content" class="d-none">
+                        <!-- KPI Row (Calls, Leads, Sale Closed, Demos, Proposals, Follow-ups) -->
+                        <div class="p-3 bg-light border-bottom">
+                            <div class="row g-2">
+                                <div class="col-md-2 col-sm-4 col-6">
+                                    <div class="card shadow-none border bg-white p-2 h-100">
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar avatar-sm bg-label-primary rounded me-2 d-flex align-items-center justify-content-center">
+                                                <i class="bx bx-phone-call fs-4"></i>
+                                            </div>
+                                            <div>
+                                                <small class="text-muted d-block text-uppercase" style="font-size: 10px;">Total Calls</small>
+                                                <h6 class="mb-0 fw-bold text-primary" id="cdm_stat_calls">0</h6>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-2 col-sm-4 col-6">
+                                    <div class="card shadow-none border bg-white p-2 h-100">
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar avatar-sm bg-label-warning rounded me-2 d-flex align-items-center justify-content-center">
+                                                <i class="bx bx-target-lock fs-4"></i>
+                                            </div>
+                                            <div>
+                                                <small class="text-muted d-block text-uppercase" style="font-size: 10px;">Total Leads</small>
+                                                <h6 class="mb-0 fw-bold text-warning" id="cdm_stat_leads">0</h6>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-2 col-sm-4 col-6">
+                                    <div class="card shadow-none border bg-white p-2 h-100">
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar avatar-sm bg-label-success rounded me-2 d-flex align-items-center justify-content-center">
+                                                <i class="bx bx-check-double fs-4"></i>
+                                            </div>
+                                            <div>
+                                                <small class="text-muted d-block text-uppercase" style="font-size: 10px;">Sale Closed</small>
+                                                <h6 class="mb-0 fw-bold" id="cdm_stat_closed">-</h6>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-2 col-sm-4 col-6">
+                                    <div class="card shadow-none border bg-white p-2 h-100">
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar avatar-sm bg-label-danger rounded me-2 d-flex align-items-center justify-content-center">
+                                                <i class="bx bx-slideshow fs-4"></i>
+                                            </div>
+                                            <div>
+                                                <small class="text-muted d-block text-uppercase" style="font-size: 10px;">Demo Process</small>
+                                                <h6 class="mb-0 fw-bold text-danger" id="cdm_stat_demos">0</h6>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-2 col-sm-4 col-6">
+                                    <div class="card shadow-none border bg-white p-2 h-100">
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar avatar-sm bg-label-secondary rounded me-2 d-flex align-items-center justify-content-center">
+                                                <i class="bx bx-file fs-4"></i>
+                                            </div>
+                                            <div>
+                                                <small class="text-muted d-block text-uppercase" style="font-size: 10px;">Proposals</small>
+                                                <h6 class="mb-0 fw-bold text-dark" id="cdm_stat_proposals">0</h6>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-2 col-sm-4 col-6">
+                                    <div class="card shadow-none border bg-white p-2 h-100">
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar avatar-sm bg-label-info rounded me-2 d-flex align-items-center justify-content-center">
+                                                <i class="bx bx-calendar-event fs-4"></i>
+                                            </div>
+                                            <div>
+                                                <small class="text-muted d-block text-uppercase" style="font-size: 10px;">Follow-ups</small>
+                                                <h6 class="mb-0 fw-bold text-info" id="cdm_stat_followups">0</h6>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sale Closed Highlight Banner -->
+                        <div id="cdm_sale_closed_banner" class="m-3 p-3 bg-label-success border border-success rounded d-none">
+                            <div class="d-flex align-items-start gap-3">
+                                <i class="bx bx-check-circle text-success" style="font-size: 2.2rem;"></i>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h6 class="text-success fw-bold mb-1">
+                                            <i class="bx bx-party me-1"></i> Sale Successfully Closed!
+                                        </h6>
+                                        <span class="badge bg-success" id="cdm_closed_date_badge"></span>
+                                    </div>
+                                    <p class="mb-1 text-dark" id="cdm_sale_closed_text"></p>
+                                    <small class="text-muted" id="cdm_sale_closed_subtext"></small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Navigation Tabs -->
+                        <div class="p-3">
+                            <ul class="nav nav-pills nav-fill mb-3" role="tablist">
+                                <li class="nav-item">
+                                    <button type="button" class="nav-link active fw-semibold" role="tab" data-bs-toggle="tab" data-bs-target="#cdm_tab_calls">
+                                        <i class="bx bx-phone-call me-1"></i> Calls (<span id="cdm_tab_count_calls">0</span>)
+                                    </button>
+                                </li>
+                                <li class="nav-item">
+                                    <button type="button" class="nav-link fw-semibold" role="tab" data-bs-toggle="tab" data-bs-target="#cdm_tab_sale">
+                                        <i class="bx bx-target-lock me-1"></i> Leads & Closed (<span id="cdm_tab_count_leads">0</span>)
+                                    </button>
+                                </li>
+                                <li class="nav-item">
+                                    <button type="button" class="nav-link fw-semibold" role="tab" data-bs-toggle="tab" data-bs-target="#cdm_tab_demos">
+                                        <i class="bx bx-slideshow me-1"></i> Demo Process (<span id="cdm_tab_count_demos">0</span>)
+                                    </button>
+                                </li>
+                                <li class="nav-item">
+                                    <button type="button" class="nav-link fw-semibold" role="tab" data-bs-toggle="tab" data-bs-target="#cdm_tab_proposals">
+                                        <i class="bx bx-file me-1"></i> Proposals (<span id="cdm_tab_count_proposals">0</span>)
+                                    </button>
+                                </li>
+                                <li class="nav-item">
+                                    <button type="button" class="nav-link fw-semibold" role="tab" data-bs-toggle="tab" data-bs-target="#cdm_tab_profile">
+                                        <i class="bx bx-user me-1"></i> Customer Info
+                                    </button>
+                                </li>
+                                <li class="nav-item">
+                                    <button type="button" class="nav-link fw-semibold" role="tab" data-bs-toggle="tab" data-bs-target="#cdm_tab_followups">
+                                        <i class="bx bx-calendar-event me-1"></i> Follow-ups (<span id="cdm_tab_count_followups">0</span>)
+                                    </button>
+                                </li>
+                            </ul>
+
+                            <div class="tab-content border rounded p-3 bg-white">
+                                <!-- Tab 1: Calls History ("yatha staff yepo call paniruka") -->
+                                <div class="tab-pane fade show active" id="cdm_tab_calls" role="tabpanel">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="mb-0 fw-bold"><i class="bx bx-list-ul me-1"></i> Staff Call History</h6>
+                                        <small class="text-muted">Calls placed to/from this customer</small>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-striped table-hover align-middle w-100" id="cdm_calls_table">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th style="width: 40px;">#</th>
+                                                    <th>Staff Member</th>
+                                                    <th>Date & Time</th>
+                                                    <th>Call Type</th>
+                                                    <th>Status</th>
+                                                    <th>Duration</th>
+                                                    <th>Lead / Context</th>
+                                                    <th>Recording</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="cdm_calls_tbody">
+                                                <!-- Dynamic rows -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- Tab 2: Sale Closed & Leads History ("yepo sale close aagiruch") -->
+                                <div class="tab-pane fade" id="cdm_tab_sale" role="tabpanel">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="mb-0 fw-bold"><i class="bx bx-target-lock me-1"></i> Leads & Sale Closed Timeline</h6>
+                                        <small class="text-muted">Stages and closure details</small>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-striped table-hover align-middle w-100" id="cdm_leads_table">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th style="width: 40px;">#</th>
+                                                    <th>Lead Title</th>
+                                                    <th>Current Stage</th>
+                                                    <th>Requirement</th>
+                                                    <th>Source</th>
+                                                    <th>Assigned Staff</th>
+                                                    <th>Created Date</th>
+                                                    <th>Last Update / Closed Date</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="cdm_leads_tbody">
+                                                <!-- Dynamic rows -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- Tab 3: Demo Process -->
+                                <div class="tab-pane fade" id="cdm_tab_demos" role="tabpanel">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="mb-0 fw-bold"><i class="bx bx-slideshow me-1"></i> Demo Process Details</h6>
+                                        <small class="text-muted">Scheduled and completed customer demos</small>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-striped table-hover align-middle w-100" id="cdm_demos_table">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th style="width: 40px;">#</th>
+                                                    <th>Demo Date & Time</th>
+                                                    <th>Requirement</th>
+                                                    <th>Lead Source</th>
+                                                    <th>Assigned Staff</th>
+                                                    <th>Status</th>
+                                                    <th>Remarks</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="cdm_demos_tbody">
+                                                <!-- Dynamic rows -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- Tab 4: Proposals -->
+                                <div class="tab-pane fade" id="cdm_tab_proposals" role="tabpanel">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="mb-0 fw-bold"><i class="bx bx-file me-1"></i> Customer Proposals</h6>
+                                        <small class="text-muted">Proposals generated for this customer</small>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-striped table-hover align-middle w-100" id="cdm_proposals_table">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th style="width: 40px;">#</th>
+                                                    <th>Proposal #</th>
+                                                    <th>Date</th>
+                                                    <th>Requirement</th>
+                                                    <th>Sales Manager</th>
+                                                    <th>Items</th>
+                                                    <th>Total Amount</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="cdm_proposals_tbody">
+                                                <!-- Dynamic rows -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- Tab 5: Customer Profile -->
+                                <div class="tab-pane fade" id="cdm_tab_profile" role="tabpanel">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <div class="border rounded p-3 h-100 bg-light">
+                                                <h6 class="fw-bold border-bottom pb-2 mb-3 text-primary"><i class="bx bx-id-card me-1"></i> Basic Information</h6>
+                                                <table class="table table-sm table-borderless mb-0">
+                                                    <tr>
+                                                        <td class="text-muted fw-semibold" style="width: 35%;">Customer Name:</td>
+                                                        <td class="fw-bold" id="cdm_p_name">-</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-muted fw-semibold">Customer Type:</td>
+                                                        <td id="cdm_p_type">-</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-muted fw-semibold">Mobile:</td>
+                                                        <td><a href="#" id="cdm_p_mobile_link" class="fw-bold text-primary"><span id="cdm_p_mobile">-</span></a></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-muted fw-semibold">Email:</td>
+                                                        <td><a href="#" id="cdm_p_email_link"><span id="cdm_p_email">-</span></a></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-muted fw-semibold">Company:</td>
+                                                        <td id="cdm_p_company">-</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-muted fw-semibold">City:</td>
+                                                        <td id="cdm_p_city">-</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-muted fw-semibold">Address:</td>
+                                                        <td id="cdm_p_address">-</td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <div class="border rounded p-3 h-100 bg-light">
+                                                <h6 class="fw-bold border-bottom pb-2 mb-3 text-primary"><i class="bx bx-buildings me-1"></i> Branch, Team & Assignment</h6>
+                                                <table class="table table-sm table-borderless mb-0">
+                                                    <tr>
+                                                        <td class="text-muted fw-semibold" style="width: 35%;">Branch(es):</td>
+                                                        <td id="cdm_p_branch">-</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-muted fw-semibold">Team(s):</td>
+                                                        <td id="cdm_p_team">-</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-muted fw-semibold">Owner / Assigned:</td>
+                                                        <td id="cdm_p_owner">-</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-muted fw-semibold">Created By:</td>
+                                                        <td id="cdm_p_creator">-</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-muted fw-semibold">Created Date:</td>
+                                                        <td id="cdm_p_created_at">-</td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Tab 6: Follow-ups -->
+                                <div class="tab-pane fade" id="cdm_tab_followups" role="tabpanel">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="mb-0 fw-bold"><i class="bx bx-calendar-event me-1"></i> Follow-up History</h6>
+                                        <small class="text-muted">Follow-up actions and reminders</small>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-striped table-hover align-middle w-100" id="cdm_followups_table">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th style="width: 40px;">#</th>
+                                                    <th>Lead / Context</th>
+                                                    <th>Staff</th>
+                                                    <th>Next Follow-up Date</th>
+                                                    <th>Status</th>
+                                                    <th>Remarks</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="cdm_followups_tbody">
+                                                <!-- Dynamic rows -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light border-top py-2">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         window.customLeadFields = @json($customFields ?? []);
         window.configuredLeadColumns = @json($visibleColumns ?? []);
