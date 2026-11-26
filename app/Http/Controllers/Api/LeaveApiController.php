@@ -367,15 +367,6 @@ class LeaveApiController extends Controller
         } catch (\Throwable $e) {
             Log::error('LeaveApiController: Error in quota check: ' . $e->getMessage());
         }
-                            'type'  => 'leave_quota',
-                            'month' => $month->format('F'),
-                        ]
-                    );
-                }
-            }
-        } catch (\Throwable $e) {
-            Log::error('LeaveApiController: Error dispatching notifications: ' . $e->getMessage());
-        }
 
         $leave->load(['user:id,name,email,profile_image', 'approver:id,name,email']);
         $canApprove = $currentUser->isAdmin() || $currentUser->isSuperAdmin();
@@ -590,10 +581,14 @@ class LeaveApiController extends Controller
             'hr_remarks'          => $leave->hr_remarks,
             'md_approved_by'      => $leave->md_approved_by ? (int)$leave->md_approved_by : null,
             'md_approved_at'      => $leave->md_approved_at ? $leave->md_approved_at->format('Y-m-d H:i:s') : null,
-            'md_remarks'          => $leave->md_remarks,
-            'created_at'          => $leave->created_at ? $leave->created_at->format('Y-m-d H:i:s') : null,
-            'created_at_formatted'=> $leave->created_at ? $leave->created_at->format('d-m-Y h:i A') : null,
-            'actions'             => [
+            'md_remarks'            => $leave->md_remarks,
+            'created_at'            => $leave->created_at ? $leave->created_at->format('Y-m-d H:i:s') : null,
+            'created_at_formatted'  => $leave->created_at ? $leave->created_at->format('d-m-Y h:i A') : null,
+            'updated_at'            => $leave->updated_at ? $leave->updated_at->format('Y-m-d H:i:s') : null,
+            'updated_at_formatted'  => $leave->updated_at ? $leave->updated_at->format('d-m-Y h:i A') : null,
+            'status_changed_at'     => $leave->updated_at ? $leave->updated_at->format('Y-m-d H:i:s') : null,
+            'status_changed_at_formatted' => $leave->updated_at ? $leave->updated_at->format('d-m-Y h:i A') : null,
+            'actions'               => [
                 'can_approve' => $userCanApproveRow,
                 'can_reject'  => $userCanApproveRow,
                 'can_delete'  => $canDelete,

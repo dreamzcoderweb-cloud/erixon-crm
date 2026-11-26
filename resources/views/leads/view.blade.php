@@ -28,9 +28,14 @@
             <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
                 <h5 class="card-header p-0 m-0"><i class="bx bx-git-pull-request me-2"></i>Leads Management</h5>
                 @can('leads.create')
-                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addLeadModal">
-                        <i class="bx bx-plus me-1"></i> Add Lead
-                    </button>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addLeadModal">
+                            <i class="bx bx-plus me-1"></i> Add Lead
+                        </button>
+                        <button class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#importLeadModal">
+                            <i class="bx bx-import me-1"></i> Import
+                        </button>
+                    </div>
                 @endcan
             </div>
 
@@ -618,8 +623,100 @@
         </div>
     </div>
 
+
+    <!-- Lead Import Modal -->
+    @can('leads.create')
+    <div class="modal fade" id="importLeadModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-md" role="document">
+            <div class="modal-content">
+                <form id="importLeadForm" enctype="multipart/form-data">
+                    @csrf
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bx bx-import me-1"></i> Import Leads</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-info mb-3 py-2 small">
+                            <i class="bx bx-info-circle me-1"></i>
+                            Upload an Excel file (.xlsx, .xls) or CSV. Required columns: <strong>customer_name, mobile, lead_title</strong>.
+                            <a href="{{ route('admin.leads.import-template') }}" class="fw-bold ms-1" target="_blank">
+                                <i class="bx bx-download me-1"></i>Download Template
+                            </a>
+                        </div>
+                        <div class="mb-3">
+                            <label for="lead_import_file" class="form-label fw-semibold">Select File <span class="text-danger">*</span></label>
+                            <input type="file" name="excel_file" id="lead_import_file" class="form-control"
+                                accept=".xlsx,.xls,.csv" required />
+                            <div class="form-text text-muted">Allowed: .xlsx, .xls, .csv — Max 5 MB</div>
+                        </div>
+                        <div id="importLeadResult" class="d-none"></div>
+                    </div>
+                    <div class="modal-footer gap-2">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-success" id="importLeadSubmitBtn">
+                            <span class="spinner-border spinner-border-sm d-none me-1" id="importLeadSpinner" role="status"></span>
+                            <i class="bx bx-upload me-1"></i> Upload & Import
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    @endcan
+
     <script>
         window.customLeadFields = @json($customFields ?? []);
         window.configuredLeadColumns = @json($visibleColumns ?? []);
+
+        // Lead Import
+        (function () {
+            const form = document.getElementById('importLeadForm');
+            if (!form) return;
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                const btn     = document.getElementById('importLeadSubmitBtn');
+                const spinner = document.getElementById('importLeadSpinner');
+                const result  = document.getElementById('importLeadResult');
+
+                btn.disabled = true;
+                spinner.classList.remove('d-none');
+                result.className = 'd-none';
+
+                const data = new FormData(form);
+                fetch('{{ route("admin.leads.import") }}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                        'Accept': 'application/json'
+                    },
+                    body: data
+                })
+                .then(r => r.json())
+                .then(res => {
+                    btn.disabled = false;
+                    spinner.classList.add('d-none');
+                    if (res.status) {
+                        let html = `<div class="alert alert-success py-2 small mb-0"><i class="bx bx-check-circle me-1"></i>${res.message}</div>`;
+                        if (res.errors && res.errors.length) {
+                            html += `<ul class="small text-warning mt-2 mb-0">${res.errors.map(e => `<li>${e}</li>`).join('')}</ul>`;
+                        }
+                        result.innerHTML = html;
+                        result.className = '';
+                        form.reset();
+                        // Reload lead table if function exists
+                        if (window.leadTable) window.leadTable.ajax.reload(null, false);
+                    } else {
+                        result.innerHTML = `<div class="alert alert-danger py-2 small mb-0"><i class="bx bx-error-circle me-1"></i>${res.message || 'Import failed.'}</div>`;
+                        result.className = '';
+                    }
+                })
+                .catch(() => {
+                    btn.disabled = false;
+                    spinner.classList.add('d-none');
+                    result.innerHTML = `<div class="alert alert-danger py-2 small mb-0">Network error. Please try again.</div>`;
+                    result.className = '';
+                });
+            });
+        })();
     </script>
 @endsection

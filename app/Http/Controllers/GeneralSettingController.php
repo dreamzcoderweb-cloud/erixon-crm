@@ -19,12 +19,13 @@ class GeneralSettingController extends Controller
         $setting = GeneralSetting::getSettings();
 
         $validated = $request->validate([
-            'company_name' => ['required', 'string', 'max:100'],
-            'logo' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp,svg', 'max:2048'],
-            'favicon' => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp,svg,ico,cur', 'max:2048'],
-            'whatsapp_no' => ['nullable', 'string', 'max:20'],
-            'theme_color' => ['required', 'string', 'regex:/^#([a-fA-F0-9]{3}|[a-fA-F0-9]{6})$/i'],
-            'salary' => ['nullable'],
+            'company_name'  => ['required', 'string', 'max:100'],
+            'logo'          => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp,svg', 'max:2048'],
+            'proposal_logo' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp,svg', 'max:2048'],
+            'favicon'       => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp,svg,ico,cur', 'max:2048'],
+            'whatsapp_no'   => ['nullable', 'string', 'max:20'],
+            'theme_color'   => ['required', 'string', 'regex:/^#([a-fA-F0-9]{3}|[a-fA-F0-9]{6})$/i'],
+            'salary'        => ['nullable'],
         ]);
 
         $setting->company_name = $validated['company_name'];
@@ -34,6 +35,10 @@ class GeneralSettingController extends Controller
 
         if ($request->hasFile('logo')) {
             $setting->logo = upload_file($request->file('logo'), 'settings', $setting->logo, 'logo');
+        }
+
+        if ($request->hasFile('proposal_logo')) {
+            $setting->proposal_logo = upload_file($request->file('proposal_logo'), 'settings', $setting->proposal_logo, 'proposal_logo');
         }
 
         if ($request->hasFile('favicon')) {

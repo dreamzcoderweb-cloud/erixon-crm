@@ -304,6 +304,12 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
         ->middleware('permission:leads.delete');
     Route::post('leads/change-status/{id}', [LeadController::class, 'changeStatus'])
         ->middleware('permission:leads.edit');
+    Route::post('leads/import', [LeadController::class, 'import'])
+        ->middleware('permission:leads.create')
+        ->name('leads.import');
+    Route::get('leads/import-template', [LeadController::class, 'downloadImportTemplate'])
+        ->middleware('permission:leads.view')
+        ->name('leads.import-template');
 
     // Sale Closed routes
     Route::get('sale-closed', [SaleClosedController::class, 'index'])

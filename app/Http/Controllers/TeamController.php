@@ -89,12 +89,12 @@ class TeamController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'branch_id'   => ['required', 'exists:branches,id'],
-            'name'        => ['required', 'string', 'max:255'],
-            'code'        => ['required', 'string', 'max:50', Rule::unique('teams', 'code')->withoutTrashed()],
+            'branch_id'   => ['nullable', 'exists:branches,id'],
+            'name'        => ['nullable', 'string', 'max:255'],
+            'code'        => ['nullable', 'string', 'max:50', Rule::unique('teams', 'code')->withoutTrashed()],
             'leader_id'   => ['nullable', 'exists:users,id'],
             'description' => ['nullable', 'string'],
-            'status'      => ['required', 'in:0,1'],
+            'status'      => ['nullable', 'in:0,1'],
         ]);
 
         $validated['created_by'] = Auth::id();
@@ -147,12 +147,12 @@ class TeamController extends Controller
         }
 
         $validated = $request->validate([
-            'branch_id'   => ['required', 'exists:branches,id'],
-            'name'        => ['required', 'string', 'max:255'],
-            'code'        => ['required', 'string', 'max:50', Rule::unique('teams', 'code')->ignore($team->id)->withoutTrashed()],
+            'branch_id'   => ['nullable', 'exists:branches,id'],
+            'name'        => ['nullable', 'string', 'max:255'],
+            'code'        => ['nullable', 'string', 'max:50', Rule::unique('teams', 'code')->ignore($team->id)->withoutTrashed()],
             'leader_id'   => ['nullable', 'exists:users,id'],
             'description' => ['nullable', 'string'],
-            'status'      => ['required', 'in:0,1'],
+            'status'      => ['nullable', 'in:0,1'],
         ]);
 
         $team->update($validated);

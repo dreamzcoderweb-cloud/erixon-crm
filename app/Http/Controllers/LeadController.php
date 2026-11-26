@@ -801,4 +801,168 @@ class LeadController extends Controller
             'new_status' => $lead->status
         ]);
     }
+
+    /**
+     * Download a sample import template for leads.
+     */
+    public function downloadImportTemplate()
+    {
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Lead Import Template');
+
+        $headers = [
+            'A1' => 'customer_name*',
+            'B1' => 'mobile*',
+            'C1' => 'customer_type (user/reseller)*',
+            'D1' => 'lead_title*',
+            'E1' => 'email',
+            'F1' => 'priority (low/medium/high/urgent)',
+            'G1' => 'expected_amount',
+            'H1' => 'next_followup_date (YYYY-MM-DD)',
+            'I1' => 'description',
+        ];
+
+        foreach ($headers as $cell => $value) {
+            $sheet->setCellValue($cell, $value);
+        }
+
+        // Sample row
+        $sheet->setCellValue('A2', 'John Doe');
+        $sheet->setCellValue('B2', '9876543210');
+        $sheet->setCellValue('C2', 'user');
+        $sheet->setCellValue('D2', 'Website Design Project');
+        $sheet->setCellValue('E2', 'john@example.com');
+        $sheet->setCellValue('F2', 'medium');
+        $sheet->setCellValue('G2', '50000');
+        $sheet->setCellValue('H2', date('Y-m-d'));
+        $sheet->setCellValue('I2', 'Sample lead notes');
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $fileName = 'lead_import_template.xlsx';
+        $tempPath = storage_path('app/' . $fileName);
+        $writer->save($tempPath);
+
+        return response()->download($tempPath, $fileName, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ])->deleteFileAfterSend(true);
+    }
+
+    /**
+     * Import leads from Excel/CSV.
+     */
+    public function import(Request $request)
+    {
+        $request->validate([
+            'excel_file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:5120'],
+        ]);
+
+        $user = Auth::user();
+        $uploadedFile = $request->file('excel_file');
+        $fullPath = $uploadedFile->getRealPath() ?: $uploadedFile->getPathname();
+
+        try {
+            if (!$fullPath || !is_file($fullPath) || !is_readable($fullPath)) {
+                throw new \RuntimeException('The uploaded file is not readable. Please upload it again.');
+            }
+
+            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($fullPath);
+            $sheet       = $spreadsheet->getActiveSheet();
+            $rows        = $sheet->toArray(null, true, true, true);
+        } catch (\Throwable $e) {
+            return response()->json(['status' => false, 'message' => 'Could not read the uploaded file. Please use the provided Excel/CSV template and try again.'], 422);
+        }
+
+        $imported  = 0;
+        $skipped   = 0;
+        $errors    = [];
+        $rowIndex  = 0;
+
+        foreach ($rows as $row) {
+            $rowIndex++;
+
+            // Skip header row
+            if ($rowIndex === 1) {
+                continue;
+            }
+
+            $customerName = trim((string)($row['A'] ?? ''));
+            $mobile       = trim((string)($row['B'] ?? ''));
+            $customerType = strtolower(trim((string)($row['C'] ?? 'user')));
+            $leadTitle    = trim((string)($row['D'] ?? ''));
+            $email        = trim((string)($row['E'] ?? ''));
+            $priority     = strtolower(trim((string)($row['F'] ?? 'medium')));
+            $expectedAmt  = trim((string)($row['G'] ?? ''));
+            $followupDate = trim((string)($row['H'] ?? ''));
+            $description  = trim((string)($row['I'] ?? ''));
+
+            // Skip completely empty rows
+            if (empty($customerName) && empty($mobile) && empty($leadTitle)) {
+                continue;
+            }
+
+            // Validate required fields
+            if (empty($customerName) || empty($mobile) || empty($leadTitle)) {
+                $errors[] = "Row {$rowIndex}: customer_name, mobile and lead_title are required.";
+                $skipped++;
+                continue;
+            }
+
+            if (!in_array($customerType, ['user', 'reseller'])) {
+                $customerType = 'user';
+            }
+
+            if (!in_array($priority, ['low', 'medium', 'high', 'urgent'])) {
+                $priority = 'medium';
+            }
+
+            try {
+                // Find or create customer
+                $customer = \App\Models\Customer::where('mobile', $mobile)->first();
+                if (!$customer) {
+                    $customer = \App\Models\Customer::create([
+                        'name'          => $customerName,
+                        'mobile'        => $mobile,
+                        'email'         => $email ?: null,
+                        'customer_type' => $customerType,
+                        'branch_id'     => $user->branch_id,
+                        'team_id'       => $user->team_id,
+                        'created_by'    => $user->id,
+                        'status'        => 1,
+                    ]);
+                }
+
+                \App\Models\Lead::create([
+                    'customer_id'    => $customer->customer_id,
+                    'customer_name'  => $customerName,
+                    'customer_type'  => $customerType,
+                    'mobile'         => $mobile,
+                    'email'          => $email ?: null,
+                    'lead_title'     => $leadTitle,
+                    'priority'       => $priority,
+                    'expected_amount'=> is_numeric($expectedAmt) ? (float)$expectedAmt : null,
+                    'next_followup_date' => !empty($followupDate) ? date('Y-m-d', strtotime($followupDate)) : null,
+                    'description'    => $description ?: null,
+                    'branch_id'      => $user->branch_id,
+                    'team_id'        => $user->team_id,
+                    'assigned_to'    => $user->id,
+                    'created_by'     => $user->id,
+                    'status'         => 1,
+                ]);
+
+                $imported++;
+            } catch (\Exception $e) {
+                $errors[] = "Row {$rowIndex}: " . $e->getMessage();
+                $skipped++;
+            }
+        }
+
+        return response()->json([
+            'status'   => true,
+            'message'  => "{$imported} lead(s) imported successfully." . ($skipped > 0 ? " {$skipped} row(s) skipped." : ''),
+            'imported' => $imported,
+            'skipped'  => $skipped,
+            'errors'   => $errors,
+        ]);
+    }
 }

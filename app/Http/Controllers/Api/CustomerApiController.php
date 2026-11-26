@@ -347,6 +347,14 @@ class CustomerApiController extends Controller
 
         // 4. Build Validation Rules
         $rules = [
+            'branch_id' => ['nullable'],
+            'branch_id.*' => ['integer', 'exists:branches,id'],
+            'branch_ids' => ['nullable', 'array'],
+            'branch_ids.*' => ['integer', 'exists:branches,id'],
+            'team_id' => ['nullable'],
+            'team_id.*' => ['integer', 'exists:teams,id'],
+            'team_ids' => ['nullable', 'array'],
+            'team_ids.*' => ['integer', 'exists:teams,id'],
             'name' => ['required', 'string', 'max:255'],
             'company_name' => ['nullable', 'string', 'max:255'],
             'mobile' => ['required', 'string', 'max:20', Rule::unique('customers', 'mobile')->withoutTrashed()],
@@ -992,6 +1000,14 @@ class CustomerApiController extends Controller
 
         // 4. Build Validation Rules
         $rules = [
+            'branch_id' => ['sometimes', 'nullable'],
+            'branch_id.*' => ['integer', 'exists:branches,id'],
+            'branch_ids' => ['sometimes', 'nullable', 'array'],
+            'branch_ids.*' => ['integer', 'exists:branches,id'],
+            'team_id' => ['sometimes', 'nullable'],
+            'team_id.*' => ['integer', 'exists:teams,id'],
+            'team_ids' => ['sometimes', 'nullable', 'array'],
+            'team_ids.*' => ['integer', 'exists:teams,id'],
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'company_name' => ['nullable', 'string', 'max:255'],
             'mobile' => [

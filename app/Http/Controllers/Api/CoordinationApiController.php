@@ -83,15 +83,40 @@ class CoordinationApiController extends Controller
             return $this->permissionDeniedResponse('Coordination module');
         }
 
-        $query = Coordination::forUser($currentUser);
+        $query = Coordination::query();
 
-        // Filter by created_by or staff_id
-        if ($request->filled('created_by') || $request->filled('staff_id')) {
-            $filterStaffId = $request->input('created_by') ?? $request->input('staff_id');
-            $query->where(function ($q) use ($filterStaffId) {
-                $q->where('staff_id', $filterStaffId)
-                  ->orWhere('created_by', $filterStaffId);
-            });
+        // 1. Scoping rule: By default, ONLY return the logged-in staff's coordinations (staff_id or created_by)
+        $scope = strtolower(trim((string)($request->input('scope') ?? $request->input('type') ?? '')));
+
+        if ($currentUser->isAdmin() || $currentUser->isSuperAdmin()) {
+            if ($request->filled('created_by') || $request->filled('staff_id')) {
+                $filterStaffId = $request->input('created_by') ?? $request->input('staff_id');
+                $query->where(function ($q) use ($filterStaffId) {
+                    $q->where('staff_id', $filterStaffId)
+                      ->orWhere('created_by', $filterStaffId);
+                });
+            } elseif ($request->boolean('all', false) || $scope === 'all') {
+                // Return all coordinations for admin only when explicitly requested
+            } else {
+                // Default in API: strictly the logged-in user's coordinations
+                $query->where(function ($q) use ($currentUser) {
+                    $q->where('staff_id', $currentUser->id)
+                      ->orWhere('created_by', $currentUser->id);
+                });
+            }
+        } else {
+            // Normal Staff: strictly only their own coordination
+            if ($scope === 'joined') {
+                $query->whereHas('joiningStaff', function ($jq) use ($currentUser) {
+                    $jq->where('users.id', $currentUser->id);
+                });
+            } else {
+                // Default: ONLY the logged-in staff's coordination
+                $query->where(function ($q) use ($currentUser) {
+                    $q->where('staff_id', $currentUser->id)
+                      ->orWhere('created_by', $currentUser->id);
+                });
+            }
         }
 
         // Date filters (matching web CoordinationController)
@@ -183,7 +208,7 @@ class CoordinationApiController extends Controller
 
         $validator = Validator::make($request->all(), [
             'title'               => ['required', 'string', 'max:255'],
-            'staff_id'            => ['required', 'exists:users,id'],
+            'staff_id'            => ['nullable', 'exists:users,id'],
             'link'                => ['required', 'string', 'max:2048'],
             'joining_staff_ids'   => ['nullable', 'array'],
             'joining_staff_ids.*' => ['exists:users,id'],
@@ -198,17 +223,18 @@ class CoordinationApiController extends Controller
         }
 
         $validated = $validator->validated();
+        $targetStaffId = !empty($validated['staff_id']) ? (int) $validated['staff_id'] : (int) $currentUser->id;
 
         $coordination = Coordination::create([
             'title'      => $validated['title'],
-            'staff_id'   => $validated['staff_id'],
+            'staff_id'   => $targetStaffId,
             'link'       => $validated['link'],
             'created_by' => $currentUser->id,
         ]);
 
         // Auto-include staff_id and creator in joining staff
         $joiningIds = $validated['joining_staff_ids'] ?? [];
-        $joiningIds[] = (int) $validated['staff_id'];
+        $joiningIds[] = $targetStaffId;
         $joiningIds[] = (int) $currentUser->id;
         $joiningIds = array_values(array_unique(array_filter(array_map('intval', $joiningIds))));
 

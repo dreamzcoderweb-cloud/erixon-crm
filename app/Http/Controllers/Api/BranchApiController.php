@@ -118,4 +118,158 @@ class BranchApiController extends Controller
             'data'    => $branch,
         ]);
     }
+
+    /**
+     * Create a new branch.
+     * Accessible via POST /api/v1/branches
+     */
+    public function store(Request $request): JsonResponse
+    {
+        $currentUser = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$currentUser) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+        if (!$currentUser->isAdmin()) {
+            return response()->json(['status' => false, 'message' => 'Permission denied.'], 403);
+        }
+
+        $validated = $request->validate([
+            'name'       => ['nullable', 'string', 'max:255'],
+            'code'       => ['nullable', 'string', 'max:50', \Illuminate\Validation\Rule::unique('branches', 'code')->withoutTrashed()],
+            'manager_id' => ['nullable', 'exists:users,id'],
+            'phone'      => ['nullable', 'string', 'max:30'],
+            'email'      => ['nullable', 'email', 'max:191'],
+            'address'    => ['nullable', 'string'],
+            'city'       => ['nullable', 'string', 'max:100'],
+            'state'      => ['nullable', 'string', 'max:100'],
+            'pincode'    => ['nullable', 'string', 'max:20'],
+            'status'     => ['nullable', 'in:0,1'],
+        ]);
+
+        $validated['created_by'] = $currentUser->id;
+        $validated['status']     = $validated['status'] ?? 1;
+
+        $branch = Branch::create($validated);
+
+        if (!empty($branch->manager_id)) {
+            \Illuminate\Support\Facades\DB::table('branch_user')->updateOrInsert(
+                ['user_id' => $branch->manager_id, 'branch_id' => $branch->id],
+                ['is_primary' => true, 'updated_at' => now()]
+            );
+        }
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Branch created successfully.',
+            'data'    => $branch,
+        ], 201);
+    }
+
+    /**
+     * Update an existing branch.
+     * Accessible via POST /api/v1/branches/{id}
+     */
+    public function update(Request $request, $id): JsonResponse
+    {
+        $currentUser = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$currentUser) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+        if (!$currentUser->isAdmin()) {
+            return response()->json(['status' => false, 'message' => 'Permission denied.'], 403);
+        }
+
+        $branch = Branch::find($id);
+        if (!$branch) {
+            return response()->json(['status' => false, 'message' => 'Branch not found.'], 404);
+        }
+
+        $validated = $request->validate([
+            'name'       => ['nullable', 'string', 'max:255'],
+            'code'       => ['nullable', 'string', 'max:50', \Illuminate\Validation\Rule::unique('branches', 'code')->ignore($branch->id)->withoutTrashed()],
+            'manager_id' => ['nullable', 'exists:users,id'],
+            'phone'      => ['nullable', 'string', 'max:30'],
+            'email'      => ['nullable', 'email', 'max:191'],
+            'address'    => ['nullable', 'string'],
+            'city'       => ['nullable', 'string', 'max:100'],
+            'state'      => ['nullable', 'string', 'max:100'],
+            'pincode'    => ['nullable', 'string', 'max:20'],
+            'status'     => ['nullable', 'in:0,1'],
+        ]);
+
+        $branch->update($validated);
+
+        if (!empty($branch->manager_id)) {
+            \Illuminate\Support\Facades\DB::table('branch_user')->updateOrInsert(
+                ['user_id' => $branch->manager_id, 'branch_id' => $branch->id],
+                ['is_primary' => true, 'updated_at' => now()]
+            );
+        }
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Branch updated successfully.',
+            'data'    => $branch->fresh(),
+        ]);
+    }
+
+    /**
+     * Delete a branch.
+     * Accessible via DELETE /api/v1/branches/{id}
+     */
+    public function destroy(Request $request, $id): JsonResponse
+    {
+        $currentUser = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$currentUser) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+        if (!$currentUser->isAdmin()) {
+            return response()->json(['status' => false, 'message' => 'Permission denied.'], 403);
+        }
+
+        if ((int)$id === 1) {
+            return response()->json(['status' => false, 'message' => 'Default Main Branch cannot be deleted.'], 422);
+        }
+
+        $branch = Branch::find($id);
+        if (!$branch) {
+            return response()->json(['status' => false, 'message' => 'Branch not found.'], 404);
+        }
+
+        $branch->delete();
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Branch deleted successfully.',
+        ]);
+    }
+
+    /**
+     * Toggle branch active/inactive status.
+     * Accessible via POST /api/v1/branches/{id}/change-status
+     */
+    public function changeStatus(Request $request, $id): JsonResponse
+    {
+        $currentUser = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$currentUser) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+        if (!$currentUser->isAdmin()) {
+            return response()->json(['status' => false, 'message' => 'Permission denied.'], 403);
+        }
+
+        $branch = Branch::find($id);
+        if (!$branch) {
+            return response()->json(['status' => false, 'message' => 'Branch not found.'], 404);
+        }
+
+        $branch->status = $branch->status == 1 ? 0 : 1;
+        $branch->save();
+
+        return response()->json([
+            'status'     => true,
+            'message'    => 'Branch status changed successfully.',
+            'new_status' => $branch->status,
+        ]);
+    }
 }

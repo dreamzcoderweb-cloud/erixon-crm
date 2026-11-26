@@ -36,10 +36,23 @@ Route::prefix('v1')->group(function () {
 
         // Mobile App Branch & Team Management
         Route::get('branches', [BranchApiController::class, 'index']);
+        Route::post('branches', [BranchApiController::class, 'store']);
         Route::get('branches/{id}', [BranchApiController::class, 'show']);
+        Route::post('branches/{id}', [BranchApiController::class, 'update']);
+        Route::put('branches/{id}', [BranchApiController::class, 'update']);
+        Route::patch('branches/{id}', [BranchApiController::class, 'update']);
+        Route::delete('branches/{id}', [BranchApiController::class, 'destroy']);
+        Route::post('branches/{id}/change-status', [BranchApiController::class, 'changeStatus']);
+
         Route::get('teams', [TeamApiController::class, 'index']);
+        Route::post('teams', [TeamApiController::class, 'store']);
         Route::get('teams/by-branch/{branchId}', [TeamApiController::class, 'getByBranch']);
         Route::get('teams/{id}', [TeamApiController::class, 'show']);
+        Route::post('teams/{id}', [TeamApiController::class, 'update']);
+        Route::put('teams/{id}', [TeamApiController::class, 'update']);
+        Route::patch('teams/{id}', [TeamApiController::class, 'update']);
+        Route::delete('teams/{id}', [TeamApiController::class, 'destroy']);
+        Route::post('teams/{id}/change-status', [TeamApiController::class, 'changeStatus']);
 
         Route::get('customers/search', [CustomerApiController::class, 'search']);
 

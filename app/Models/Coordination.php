@@ -72,10 +72,7 @@ class Coordination extends Model
 
         return $query->where(function ($q) use ($userId) {
             $q->where('staff_id', $userId)
-              ->orWhere('created_by', $userId)
-              ->orWhereHas('joiningStaff', function ($jq) use ($userId) {
-                  $jq->where('users.id', $userId);
-              });
+              ->orWhere('created_by', $userId);
         });
     }
 }

@@ -488,6 +488,14 @@ class LeadApiController extends Controller
 
         // 3. Build validation rules for all Admin Lead Modal fields
         $baseRules = [
+            'branch_id'           => ['nullable'],
+            'branch_id.*'         => ['integer', 'exists:branches,id'],
+            'branch_ids'          => ['nullable', 'array'],
+            'branch_ids.*'        => ['integer', 'exists:branches,id'],
+            'team_id'             => ['nullable'],
+            'team_id.*'           => ['integer', 'exists:teams,id'],
+            'team_ids'            => ['nullable', 'array'],
+            'team_ids.*'          => ['integer', 'exists:teams,id'],
             'customer_id'         => ['nullable', 'exists:customers,customer_id'],
             'customer_name'       => ['nullable', 'string', 'max:255'],
             'name'                => ['nullable', 'string', 'max:255'],
@@ -997,6 +1005,14 @@ class LeadApiController extends Controller
         [$customRules, $customAttributes] = $this->getCustomFieldsRules(true);
 
         $baseRules = [
+            'branch_id'           => ['sometimes', 'nullable'],
+            'branch_id.*'         => ['integer', 'exists:branches,id'],
+            'branch_ids'          => ['sometimes', 'nullable', 'array'],
+            'branch_ids.*'        => ['integer', 'exists:branches,id'],
+            'team_id'             => ['sometimes', 'nullable'],
+            'team_id.*'           => ['integer', 'exists:teams,id'],
+            'team_ids'            => ['sometimes', 'nullable', 'array'],
+            'team_ids.*'          => ['integer', 'exists:teams,id'],
             'customer_id'         => ['sometimes', 'required', 'exists:customers,customer_id'],
             'lead_title'          => ['sometimes', 'required', 'string', 'max:255'],
             'lead_source_id'      => ['nullable', 'exists:lead_sources,lead_sources_id'],

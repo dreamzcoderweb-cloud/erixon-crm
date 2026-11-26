@@ -180,4 +180,150 @@ class TeamApiController extends Controller
             'data'    => $team,
         ]);
     }
+
+    /**
+     * Create a new team.
+     * Accessible via POST /api/v1/teams
+     */
+    public function store(Request $request): JsonResponse
+    {
+        $currentUser = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$currentUser) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+        if (!$currentUser->isAdmin()) {
+            return response()->json(['status' => false, 'message' => 'Permission denied.'], 403);
+        }
+
+        $validated = $request->validate([
+            'branch_id'   => ['nullable', 'exists:branches,id'],
+            'name'        => ['nullable', 'string', 'max:255'],
+            'code'        => ['nullable', 'string', 'max:50', \Illuminate\Validation\Rule::unique('teams', 'code')->withoutTrashed()],
+            'leader_id'   => ['nullable', 'exists:users,id'],
+            'description' => ['nullable', 'string'],
+            'status'      => ['nullable', 'in:0,1'],
+        ]);
+
+        $validated['created_by'] = $currentUser->id;
+        $validated['status']     = $validated['status'] ?? 1;
+
+        $team = Team::create($validated);
+
+        if (!empty($team->leader_id)) {
+            \Illuminate\Support\Facades\DB::table('team_user')->updateOrInsert(
+                ['user_id' => $team->leader_id, 'team_id' => $team->id],
+                ['role_in_team' => 'leader', 'is_primary' => true, 'updated_at' => now()]
+            );
+        }
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Team created successfully.',
+            'data'    => $team,
+        ], 201);
+    }
+
+    /**
+     * Update an existing team.
+     * Accessible via POST /api/v1/teams/{id}
+     */
+    public function update(Request $request, $id): JsonResponse
+    {
+        $currentUser = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$currentUser) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+        if (!$currentUser->isAdmin()) {
+            return response()->json(['status' => false, 'message' => 'Permission denied.'], 403);
+        }
+
+        $team = Team::find($id);
+        if (!$team) {
+            return response()->json(['status' => false, 'message' => 'Team not found.'], 404);
+        }
+
+        $validated = $request->validate([
+            'branch_id'   => ['nullable', 'exists:branches,id'],
+            'name'        => ['nullable', 'string', 'max:255'],
+            'code'        => ['nullable', 'string', 'max:50', \Illuminate\Validation\Rule::unique('teams', 'code')->ignore($team->id)->withoutTrashed()],
+            'leader_id'   => ['nullable', 'exists:users,id'],
+            'description' => ['nullable', 'string'],
+            'status'      => ['nullable', 'in:0,1'],
+        ]);
+
+        $team->update($validated);
+
+        if (!empty($team->leader_id)) {
+            \Illuminate\Support\Facades\DB::table('team_user')->updateOrInsert(
+                ['user_id' => $team->leader_id, 'team_id' => $team->id],
+                ['role_in_team' => 'leader', 'is_primary' => true, 'updated_at' => now()]
+            );
+        }
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Team updated successfully.',
+            'data'    => $team->fresh(),
+        ]);
+    }
+
+    /**
+     * Delete a team.
+     * Accessible via DELETE /api/v1/teams/{id}
+     */
+    public function destroy(Request $request, $id): JsonResponse
+    {
+        $currentUser = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$currentUser) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+        if (!$currentUser->isAdmin()) {
+            return response()->json(['status' => false, 'message' => 'Permission denied.'], 403);
+        }
+
+        if ((int)$id === 1) {
+            return response()->json(['status' => false, 'message' => 'Default Main Team cannot be deleted.'], 422);
+        }
+
+        $team = Team::find($id);
+        if (!$team) {
+            return response()->json(['status' => false, 'message' => 'Team not found.'], 404);
+        }
+
+        $team->delete();
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Team deleted successfully.',
+        ]);
+    }
+
+    /**
+     * Toggle team active/inactive status.
+     * Accessible via POST /api/v1/teams/{id}/change-status
+     */
+    public function changeStatus(Request $request, $id): JsonResponse
+    {
+        $currentUser = $request->user() ?? Auth::user() ?? auth('sanctum')->user();
+        if (!$currentUser) {
+            return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+        if (!$currentUser->isAdmin()) {
+            return response()->json(['status' => false, 'message' => 'Permission denied.'], 403);
+        }
+
+        $team = Team::find($id);
+        if (!$team) {
+            return response()->json(['status' => false, 'message' => 'Team not found.'], 404);
+        }
+
+        $team->status = $team->status == 1 ? 0 : 1;
+        $team->save();
+
+        return response()->json([
+            'status'     => true,
+            'message'    => 'Team status changed successfully.',
+            'new_status' => $team->status,
+        ]);
+    }
 }

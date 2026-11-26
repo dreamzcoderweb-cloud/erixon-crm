@@ -84,38 +84,53 @@
                     <div class="row mb-4">
                         <div class="col-md-6 mb-3 mb-md-0">
                             <div class="d-flex align-items-start align-items-sm-center gap-4">
-                                <div class="position-relative">
-                                    @if(!empty($setting->logo) && file_exists(public_path($setting->logo)))
-                                        <img src="{{ asset($setting->logo) }}" alt="company-logo"
-                                            class="d-block rounded p-2 border" height="90" width="90" id="uploadedLogo"
-                                            style="object-fit: contain;" />
-                                    @else
-                                        <div class="d-flex align-items-center justify-content-center bg-label-primary rounded border"
-                                            style="width: 90px; height: 90px;">
-                                            <i class="bx bx-dumbbell display-6"></i>
-                                        </div>
-                                    @endif
-                                </div>
-                                <div class="button-wrapper">
-                                    <h6 class="mb-1 fw-bold">Logo</h6>
-                                    <p class="text-muted mb-0 small">Allowed JPG, PNG, WEBP or SVG. Max size 2MB.</p>
-                                </div>
+                                    <div class="position-relative">
+                                        @php
+                                            $logoPath = !empty($setting->logo)
+                                                ? 'public/' . ltrim(str_replace('public/', '', $setting->logo), '/')
+                                                : null;
+                                        @endphp
+
+                                        @if(!empty($logoPath) && file_exists(public_path(str_replace('public/', '', $logoPath))))
+                                            <img src="{{ asset($logoPath) }}" alt="company-logo"
+                                                class="d-block rounded p-2 border" height="90" width="90"
+                                                id="uploadedLogo" style="object-fit: contain;" />
+                                        @else
+                                            <div class="d-flex align-items-center justify-content-center bg-label-primary rounded border"
+                                                style="width: 90px; height: 90px;">
+                                                <i class="bx bx-dumbbell display-6"></i>
+                                            </div>
+                                        @endif
+                                    </div>
+
+                                    <div class="button-wrapper">
+                                            <h6 class="mb-1 fw-bold">Logo</h6>
+                                            <p class="text-muted mb-0 small">
+                                                Allowed JPG, PNG, WEBP or SVG. Max size 2MB.
+                                            </p>
+                                    </div>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="d-flex align-items-start align-items-sm-center gap-4">
                                 <div class="position-relative">
-                                    @if(!empty($setting->favicon) && file_exists(public_path($setting->favicon)))
-                                        <img src="{{ asset($setting->favicon) }}" alt="company-favicon"
-                                            class="d-block rounded p-2 border" height="90" width="90" id="uploadedFavicon"
-                                            style="object-fit: contain;" />
-                                    @else
-                                        <div class="d-flex align-items-center justify-content-center bg-label-secondary rounded border"
-                                            style="width: 90px; height: 90px;">
-                                            <img src="{{ asset('assets/img/fav_icon.png') }}" alt="default-favicon"
-                                                style="width: 48px; height: 48px; object-fit: contain;" />
-                                        </div>
-                                    @endif
+                                    @php
+                                            $faviconPath = !empty($setting->favicon)
+                                                ? 'public/' . ltrim(str_replace('public/', '', $setting->favicon), '/')
+                                                : null;
+                                    @endphp
+
+                                        @if(!empty($faviconPath) && file_exists(public_path(str_replace('public/', '', $faviconPath))))
+                                            <img src="{{ asset($faviconPath) }}" alt="company-favicon"
+                                                class="d-block rounded p-2 border" height="90" width="90"
+                                                id="uploadedFavicon" style="object-fit: contain;" />
+                                        @else
+                                            <div class="d-flex align-items-center justify-content-center bg-label-secondary rounded border"
+                                                style="width: 90px; height: 90px;">
+                                                <img src="{{ asset('public/assets/img/fav_icon.png') }}" alt="default-favicon"
+                                                    style="width: 48px; height: 48px; object-fit: contain;" />
+                                            </div>
+                                        @endif
                                 </div>
                                 <div class="button-wrapper">
                                     <h6 class="mb-1 fw-bold">Favicon</h6>
@@ -155,6 +170,34 @@
                                 name="favicon"
                                 accept="image/png, image/jpeg, image/webp, image/svg+xml, image/x-icon, image/vnd.microsoft.icon, .ico" />
                             @error('favicon')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <!-- Upload Proposal Logo -->
+                        <div class="col-md-6 mb-3">
+                            <label for="proposal_logo" class="form-label fw-semibold">
+                                Proposal Logo
+                                <span class="badge bg-label-info ms-1" style="font-size:11px;">Used on printed proposals</span>
+                            </label>
+                            @php
+                                $proposalLogoPath = !empty($setting->proposal_logo)
+                                    ? 'public/' . ltrim(str_replace('public/', '', $setting->proposal_logo), '/')
+                                    : null;
+                            @endphp
+
+                            @if(!empty($proposalLogoPath) && file_exists(public_path(str_replace('public/', '', $proposalLogoPath))))
+                                <div class="mb-2">
+                                    <img src="{{ asset($proposalLogoPath) }}" alt="proposal-logo"
+                                        class="rounded border p-1" height="54" style="object-fit:contain;" />
+                                    <small class="text-muted ms-2">Current proposal logo</small>
+                                </div>
+                            @endif
+                            <input type="file" class="form-control @error('proposal_logo') is-invalid @enderror"
+                                id="proposal_logo" name="proposal_logo"
+                                accept="image/png, image/jpeg, image/webp, image/svg+xml" />
+                            <div class="form-text text-muted">Allowed JPG, PNG, WEBP or SVG. Max size 2MB.<br>If not set, the main company logo will be used on proposals.</div>
+                            @error('proposal_logo')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>

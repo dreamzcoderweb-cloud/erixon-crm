@@ -67,8 +67,9 @@
         <div class="row invoice-header align-items-center">
             <div class="col-sm-7">
                 <div class="d-flex align-items-center mb-2">
-                    @if(company_logo())
-                        <img src="{{ company_logo() }}" alt="Company Logo" height="42" class="me-2" style="object-fit: contain;">
+                    @php $printLogo = proposal_logo() ?: company_logo(); @endphp
+                    @if($printLogo)
+                        <img src="{{ $printLogo }}" alt="Company Logo" height="42" class="me-2" style="object-fit: contain;">
                     @else
                         <i class="bx bx-file text-primary fs-1 me-2"></i>
                     @endif

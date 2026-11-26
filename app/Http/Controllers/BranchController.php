@@ -46,8 +46,8 @@ class BranchController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'       => ['required', 'string', 'max:255'],
-            'code'       => ['required', 'string', 'max:50', Rule::unique('branches', 'code')->withoutTrashed()],
+            'name'       => ['nullable', 'string', 'max:255'],
+            'code'       => ['nullable', 'string', 'max:50', Rule::unique('branches', 'code')->withoutTrashed()],
             'manager_id' => ['nullable', 'exists:users,id'],
             'phone'      => ['nullable', 'string', 'max:30'],
             'email'      => ['nullable', 'email', 'max:191'],
@@ -55,7 +55,7 @@ class BranchController extends Controller
             'city'       => ['nullable', 'string', 'max:100'],
             'state'      => ['nullable', 'string', 'max:100'],
             'pincode'    => ['nullable', 'string', 'max:20'],
-            'status'     => ['required', 'in:0,1'],
+            'status'     => ['nullable', 'in:0,1'],
         ]);
 
         $validated['created_by'] = Auth::id();
@@ -109,8 +109,8 @@ class BranchController extends Controller
         }
 
         $validated = $request->validate([
-            'name'       => ['required', 'string', 'max:255'],
-            'code'       => ['required', 'string', 'max:50', Rule::unique('branches', 'code')->ignore($branch->id)->withoutTrashed()],
+            'name'       => ['nullable', 'string', 'max:255'],
+            'code'       => ['nullable', 'string', 'max:50', Rule::unique('branches', 'code')->ignore($branch->id)->withoutTrashed()],
             'manager_id' => ['nullable', 'exists:users,id'],
             'phone'      => ['nullable', 'string', 'max:30'],
             'email'      => ['nullable', 'email', 'max:191'],
@@ -118,7 +118,7 @@ class BranchController extends Controller
             'city'       => ['nullable', 'string', 'max:100'],
             'state'      => ['nullable', 'string', 'max:100'],
             'pincode'    => ['nullable', 'string', 'max:20'],
-            'status'     => ['required', 'in:0,1'],
+            'status'     => ['nullable', 'in:0,1'],
         ]);
 
         $branch->update($validated);

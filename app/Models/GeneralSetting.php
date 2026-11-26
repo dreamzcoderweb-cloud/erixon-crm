@@ -12,6 +12,7 @@ class GeneralSetting extends Model
     protected $fillable = [
         'company_name',
         'logo',
+        'proposal_logo',
         'favicon',
         'whatsapp_no',
         'theme_color',
