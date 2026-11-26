@@ -28,6 +28,7 @@ Route::prefix('v1')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('me', [StaffAuthController::class, 'me']);
         Route::get('staff/menus', [StaffAuthController::class, 'menuAccess']);
+        Route::get('staff/menu-access', [StaffAuthController::class, 'menuAccess']);
         Route::post('logout', [StaffAuthController::class, 'logout']);
         Route::get('staff/call-checkout-status', [StaffAuthController::class, 'callCheckOutStatus']);
         Route::get('staff/call-logout-status', [StaffAuthController::class, 'callLogoutStatus']);

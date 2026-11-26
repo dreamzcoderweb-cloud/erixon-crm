@@ -111,6 +111,7 @@ class StaffAuthController extends Controller
     /**
      * Get staff menu permissions map matching Admin Panel sidebar.
      * GET /api/v1/staff/menu-access
+     * GET /api/v1/staff/menus
      */
     public function menuAccess(Request $request)
     {
@@ -119,12 +120,17 @@ class StaffAuthController extends Controller
             return response()->json(['status' => false, 'message' => 'Unauthenticated.'], 401);
         }
 
+        $menuAccess = $this->getMenuAccess($user);
+        $menuList   = $this->getMenuList($user, $menuAccess);
+
         return response()->json([
             'status'      => true,
             'user_id'     => $user->id,
             'user_name'   => $user->name,
             'role'        => $user->getRoleNames()->first(),
-            'menu_access' => $this->getMenuAccess($user),
+            'menu_access' => $menuAccess,
+            'menus'       => $menuList,
+            'menu_names'  => collect($menuList)->where('has_access', true)->pluck('name')->values(),
             'permissions' => $user->getAllPermissions()->pluck('name')->values(),
         ]);
     }
@@ -184,6 +190,8 @@ class StaffAuthController extends Controller
         $userData['role'] = $roleName;
         $userData['permissions'] = $user->getAllPermissions()->pluck('name')->values();
         $userData['menu_access'] = $this->getMenuAccess($user);
+        $userData['menus'] = $this->getMenuList($user, $userData['menu_access']);
+        $userData['menu_names'] = collect($userData['menus'])->where('has_access', true)->pluck('name')->values();
 
         $salaryStatus = (int) general_setting('salary', 0);
         $userData['salary_status'] = $salaryStatus;
@@ -222,16 +230,25 @@ class StaffAuthController extends Controller
             'coordinations'      => $isAdmin || $user->can('coordinations.view'),
             'demo_processes'     => $isAdmin || $user->can('demo-processes.view'),
             'leads'              => $isAdmin || $user->can('leads.view'),
+            'sale_closed'        => $isAdmin || $user->can('sale-closed.view') || $user->can('leads.view') || $user->isStaff(),
             'followups'          => $isAdmin || $user->can('followups.view'),
             'lead_documents'     => $isAdmin || $user->can('lead-documents.view'),
             'call_recordings'    => $isAdmin || $user->can('call-recordings.view'),
             'call_logs'          => $isAdmin || $user->can('call-logs.view'),
             'call_reports'       => $isAdmin || $user->can('call-log-reports.view'),
+            'lead_sources'       => $isAdmin || $user->can('lead-sources.view'),
+            'lead_stages'        => $isAdmin || $user->can('lead-stages.view'),
+            'lead_requirements'  => $isAdmin || $user->can('lead-requirements.view'),
+            'lost_reasons'       => $isAdmin || $user->can('lost-reasons.view'),
+            'credit_requests'    => $isAdmin || $user->can('credit-requests.view') || $user->can('credit-requests.create') || $user->isStaff(),
+            'payments'           => $isAdmin || $user->can('payments.view'),
             'attendance'         => $isAdmin || $user->can('attendance.view'),
             'attendance_reports' => $isAdmin || $user->can('attendance-reports.view'),
-            'leaves'             => $isAdmin || $user->can('leaves.view'),
+            'leaves'             => $isAdmin || $user->can('leaves.view') || $user->can('leaves.create') || $user->isStaff(),
             'salary'             => $salaryEnabled && ($isAdmin || $user->can('salary.view')),
             'incentives'         => $isAdmin || $user->can('incentives.view'),
+            'branches'           => $isAdmin || $user->can('branches.view') || $user->isStaff(),
+            'teams'              => $isAdmin || $user->can('teams.view') || $user->isStaff(),
             'staff'              => $isAdmin || $user->can('staff.view'),
             'roles'              => $isAdmin || $user->can('roles.view'),
             'templates'          => $isAdmin || $user->can('templates.view'),
@@ -239,7 +256,282 @@ class StaffAuthController extends Controller
             'pending_works'      => $isAdmin || $user->can('pending-works.view') || true, // Accessible to staff
             'daily_learnings'    => $isAdmin || $user->can('daily-learnings.view') || true,
             'commitments'        => $isAdmin || $user->can('commitments.view') || true,
-            'settings'           => $isAdmin || $user->can('general-settings.view') || $user->can('lead-settings.view'),
+            'settings'           => $isAdmin || $user->can('general-settings.view') || $user->can('lead-settings.view') || $user->can('customer-settings.view') || $user->can('followup-settings.view') || $user->can('credit-request-settings.view') || $user->can('demo-process-settings.view'),
+            'audit_logs'         => $isAdmin || $user->can('audit-logs.view'),
+            'notifications'      => true,
+
+            // Aliases (kebab-case, singular, etc.) for compatibility with different API clients
+            'sale-closed'        => $isAdmin || $user->can('sale-closed.view') || $user->can('leads.view') || $user->isStaff(),
+            'sales_closed'       => $isAdmin || $user->can('sale-closed.view') || $user->can('leads.view') || $user->isStaff(),
+            'credit-requests'    => $isAdmin || $user->can('credit-requests.view') || $user->can('credit-requests.create') || $user->isStaff(),
+            'lead-documents'     => $isAdmin || $user->can('lead-documents.view'),
+            'call-recordings'    => $isAdmin || $user->can('call-recordings.view'),
+            'call-logs'          => $isAdmin || $user->can('call-logs.view'),
+            'call-reports'       => $isAdmin || $user->can('call-log-reports.view'),
+            'call_log_reports'   => $isAdmin || $user->can('call-log-reports.view'),
+            'lead-sources'       => $isAdmin || $user->can('lead-sources.view'),
+            'lead-stages'        => $isAdmin || $user->can('lead-stages.view'),
+            'lead-requirements'  => $isAdmin || $user->can('lead-requirements.view'),
+            'lost-reasons'       => $isAdmin || $user->can('lost-reasons.view'),
+            'attendance-reports' => $isAdmin || $user->can('attendance-reports.view'),
+            'leave_requests'     => $isAdmin || $user->can('leaves.view') || $user->can('leaves.create') || $user->isStaff(),
+            'leave-requests'     => $isAdmin || $user->can('leaves.view') || $user->can('leaves.create') || $user->isStaff(),
+            'pending-works'      => $isAdmin || $user->can('pending-works.view') || true,
+            'pending_work'       => $isAdmin || $user->can('pending-works.view') || true,
+            'daily-learnings'    => $isAdmin || $user->can('daily-learnings.view') || true,
+            'daily_learning'     => $isAdmin || $user->can('daily-learnings.view') || true,
+            'commitment'         => $isAdmin || $user->can('commitments.view') || true,
+            'coordination'       => $isAdmin || $user->can('coordinations.view'),
+            'demo-processes'     => $isAdmin || $user->can('demo-processes.view'),
+            'demo_process'       => $isAdmin || $user->can('demo-processes.view'),
+            'audit-logs'         => $isAdmin || $user->can('audit-logs.view'),
+        ];
+    }
+
+    /**
+     * Get structured menu list matching Admin Panel sidebar.
+     */
+    private function getMenuList(User $user, array $menuAccess): array
+    {
+        return [
+            [
+                'key'        => 'dashboard',
+                'name'       => 'Dashboards',
+                'title'      => 'Dashboards',
+                'icon'       => 'bx bx-home-smile',
+                'has_access' => (bool) ($menuAccess['dashboard'] ?? false),
+            ],
+            [
+                'key'        => 'branches',
+                'name'       => 'Branches',
+                'title'      => 'Branches',
+                'icon'       => 'bx bx-buildings',
+                'has_access' => (bool) ($menuAccess['branches'] ?? false),
+            ],
+            [
+                'key'        => 'teams',
+                'name'       => 'Teams',
+                'title'      => 'Teams',
+                'icon'       => 'bx bx-group',
+                'has_access' => (bool) ($menuAccess['teams'] ?? false),
+            ],
+            [
+                'key'        => 'roles',
+                'name'       => 'Role Master',
+                'title'      => 'Role Master',
+                'icon'       => 'bx bx-lock-alt',
+                'has_access' => (bool) ($menuAccess['roles'] ?? false),
+            ],
+            [
+                'key'        => 'staff',
+                'name'       => 'Staff',
+                'title'      => 'Staff',
+                'icon'       => 'bx bx-user-check',
+                'has_access' => (bool) ($menuAccess['staff'] ?? false),
+            ],
+            [
+                'key'        => 'attendance',
+                'name'       => 'Attendance',
+                'title'      => 'Attendance',
+                'icon'       => 'bx bx-time-five',
+                'has_access' => (bool) ($menuAccess['attendance'] ?? false),
+            ],
+            [
+                'key'        => 'attendance_reports',
+                'name'       => 'Attendance Report',
+                'title'      => 'Attendance Report',
+                'icon'       => 'bx bx-calendar-check',
+                'has_access' => (bool) ($menuAccess['attendance_reports'] ?? false),
+            ],
+            [
+                'key'        => 'leaves',
+                'name'       => 'Leave & Salary',
+                'title'      => 'Leave & Salary',
+                'icon'       => 'bx bx-calendar-x',
+                'has_access' => (bool) ($menuAccess['leaves'] ?? false),
+            ],
+            [
+                'key'        => 'salary',
+                'name'       => 'Salary',
+                'title'      => 'Salary',
+                'icon'       => 'bx bx-wallet',
+                'has_access' => (bool) ($menuAccess['salary'] ?? false),
+            ],
+            [
+                'key'        => 'incentives',
+                'name'       => 'Incentives',
+                'title'      => 'Incentives',
+                'icon'       => 'bx bx-dollar-circle',
+                'has_access' => (bool) ($menuAccess['incentives'] ?? false),
+            ],
+            [
+                'key'        => 'customers',
+                'name'       => 'Customers',
+                'title'      => 'Customers',
+                'icon'       => 'bx bx-user',
+                'has_access' => (bool) ($menuAccess['customers'] ?? false),
+            ],
+            [
+                'key'        => 'coordinations',
+                'name'       => 'Coordination',
+                'title'      => 'Coordination',
+                'icon'       => 'bx bx-git-repo-forked',
+                'has_access' => (bool) ($menuAccess['coordinations'] ?? false),
+            ],
+            [
+                'key'        => 'demo_processes',
+                'name'       => 'Demo Process',
+                'title'      => 'Demo Process',
+                'icon'       => 'bx bx-slideshow',
+                'has_access' => (bool) ($menuAccess['demo_processes'] ?? false),
+            ],
+            [
+                'key'        => 'leads',
+                'name'       => 'Leads',
+                'title'      => 'Leads',
+                'icon'       => 'bx bx-target-lock',
+                'has_access' => (bool) ($menuAccess['leads'] ?? false),
+            ],
+            [
+                'key'        => 'sale_closed',
+                'name'       => 'Sale Closed',
+                'title'      => 'Sale Closed',
+                'icon'       => 'bx bx-check-double',
+                'has_access' => (bool) ($menuAccess['sale_closed'] ?? false),
+            ],
+            [
+                'key'        => 'followups',
+                'name'       => 'Follow-ups',
+                'title'      => 'Follow-ups',
+                'icon'       => 'bx bx-calendar-event',
+                'has_access' => (bool) ($menuAccess['followups'] ?? false),
+            ],
+            [
+                'key'        => 'lead_documents',
+                'name'       => 'Lead Documents',
+                'title'      => 'Lead Documents',
+                'icon'       => 'bx bx-file',
+                'has_access' => (bool) ($menuAccess['lead_documents'] ?? false),
+            ],
+            [
+                'key'        => 'call_recordings',
+                'name'       => 'Call Recordings',
+                'title'      => 'Call Recordings',
+                'icon'       => 'bx bx-microphone',
+                'has_access' => (bool) ($menuAccess['call_recordings'] ?? false),
+            ],
+            [
+                'key'        => 'call_logs',
+                'name'       => 'Call Logs',
+                'title'      => 'Call Logs',
+                'icon'       => 'bx bx-phone-call',
+                'has_access' => (bool) ($menuAccess['call_logs'] ?? false),
+            ],
+            [
+                'key'        => 'call_reports',
+                'name'       => 'Call Log Report',
+                'title'      => 'Call Log Report',
+                'icon'       => 'bx bx-line-chart',
+                'has_access' => (bool) ($menuAccess['call_reports'] ?? false),
+            ],
+            [
+                'key'        => 'lead_sources',
+                'name'       => 'Lead Sources',
+                'title'      => 'Lead Sources',
+                'icon'       => 'bx bx-git-branch',
+                'has_access' => (bool) ($menuAccess['lead_sources'] ?? false),
+            ],
+            [
+                'key'        => 'lead_stages',
+                'name'       => 'Lead Stages',
+                'title'      => 'Lead Stages',
+                'icon'       => 'bx bx-bar-chart-alt-2',
+                'has_access' => (bool) ($menuAccess['lead_stages'] ?? false),
+            ],
+            [
+                'key'        => 'lead_requirements',
+                'name'       => 'Lead Requirements',
+                'title'      => 'Lead Requirements',
+                'icon'       => 'bx bx-list-check',
+                'has_access' => (bool) ($menuAccess['lead_requirements'] ?? false),
+            ],
+            [
+                'key'        => 'lost_reasons',
+                'name'       => 'Lost Reasons',
+                'title'      => 'Lost Reasons',
+                'icon'       => 'bx bx-dislike',
+                'has_access' => (bool) ($menuAccess['lost_reasons'] ?? false),
+            ],
+            [
+                'key'        => 'credit_requests',
+                'name'       => 'Credit Requests',
+                'title'      => 'Credit Requests',
+                'icon'       => 'bx bx-credit-card',
+                'has_access' => (bool) ($menuAccess['credit_requests'] ?? false),
+            ],
+            [
+                'key'        => 'payments',
+                'name'       => 'Payments',
+                'title'      => 'Payments',
+                'icon'       => 'bx bx-receipt',
+                'has_access' => (bool) ($menuAccess['payments'] ?? false),
+            ],
+            [
+                'key'        => 'proposals',
+                'name'       => 'Proposals',
+                'title'      => 'Proposals',
+                'icon'       => 'bx bx-file-blank',
+                'has_access' => (bool) ($menuAccess['proposals'] ?? false),
+            ],
+            [
+                'key'        => 'templates',
+                'name'       => 'Templates',
+                'title'      => 'Templates',
+                'icon'       => 'bx bx-copy-alt',
+                'has_access' => (bool) ($menuAccess['templates'] ?? false),
+            ],
+            [
+                'key'        => 'pending_works',
+                'name'       => 'Pending Work',
+                'title'      => 'Pending Work',
+                'icon'       => 'bx bx-task',
+                'has_access' => (bool) ($menuAccess['pending_works'] ?? false),
+            ],
+            [
+                'key'        => 'daily_learnings',
+                'name'       => 'Daily Learning',
+                'title'      => 'Daily Learning',
+                'icon'       => 'bx bx-book-open',
+                'has_access' => (bool) ($menuAccess['daily_learnings'] ?? false),
+            ],
+            [
+                'key'        => 'commitments',
+                'name'       => 'Commitment',
+                'title'      => 'Commitment',
+                'icon'       => 'bx bx-check-shield',
+                'has_access' => (bool) ($menuAccess['commitments'] ?? false),
+            ],
+            [
+                'key'        => 'settings',
+                'name'       => 'Settings',
+                'title'      => 'Settings',
+                'icon'       => 'bx bx-cog',
+                'has_access' => (bool) ($menuAccess['settings'] ?? false),
+            ],
+            [
+                'key'        => 'audit_logs',
+                'name'       => 'Audit Logs',
+                'title'      => 'Audit Logs',
+                'icon'       => 'bx bx-history',
+                'has_access' => (bool) ($menuAccess['audit_logs'] ?? false),
+            ],
+            [
+                'key'        => 'notifications',
+                'name'       => 'Notifications',
+                'title'      => 'Notifications',
+                'icon'       => 'bx bx-bell',
+                'has_access' => (bool) ($menuAccess['notifications'] ?? false),
+            ],
         ];
     }
 }
