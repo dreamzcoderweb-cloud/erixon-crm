@@ -327,6 +327,18 @@
                         </button>
                     </div>
 
+                    <!-- Lead Requirement Pre-configured Slabs -->
+                    <div id="proposalSlabsWrapper" class="d-none alert alert-light border border-primary py-2 px-3 mb-3">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <div class="small fw-semibold text-primary">
+                                <i class="bx bx-purchase-tag-alt me-1"></i> Pre-configured Slabs (<span id="slabCustTypeBadge" class="text-uppercase badge bg-label-info">User</span>):
+                            </div>
+                            <div class="d-flex align-items-center flex-wrap gap-1" id="proposalSlabsButtons">
+                                <!-- Dynamic slab pills inserted via JS -->
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="table-responsive border rounded bg-white">
                         <table class="table table-bordered align-middle mb-0" id="proposalItemsTable" style="min-width: 950px;">
                             <thead class="table-light">

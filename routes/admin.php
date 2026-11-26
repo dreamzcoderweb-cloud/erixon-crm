@@ -247,6 +247,8 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
         ->middleware('permission:lead-requirements.edit');
     Route::post('lead-requirements/update/{id}', [LeadRequirementController::class, 'update'])
         ->middleware('permission:lead-requirements.edit');
+    Route::get('lead-requirements/{id}/prices', [LeadRequirementController::class, 'getPrices'])
+        ->name('lead-requirements.prices');
     Route::delete('lead-requirements/delete/{id}', [LeadRequirementController::class, 'destroy'])
         ->middleware('permission:lead-requirements.delete');
     Route::post('lead-requirements/change-status/{id}', [LeadRequirementController::class, 'changeStatus'])

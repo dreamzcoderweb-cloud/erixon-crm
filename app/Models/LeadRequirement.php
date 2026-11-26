@@ -22,4 +22,9 @@ class LeadRequirement extends Model
     {
         return $this->hasMany(Lead::class, 'lead_requirement_id', 'lead_requirements_id');
     }
+
+    public function prices()
+    {
+        return $this->hasMany(LeadRequirementPrice::class, 'lead_requirement_id', 'lead_requirements_id');
+    }
 }

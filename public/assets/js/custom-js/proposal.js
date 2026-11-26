@@ -231,6 +231,95 @@ $(document).ready(function () {
     });
 
     // -------------------------------------------------------------
+    // Lead Requirement Pre-configured Slabs Auto-Loader
+    // -------------------------------------------------------------
+    function loadRequirementSlabs() {
+        let reqId = $('#lead_requirement_id').val();
+        let custType = $('#customer_type').val() || 'user';
+        let $wrapper = $('#proposalSlabsWrapper');
+        let $buttons = $('#proposalSlabsButtons');
+        let $badge = $('#slabCustTypeBadge');
+
+        if (!reqId) {
+            $wrapper.addClass('d-none');
+            $buttons.empty();
+            return;
+        }
+
+        $badge.text(custType).removeClass('bg-label-info bg-label-warning')
+            .addClass(custType === 'reseller' ? 'bg-label-warning' : 'bg-label-info');
+
+        $.ajax({
+            url: appUrl('/admin/lead-requirements/' + reqId + '/prices'),
+            type: 'GET',
+            data: { customer_type: custType },
+            success: function (res) {
+                if (res.status && res.data && res.data.length > 0) {
+                    let btnsHtml = '';
+                    res.data.forEach(function (slab) {
+                        let typeTag = slab.customer_type === 'reseller' ? '<span class="text-warning fw-bold">[Reseller]</span> ' : (slab.customer_type === 'user' ? '<span class="text-info fw-bold">[User]</span> ' : '');
+                        btnsHtml += `
+                            <button type="button" class="btn btn-xs btn-outline-primary btn-quick-add-slab shadow-none py-1 px-2"
+                                data-qty="${slab.quantity}"
+                                data-price="${slab.unit_price_paisa}"
+                                data-subtotal="${slab.subtotal}"
+                                data-tax-pct="${slab.tax_percentage}"
+                                data-tax-amt="${slab.tax_amount}"
+                                data-total="${slab.total_amount}"
+                                title="${slab.package_name}: Qty ${slab.quantity} @ ₹${slab.unit_price_paisa} + ${slab.tax_percentage}% GST = ₹${slab.total_amount}">
+                                <i class="bx bx-plus me-1"></i>${typeTag}<strong>${slab.package_name || slab.quantity}</strong> (₹${parseFloat(slab.unit_price_paisa).toFixed(2)} | ₹${parseFloat(slab.total_amount).toLocaleString('en-IN')})
+                            </button>
+                        `;
+                    });
+                    $buttons.html(btnsHtml);
+                    $wrapper.removeClass('d-none');
+                } else {
+                    $wrapper.addClass('d-none');
+                    $buttons.empty();
+                }
+            },
+            error: function () {
+                $wrapper.addClass('d-none');
+                $buttons.empty();
+            }
+        });
+    }
+
+    // Refresh available slabs on Requirement or Customer Type change
+    $('#lead_requirement_id, #customer_type').on('change', function () {
+        loadRequirementSlabs();
+    });
+
+    // Quick-add pre-configured slab button click
+    $(document).on('click', '.btn-quick-add-slab', function () {
+        let slabData = {
+            package: $(this).data('qty'),
+            price: $(this).data('price'),
+            subtotal: $(this).data('subtotal'),
+            tax_percentage: $(this).data('tax-pct'),
+            tax_amount: $(this).data('tax-amt'),
+            amount: $(this).data('total')
+        };
+
+        // If current items table has only 1 row and it is empty, fill it instead of appending new row
+        let $rows = $('#proposalItemsTbody tr.item-row');
+        if ($rows.length === 1) {
+            let firstPkg = $rows.first().find('.item-pkg').val();
+            let firstPrice = $rows.first().find('.item-price').val();
+            if (!firstPkg && !firstPrice) {
+                $rows.first().find('.item-pkg').val(slabData.package);
+                $rows.first().find('.item-price').val(slabData.price);
+                $rows.first().find('.item-tax-pct').val(slabData.tax_percentage);
+                recalculateRow($rows.first());
+                updateSummaryTotals();
+                return;
+            }
+        }
+
+        addProductRow(slabData);
+    });
+
+    // -------------------------------------------------------------
     // 3. DataTable Initialization with Full Export Buttons
     // -------------------------------------------------------------
     function updateKpiMetrics(proposals) {
@@ -551,6 +640,8 @@ $(document).ready(function () {
         $('#proposalModalTitle').text('Create New Proposal');
         $('#proposalModalSubtitle').text('Enter proposal details, product packages, and sales manager');
         $('#saveProposalBtnText').text('Save Proposal');
+        $('#proposalSlabsWrapper').addClass('d-none');
+        $('#proposalSlabsButtons').empty();
         $('#proposalItemsTbody').empty();
         itemRowIndex = 0;
 
@@ -713,6 +804,7 @@ $(document).ready(function () {
                 }
 
                 updateSummaryTotals();
+                loadRequirementSlabs();
                 $('#proposalModal').modal('show');
             },
             error: function () {
